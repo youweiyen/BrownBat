@@ -1,0 +1,108 @@
+﻿using System;
+using System.Collections.Generic;
+
+using Grasshopper.Kernel;
+using Rhino.Geometry;
+using CsvHelper;
+using System.IO;
+using System.Globalization;
+using CsvHelper.Configuration;
+using BrownBat.Components;
+using System.Linq;
+using Rhino.Commands;
+using System.Text.RegularExpressions;
+
+namespace BrownBat.Construct
+{
+    public class GH_ConstructOriginPanel : GH_Component
+    {
+
+        public GH_ConstructOriginPanel()
+          : base("ConstructOriginalPanel", "OP",
+              "Add the data to the panel geometry",
+              "BrownBat", "Construct")
+        {
+        }
+
+        protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
+        {
+            pManager.AddTextParameter("DataPath", "D", "Data Source Path", GH_ParamAccess.list);
+            pManager.AddGenericParameter("PanelGeometry", "G", "Panel Geometry", GH_ParamAccess.list);
+        }
+
+        protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
+        {
+            pManager.AddGenericParameter("Panel", "P", "Panel", GH_ParamAccess.list);
+        }
+
+        /// <summary>
+        /// This is the method that actually does the work.
+        /// </summary>
+        /// <param name="DA">The DA object is used to retrieve from inputs and store in outputs.</param>
+        protected override void SolveInstance(IGH_DataAccess DA)
+        {
+            List<string> inputPaths = new List<string>();
+            List<Panel> inputGeometry = new List<Panel>();
+
+            DA.GetDataList(0, inputPaths);
+            DA.GetDataList(1, inputGeometry);
+
+            List<Panel> outputPanels = new List<Panel>();
+
+            for (int i = 0; i < inputPaths.Count; i++)
+            {
+                List<double[]>rowList = new List<double[]>();
+                string name = Path.GetFileNameWithoutExtension(inputPaths[i]);
+                using (StreamReader reader = new StreamReader(inputPaths[i]))
+                {
+                    var csvConfig = new CsvConfiguration(CultureInfo.InvariantCulture)
+                    {
+                        HasHeaderRecord = false
+                    };
+                    using (var csv = new CsvReader(reader, csvConfig))
+                    {
+                        while (csv.Read()) 
+                        {
+
+                            List<double> rows = new List<double>();
+                            for (int p = 0; csv.TryGetField<double>(p, out double pixel); p++)
+                            {
+                                rows.Add(pixel);
+                            }
+                            double[] row = rows.ToArray();
+                            rows.Clear();
+                            rowList.Add(row);
+                        }
+                    }
+                }
+                Panel panel = inputGeometry.Where(g => g.Name == name).FirstOrDefault();
+                Panel.SetPanelConductivity(panel, rowList);
+                
+                outputPanels.Add(panel);
+            }
+
+            DA.SetDataList(0, outputPanels);
+        }
+
+        /// <summary>
+        /// Provides an Icon for the component.
+        /// </summary>
+        protected override System.Drawing.Bitmap Icon
+        {
+            get
+            {
+                //You can add image files to your project resources and access them like this:
+                // return Resources.IconForThisComponent;
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Gets the unique ID for this component. Do not change this ID after release.
+        /// </summary>
+        public override Guid ComponentGuid
+        {
+            get { return new Guid("56B17B3A-26E2-45F5-A351-CE15966A786A"); }
+        }
+    }
+}

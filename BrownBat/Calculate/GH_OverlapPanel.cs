@@ -7,6 +7,7 @@ using Rhino.Geometry.Collections;
 using Rhino.Geometry.Intersect;
 using BrownBat.Components;
 using System.Linq;
+using System.Diagnostics;
 
 namespace BrownBat.Calculate
 {
@@ -32,8 +33,7 @@ namespace BrownBat.Calculate
             pManager.AddGeometryParameter("point", "p", "wallpoint", GH_ParamAccess.list);
             pManager.AddGeometryParameter("curve", "c", "pointcurve", GH_ParamAccess.list);
             pManager.AddGeometryParameter("brep", "b", "interbrep", GH_ParamAccess.list);
-
-
+            pManager.AddTextParameter("Stopwatch", "s", "stopwatch", GH_ParamAccess.item);
         }
 
         protected override void SolveInstance(IGH_DataAccess DA)
@@ -61,10 +61,14 @@ namespace BrownBat.Calculate
                                             .First();
 
             List<Pixel[]> wallPixels = inputWall.Pixel;
+            Wall.WallShape(inputWall);
             List<Brep> tBrep = new List<Brep> { topSurfaces[0].ToBrep(), topSurfaces[1].ToBrep() };
 
             List<Point3d> twallpoints = new List<Point3d>();
             List<Curve> tcurves = new List<Curve>();
+
+            Stopwatch stopWatch = new Stopwatch();
+            stopWatch.Start();
 
             for (int rowPoint = 0; rowPoint < wallPixels.Count; rowPoint++)
             {
@@ -102,10 +106,9 @@ namespace BrownBat.Calculate
                             double yPosition = Math.Abs(origin.Y - orientPoint.Y);
                             (double, double) intersectPanelPosition = (xPosition, yPosition);
 
-                            //int xDomain = (int) Math.Round(xPosition * (inputWall.PixelShape / inputWall.GeometryShape.Item1));
-                            //int yDomain = (int) Math.Round(yPosition * (inputWall.PixelShape / inputWall.GeometryShape.Item2));
-                            int xDomain = 1;
-                            int yDomain = 1;
+                            int xDomain = (int) Math.Round(xPosition * (inputWall.PixelShape / inputWall.GeometryShape.Item1));
+                            int yDomain = (int) Math.Round(yPosition * (inputWall.PixelShape / inputWall.GeometryShape.Item2));
+
                             (int, int) intersectPanelDomain = (xDomain, yDomain);
 
                             panelToPosition.Add(intersectPanelName, intersectPanelPosition);
@@ -118,10 +121,17 @@ namespace BrownBat.Calculate
                 }
 
             }
+            stopWatch.Stop();
+            TimeSpan ts = stopWatch.Elapsed;
+            string elapsedTime = String.Format("{0:00}:{1:00}:{2:00}.{3:00}",
+            ts.Hours, ts.Minutes, ts.Seconds,
+            ts.Milliseconds / 10);
+
             DA.SetData(0, inputWall);
-            DA.SetDataList(1, twallpoints);
-            DA.SetDataList(2, tcurves);
-            DA.SetDataList(3, tBrep);
+            //DA.SetDataList(1, twallpoints);
+            //DA.SetDataList(2, tcurves);
+            //DA.SetDataList(3, tBrep);
+            DA.SetData(4, elapsedTime);
 
 
         }

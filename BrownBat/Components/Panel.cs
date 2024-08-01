@@ -1,4 +1,5 @@
-﻿using GH_IO.Serialization;
+﻿using Eto.Forms;
+using GH_IO.Serialization;
 using Grasshopper.Kernel.Types;
 using Rhino;
 using Rhino.Geometry;
@@ -19,6 +20,7 @@ namespace BrownBat.Components
         public Brep Model { get; }
         public (double, double) GeometryShape { get; private set; }
         public double GeometryThickness { get; private set; }
+        public Curve GeometryBaseCurve { get; private set; }
 
         public List<double[]> PixelTemperature { get; private set; }
         public List<double[]> PixelConductivity { get; private set; }
@@ -72,6 +74,17 @@ namespace BrownBat.Components
                                             .OrderByDescending(p => p).ToList();
             double surfaceDistance = Math.Abs(surfaceZ.First() - surfaceZ.Last());
             panel.GeometryThickness = surfaceDistance;
+        }
+        public static void BaseCurve(Panel panel)
+        {
+            Brep model = panel.Model;
+            BrepFaceList faces = model.Faces;
+            BrepFace bottomFace = faces.OrderBy(f => f.PointAt(0.5, 0.5).Z).First();
+
+            Curve[] edgeCurves = bottomFace.ToBrep().DuplicateEdgeCurves();
+            Curve joinedEdge = Curve.JoinCurves(edgeCurves)[0];
+
+            panel.GeometryBaseCurve = joinedEdge;
         }
         public static void CSVShape(Panel panel)
         {

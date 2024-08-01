@@ -32,7 +32,6 @@ namespace BrownBat.Calculate
             pManager.AddGenericParameter("Wall", "W", "Wall", GH_ParamAccess.list);
             pManager.AddGeometryParameter("point", "p", "wallpoint", GH_ParamAccess.list);
             pManager.AddGeometryParameter("curve", "c", "pointcurve", GH_ParamAccess.list);
-            pManager.AddGeometryParameter("brep", "b", "interbrep", GH_ParamAccess.list);
             pManager.AddTextParameter("Stopwatch", "s", "stopwatch", GH_ParamAccess.item);
         }
 
@@ -47,25 +46,39 @@ namespace BrownBat.Calculate
 
             IEnumerable<Brep> inputModelBrep = inputModelPanel.Select(m => m.Model);
 
-            List<BrepFace> topSurfaces = new List<BrepFace>();
-            foreach (Brep profile in inputModelBrep)
+            //point in curve calculation
+            List<Curve> tcurves = new List<Curve>();
+            foreach (Panel inputPanel in inputModelPanel)
             {
-                BrepFaceList faces = profile.Faces;
-                BrepFace sortedSurface = faces
-                                .OrderByDescending(f => f.PointAt(0.5, 0.5).Z)
-                                .First();
-                topSurfaces.Add(sortedSurface);
+                Panel.BaseCurve(inputPanel);
+                tcurves.Add(inputPanel.GeometryBaseCurve);
             }
-            double projectLength = topSurfaces.Select(srf => srf.PointAt(0.5, 0.5).Z)
-                                            .OrderByDescending(p => p)
-                                            .First();
 
+            #region intersectCalculation
+            ////intersect calculation
+            //List<BrepFace> topSurfaces = new List<BrepFace>();
+            //foreach (Brep profile in inputModelBrep)
+            //{
+            //    BrepFaceList faces = profile.Faces;
+            //    BrepFace sortedSurface = faces
+            //                    .OrderByDescending(f => f.PointAt(0.5, 0.5).Z)
+            //                    .First();
+            //    topSurfaces.Add(sortedSurface);
+            //}
+            //double projectLength = topSurfaces.Select(srf => srf.PointAt(0.5, 0.5).Z)
+            //                                .OrderByDescending(p => p)
+            //                                .First();
+            #endregion
             List<Pixel[]> wallPixels = inputWall.Pixel;
             Wall.WallShape(inputWall);
-            List<Brep> tBrep = new List<Brep> { topSurfaces[0].ToBrep(), topSurfaces[1].ToBrep() };
-
             List<Point3d> twallpoints = new List<Point3d>();
-            List<Curve> tcurves = new List<Curve>();
+            for (int rowPoint = 0; rowPoint < wallPixels.Count; rowPoint++)
+            {
+                foreach (Pixel pixel in wallPixels[rowPoint])
+                {
+                    twallpoints.Add(pixel.PixelGeometry);
+                }
+            }
 
             Stopwatch stopWatch = new Stopwatch();
             stopWatch.Start();
@@ -78,26 +91,22 @@ namespace BrownBat.Calculate
                     Dictionary<string, (double, double)> panelToPosition = new Dictionary<string, (double, double)>();
                     Dictionary<string, (int, int)> panelToDomain = new Dictionary<string, (int, int)>();
 
-                    for (int i = 0; i < topSurfaces.Count(); i++)
+                    for (int i = 0; i < inputModelPanel.Count(); i++)
                     {
-                        Line positionLine = new Line(pixel.PixelGeometry, Vector3d.ZAxis, projectLength + 10);
-                        twallpoints.Add(pixel.PixelGeometry);
-                        Curve positionCurve = positionLine.ToNurbsCurve();
-                        tcurves.Add(positionCurve);
-                        bool projectedPoint = Intersection.CurveBrepFace
-                                                            (positionCurve,
-                                                            topSurfaces[i],
-                                                            0.01,
-                                                            out Curve[] overlapCurves,
-                                                            out Point3d[] intersectionPoints);
-                        if (projectedPoint == true && intersectionPoints.Count() != 0)
+                        //point in curve calculation
+                        PointContainment containment = inputModelPanel[i].GeometryBaseCurve.Contains(pixel.PixelGeometry, Plane.WorldXY, 0.02);
+
+                        if (containment == PointContainment.Unset)
                         {
-                            Point3d intersectPoint = intersectionPoints[0];
+                            throw new Exception("curve is not valid");
+                        }
+                        if (containment == PointContainment.Inside)
+                        {
                             string intersectPanelName = inputModelPanel[i].Name;
                             intersectPanelNames.Add(intersectPanelName);
 
                             Panel intersectModel = inputModelPanel.Where(panel => panel.Name == intersectPanelName).First();
-                            Panel intersectPanel = inputModelPanel.Where(panel => panel.Name == intersectPanelName).First();
+                            Panel intersectPanel = inputOriginPanel.Where(panel => panel.Name == intersectPanelName).First();
                             Transform matrix = Transform.PlaneToPlane(intersectModel.Origin, intersectPanel.Origin);
                             Point3d orientPoint = new Point3d(pixel.PixelGeometry);
                             orientPoint.Transform(matrix);
@@ -106,14 +115,53 @@ namespace BrownBat.Calculate
                             double yPosition = Math.Abs(origin.Y - orientPoint.Y);
                             (double, double) intersectPanelPosition = (xPosition, yPosition);
 
-                            int xDomain = (int) Math.Round(xPosition * (inputWall.PixelShape / inputWall.GeometryShape.Item1));
-                            int yDomain = (int) Math.Round(yPosition * (inputWall.PixelShape / inputWall.GeometryShape.Item2));
+                            int xDomain = (int)Math.Round(xPosition * (inputWall.PixelShape / inputWall.GeometryShape.Item1));
+                            int yDomain = (int)Math.Round(yPosition * (inputWall.PixelShape / inputWall.GeometryShape.Item2));
 
                             (int, int) intersectPanelDomain = (xDomain, yDomain);
 
                             panelToPosition.Add(intersectPanelName, intersectPanelPosition);
                             panelToDomain.Add(intersectPanelName, intersectPanelDomain);
                         }
+                        #region intersectCalculation
+                        ////intersect calculation
+                        //Line positionLine = new Line(pixel.PixelGeometry, Vector3d.ZAxis, projectLength + 10);
+                        //twallpoints.Add(pixel.PixelGeometry);
+                        //Curve positionCurve = positionLine.ToNurbsCurve();
+                        //tcurves.Add(positionCurve);
+                        //bool projectedPoint = Intersection.CurveBrepFace
+                        //                                    (positionCurve,
+                        //                                    topSurfaces[i],
+                        //                                    0.01,
+                        //                                    out Curve[] overlapCurves,
+                        //                                    out Point3d[] intersectionPoints);
+
+                        //if (projectedPoint == true && intersectionPoints.Count() != 0)
+                        //{
+                        //    Point3d intersectPoint = intersectionPoints[0];
+                        //    string intersectPanelName = inputModelPanel[i].Name;
+                        //    intersectPanelNames.Add(intersectPanelName);
+
+                        //    Panel intersectModel = inputModelPanel.Where(panel => panel.Name == intersectPanelName).First();
+                        //    Panel intersectPanel = inputModelPanel.Where(panel => panel.Name == intersectPanelName).First();
+                        //    Transform matrix = Transform.PlaneToPlane(intersectModel.Origin, intersectPanel.Origin);
+                        //    Point3d orientPoint = new Point3d(pixel.PixelGeometry);
+                        //    orientPoint.Transform(matrix);
+                        //    Point3d origin = intersectPanel.Origin.Origin;
+                        //    double xPosition = Math.Abs(origin.X - orientPoint.X);
+                        //    double yPosition = Math.Abs(origin.Y - orientPoint.Y);
+                        //    (double, double) intersectPanelPosition = (xPosition, yPosition);
+
+                        //    int xDomain = (int)Math.Round(xPosition * (inputWall.PixelShape / inputWall.GeometryShape.Item1));
+                        //    int yDomain = (int)Math.Round(yPosition * (inputWall.PixelShape / inputWall.GeometryShape.Item2));
+
+                        //    (int, int) intersectPanelDomain = (xDomain, yDomain);
+
+                        //    panelToPosition.Add(intersectPanelName, intersectPanelPosition);
+                        //    panelToDomain.Add(intersectPanelName, intersectPanelDomain);
+                        //}
+                        #endregion
+
                     }
                     Pixel.SetOverlapPanels(pixel, intersectPanelNames);
                     Pixel.SetPixelPosition(pixel, panelToPosition);
@@ -128,10 +176,9 @@ namespace BrownBat.Calculate
             ts.Milliseconds / 10);
 
             DA.SetData(0, inputWall);
-            //DA.SetDataList(1, twallpoints);
-            //DA.SetDataList(2, tcurves);
-            //DA.SetDataList(3, tBrep);
-            DA.SetData(4, elapsedTime);
+            DA.SetDataList(1, twallpoints);
+            DA.SetDataList(2, tcurves);
+            DA.SetData(3, elapsedTime);
 
 
         }

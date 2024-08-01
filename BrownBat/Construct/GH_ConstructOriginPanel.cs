@@ -76,8 +76,11 @@ namespace BrownBat.Construct
                     }
                 }
                 Panel panel = inputGeometry.Where(g => g.Name == name).FirstOrDefault();
+
                 Panel.SetPanelConductivity(panel, rowList);
-                
+                Panel.CSVShape(panel);
+                Panel.ModelShape(panel);
+
                 outputPanels.Add(panel);
             }
 

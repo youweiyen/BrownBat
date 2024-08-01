@@ -105,18 +105,20 @@ namespace BrownBat.Calculate
                             string intersectPanelName = inputModelPanel[i].Name;
                             intersectPanelNames.Add(intersectPanelName);
 
-                            Panel intersectModel = inputModelPanel.Where(panel => panel.Name == intersectPanelName).First();
-                            Panel intersectPanel = inputOriginPanel.Where(panel => panel.Name == intersectPanelName).First();
-                            Transform matrix = Transform.PlaneToPlane(intersectModel.Origin, intersectPanel.Origin);
+                            Panel intersectModelPanel = inputModelPanel.Where(panel => panel.Name == intersectPanelName).First();
+                            Panel intersectOriginPanel = inputOriginPanel.Where(panel => panel.Name == intersectPanelName).First();
+                            Transform matrix = Transform.PlaneToPlane(intersectModelPanel.Origin, intersectOriginPanel.Origin);
                             Point3d orientPoint = new Point3d(pixel.PixelGeometry);
                             orientPoint.Transform(matrix);
-                            Point3d origin = intersectPanel.Origin.Origin;
+                            Point3d origin = intersectOriginPanel.Origin.Origin;
                             double xPosition = Math.Abs(origin.X - orientPoint.X);
                             double yPosition = Math.Abs(origin.Y - orientPoint.Y);
                             (double, double) intersectPanelPosition = (xPosition, yPosition);
 
-                            int xDomain = (int)Math.Round(xPosition * (inputWall.PixelShape / inputWall.GeometryShape.Item1));
-                            int yDomain = (int)Math.Round(yPosition * (inputWall.PixelShape / inputWall.GeometryShape.Item2));
+                            //int xDomain = (int)Math.Round(xPosition * (inputWall.PixelShape / inputWall.GeometryShape.Item1));
+                            //int yDomain = (int)Math.Round(yPosition * (inputWall.PixelShape / inputWall.GeometryShape.Item2));
+                            int xDomain = (int)Math.Round(xPosition * (intersectOriginPanel.PixelShape.Item1 / intersectOriginPanel.GeometryShape.Item1));
+                            int yDomain = (int)Math.Round(yPosition * (intersectOriginPanel.PixelShape.Item2 / intersectOriginPanel.GeometryShape.Item2));
 
                             (int, int) intersectPanelDomain = (xDomain, yDomain);
 

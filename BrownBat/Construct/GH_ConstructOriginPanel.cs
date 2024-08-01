@@ -11,6 +11,7 @@ using BrownBat.Components;
 using System.Linq;
 using Rhino.Commands;
 using System.Text.RegularExpressions;
+using Rhino;
 
 namespace BrownBat.Construct
 {
@@ -28,6 +29,8 @@ namespace BrownBat.Construct
         {
             pManager.AddTextParameter("DataPath", "D", "Data Source Path", GH_ParamAccess.list);
             pManager.AddGenericParameter("PanelGeometry", "G", "Panel Geometry", GH_ParamAccess.list);
+            pManager.AddBooleanParameter("Bake", "B", "Bake Brep, Name, Origin plane", GH_ParamAccess.item, false);
+            pManager[2].Optional = true;
         }
 
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
@@ -43,9 +46,11 @@ namespace BrownBat.Construct
         {
             List<string> inputPaths = new List<string>();
             List<Panel> inputGeometry = new List<Panel>();
+            bool inputBake = false;
 
             DA.GetDataList(0, inputPaths);
             DA.GetDataList(1, inputGeometry);
+            DA.GetData(2,  ref inputBake);
 
             List<Panel> outputPanels = new List<Panel>();
 
@@ -82,6 +87,54 @@ namespace BrownBat.Construct
                 Panel.ModelShape(panel);
 
                 outputPanels.Add(panel);
+            }
+            if (inputBake)
+            {
+                //Paraent Layer
+                Rhino.RhinoDoc doc = Rhino.RhinoDoc.ActiveDoc;
+                Panel panel = outputPanels[0];
+                string panelName = panel.Name;
+                System.Drawing.Color color = new System.Drawing.Color();
+                color = System.Drawing.Color.FromArgb(255, 0, 0, 255);
+
+                int index = doc.Layers.FindByFullPath(panelName, -1);
+                if (index < 0)
+                {
+                    doc.Layers.Add(panelName, color);
+                }
+                index = doc.Layers.FindByFullPath(panelName, -1);
+                Rhino.DocObjects.Layer parentLayer = doc.Layers[index];
+
+                //set attributes
+                Rhino.DocObjects.ObjectAttributes attBrep = new Rhino.DocObjects.ObjectAttributes();
+                Rhino.DocObjects.ObjectAttributes attOrigin = new Rhino.DocObjects.ObjectAttributes();
+                Rhino.DocObjects.ObjectAttributes attX = new Rhino.DocObjects.ObjectAttributes();
+                Rhino.DocObjects.ObjectAttributes attY = new Rhino.DocObjects.ObjectAttributes();
+
+                attBrep.Name = "brep";
+                attBrep.LayerIndex = index;
+
+                attOrigin.Name = "0";
+                attOrigin.LayerIndex = index;
+                attX.Name = "1";
+                attX.LayerIndex = index;
+                attY.Name = "2";
+                attY.LayerIndex = index;
+
+                Plane originPlane = outputPanels[0].Origin;
+                Point3d originPoint = originPlane.Origin;
+
+                Vector3d vectorX = originPlane.XAxis;
+                Vector3d vectorY = originPlane.YAxis;
+                Point3d originX = originPoint + vectorX;
+                Point3d originY = originPoint + vectorY;
+
+                //bake with attributes
+                doc.Objects.AddBrep(panel.Model, attBrep);
+
+                doc.Objects.AddPoint(originPoint, attOrigin);
+                doc.Objects.AddPoint(originX, attX);
+                doc.Objects.AddPoint(originY, attY);
             }
 
             DA.SetDataList(0, outputPanels);

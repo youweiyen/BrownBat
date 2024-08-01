@@ -12,8 +12,8 @@ namespace BrownBat.Param
         /// Initializes a new instance of the GH_Param class.
         /// </summary>
         public GH_Panel()
-          : base("Panel", "Nickname",
-              "Description",
+          : base("Panel", "P",
+              "Import Model Panel to Bat Object",
               "BrownBat", "Param")
         {
         }
@@ -23,6 +23,7 @@ namespace BrownBat.Param
         /// </summary>
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
+            pManager.AddGeometryParameter("Panel", "P", "Panel and its Origin Plane", GH_ParamAccess.tree);
         }
 
         /// <summary>
@@ -30,6 +31,7 @@ namespace BrownBat.Param
         /// </summary>
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
+
         }
 
         /// <summary>

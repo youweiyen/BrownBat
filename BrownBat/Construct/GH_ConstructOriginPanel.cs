@@ -111,7 +111,7 @@ namespace BrownBat.Construct
                 Rhino.DocObjects.ObjectAttributes attX = new Rhino.DocObjects.ObjectAttributes();
                 Rhino.DocObjects.ObjectAttributes attY = new Rhino.DocObjects.ObjectAttributes();
 
-                attBrep.Name = "brep";
+                attBrep.Name = panelName;
                 attBrep.LayerIndex = index;
 
                 attOrigin.Name = "0";

@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-
+using System.Linq;
 using Grasshopper.Kernel;
+using Grasshopper.Kernel.Data;
+using Grasshopper.Kernel.Types;
 using Rhino.Geometry;
 
 namespace BrownBat.Param
@@ -23,7 +25,7 @@ namespace BrownBat.Param
         /// </summary>
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
-            pManager.AddGeometryParameter("Panel", "P", "Panel and its Origin Plane", GH_ParamAccess.tree);
+            pManager.AddGeometryParameter("Model Panel", "MP", "Panel and its Origin Plane", GH_ParamAccess.tree);
         }
 
         /// <summary>
@@ -31,6 +33,8 @@ namespace BrownBat.Param
         /// </summary>
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
+            pManager.AddGenericParameter("Bat Panel", "BP", "Bat Panel Object", GH_ParamAccess.list);
+            pManager.AddBrepParameter("b", "BP", "Bat Panel Object", GH_ParamAccess.list);
 
         }
 
@@ -40,6 +44,30 @@ namespace BrownBat.Param
         /// <param name="DA">The DA object is used to retrieve from inputs and store in outputs.</param>
         protected override void SolveInstance(IGH_DataAccess DA)
         {
+            GH_Structure<IGH_GeometricGoo> inputModel;
+            DA.GetDataTree(0, out inputModel);
+            List<Brep> breps = new List<Brep>();
+            Dictionary<string, Brep> blankPanel = new Dictionary<string, Brep>();
+            Dictionary<string, List<Point3d>> blankPlane = new Dictionary<string, List<Point3d>>();
+
+            for (int i = 0; i < inputModel.Branches.Count; i++)
+            {
+                Brep brep = new Brep();
+                string n = inputModel[i][0].TypeName;
+                inputModel[i].Where(b => b.TypeName == "Brep").ToList().First().CastTo<Brep>(out brep);
+                breps.Add(brep);
+
+                List<IGH_GeometricGoo> pointGoo = inputModel[i].Where(b => b.TypeName == "Point").ToList();
+                List<Point3d> points = new List<Point3d>();
+                foreach (IGH_GeometricGoo goo in pointGoo)
+                {
+                    Point3d point = new Point3d();
+                    goo.CastTo<Point3d>(out point);
+                    points.Add(point);
+                }
+
+            }
+            DA.SetDataList(0, breps);
         }
 
         /// <summary>

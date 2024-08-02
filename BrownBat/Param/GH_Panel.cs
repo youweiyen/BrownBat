@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using BrownBat.Components;
 using Grasshopper.Kernel;
 using Grasshopper.Kernel.Data;
 using Grasshopper.Kernel.Types;
@@ -26,7 +27,9 @@ namespace BrownBat.Param
         /// </summary>
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
-            pManager.AddGeometryParameter("Model Panel", "MP", "Panel and its Origin Plane", GH_ParamAccess.tree);
+            pManager.AddGenericParameter("Block Instance", "BI", "Block Instance", GH_ParamAccess.list);
+            pManager.AddTransformParameter("Transform", "T", "Block Transform", GH_ParamAccess.list);
+            pManager.AddBrepParameter("Model Panel", "P", "Model as Brep", GH_ParamAccess.list);
         }
 
         /// <summary>
@@ -34,8 +37,8 @@ namespace BrownBat.Param
         /// </summary>
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
-            pManager.AddGenericParameter("Bat Panel", "BP", "Bat Panel Object", GH_ParamAccess.list);
-            pManager.AddBrepParameter("b", "BP", "Bat Panel Object", GH_ParamAccess.list);
+            pManager.AddGenericParameter("BatPanel", "B", "Bat Panel Object", GH_ParamAccess.list);
+            pManager.AddBrepParameter("ModelBrep", "M", "Model as Brep", GH_ParamAccess.list);
 
         }
 
@@ -45,31 +48,35 @@ namespace BrownBat.Param
         /// <param name="DA">The DA object is used to retrieve from inputs and store in outputs.</param>
         protected override void SolveInstance(IGH_DataAccess DA)
         {
-            GH_Structure<GH_ObjectWrapper> tinputModel;
-            GH_Structure<IGH_GeometricGoo> inputModel;
+            List<GH_InstanceReference> inputBlock = new List<GH_InstanceReference>();
+            List<Transform> inputTransform = new List<Transform>();
+            List<Brep> inputBrep = new List<Brep>();
 
-            DA.GetDataTree(0, out inputModel);
-            List<Brep> breps = new List<Brep>();
-            Dictionary<string, Brep> blankPanel = new Dictionary<string, Brep>();
-            Dictionary<string, List<Point3d>> blankPlane = new Dictionary<string, List<Point3d>>();
+            DA.GetDataList(0, inputBlock);
+            DA.GetDataList(1, inputTransform);
+            DA.GetDataList(2, inputBrep);
 
-            for (int i = 0; i < inputModel.Branches.Count; i++)
+            List<Panel> panelList = new List<Panel>();
+            List<Brep> brepList = new List<Brep>();
+            for (int i = 0; i < inputBlock.Count; i++)
             {
-                string n = inputModel[i][0].TypeName;
-                inputModel[i].Where(b => b.TypeName == "Brep").ToList().First().CastTo(out Brep brep);
-                breps.Add(brep);
+                string panelName = inputBlock[i].InstanceDefinition.Name;
 
-                List<IGH_GeometricGoo> pointGoo = inputModel[i].Where(b => b.TypeName == "Point").ToList();
-                List<Point3d> points = new List<Point3d>();
-                foreach (IGH_GeometricGoo goo in pointGoo)
-                {
-                    Point3d point = new Point3d();
-                    goo.CastTo<Point3d>(out point);
-                    points.Add(point);
-                }
-
+                //Transform panelTransformation = inputModel[i].ModelTransform;
+                Transform panelTransform = inputTransform[i];
+                
+                //string n = inputModel[i].TypeName;
+                //inputModel.Where(b => b.TypeName == "Block Instance").ToList().First().CastTo(out Brep brep);
+                //breps.Add(brep);
+                Brep panelBrep = inputBrep[i];
+                Panel panel = new Panel(panelName, panelTransform, panelBrep);
+                panelList.Add(panel);
+                brepList.Add(panelBrep);
             }
-            DA.SetDataList(0, breps);
+
+            DA.SetDataList(0, panelList);
+            DA.SetDataList(1, brepList);
+
         }
 
         /// <summary>

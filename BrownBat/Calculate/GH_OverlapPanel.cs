@@ -44,8 +44,6 @@ namespace BrownBat.Calculate
             DA.GetDataList(1, inputOriginPanel);
             DA.GetData(2, ref inputWall);
 
-            IEnumerable<Brep> inputModelBrep = inputModelPanel.Select(m => m.Model);
-
             //point in curve calculation
             List<Curve> tcurves = new List<Curve>();
             foreach (Panel inputPanel in inputModelPanel)

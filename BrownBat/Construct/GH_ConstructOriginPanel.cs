@@ -139,6 +139,7 @@ namespace BrownBat.Construct
                 //doc.Objects.AddPoint(originX, attX);
                 //doc.Objects.AddPoint(originY, attY);
                 #endregion
+
                 //bakeBlock
 
                 Rhino.RhinoDoc doc = Rhino.RhinoDoc.ActiveDoc;
@@ -179,7 +180,6 @@ namespace BrownBat.Construct
                     if (outputPanels != null)
                     {
                         geometry.Add(blockPanel);
-                        geometry.Add(blockOrigin);
                         attributes.Add(attBrep);
                     }
                     int idef_index = doc.InstanceDefinitions.Add(blockName, string.Empty, origin, geometry, attributes);

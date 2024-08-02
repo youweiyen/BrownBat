@@ -18,6 +18,7 @@ namespace BrownBat.Components
         public string Name { get; }
         public Plane Origin { get; }
         public Brep Model { get; }
+        public Transform Matrix { get; }
         public (double, double) GeometryShape { get; private set; }
         public double GeometryThickness { get; private set; }
         public Curve GeometryBaseCurve { get; private set; }
@@ -53,6 +54,12 @@ namespace BrownBat.Components
         {
             Name = name;
             Origin = origin;
+            Model = panel;
+        }
+        public Panel(string name, Transform matrix, Brep panel)
+        {
+            Name = name;
+            Matrix = matrix;
             Model = panel;
         }
         public static void ModelShape(Panel panel) 

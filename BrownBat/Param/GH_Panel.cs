@@ -17,7 +17,7 @@ namespace BrownBat.Param
         /// </summary>
         public GH_Panel()
           : base("Panel", "P",
-              "Import Model Panel to Bat Object",
+              "Import Panel Block to Bat Object",
               "BrownBat", "Param")
         {
         }

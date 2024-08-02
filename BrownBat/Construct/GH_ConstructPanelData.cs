@@ -22,7 +22,7 @@ namespace BrownBat.Construct
 
         public GH_ConstructPanelData()
           : base("ConstructOriginalPanelData", "OP",
-              "Add the data to the panel geometry",
+              "Add the data",
               "BrownBat", "Construct")
         {
         }

@@ -14,7 +14,7 @@ namespace BrownBat.Construct
     {
         public GH_ConstructOriginPanelGeometry()
           : base("ConstructOriginPanelGeometry", "Panel",
-            "Combine CSV data and Geometry to construct base panel",
+            "Construct name and geometry as Base Panel",
             "BrownBat", "Construct")
         {
         }

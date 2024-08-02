@@ -140,66 +140,61 @@ namespace BrownBat.Construct
                 //doc.Objects.AddPoint(originY, attY);
                 #endregion
                 //bakeBlock
+
                 Rhino.RhinoDoc doc = Rhino.RhinoDoc.ActiveDoc;
                 System.Drawing.Color color = new System.Drawing.Color();
                 color = System.Drawing.Color.FromArgb(255, 0, 0, 255);
-                Panel panel = outputPanels[0];
-                string panelName = panel.Name;
-                // Block base point
-                Point3d origin = panel.Origin.Origin;
-                GeometryBase blockPanel = GH_Convert.ToGeometryBase(panel.Model);
-                GeometryBase blockOrigin = GH_Convert.ToGeometryBase(origin);
 
-                // Block definition name
-                string idef_name = panel.Name;
-                // Validate block name
-                idef_name = idef_name.Trim();
-                if (string.IsNullOrEmpty(idef_name)) { throw new Exception("panel name empty"); }
-                // See if block name already exists
-                InstanceDefinition existing_idef = doc.InstanceDefinitions.Find(idef_name);
-                if (existing_idef != null)
+                for (int i = 0; i < outputPanels.Count; i++)
                 {
-                    doc.InstanceDefinitions.Delete(existing_idef.Index, true, true);
-                }
-                //attributes
+                    Panel panel = outputPanels[i];
 
-                int index = doc.Layers.FindByFullPath(panelName, -1);
-                if (index < 0)
-                {
-                    doc.Layers.Add(panelName, color);
-                }
-                index = doc.Layers.FindByFullPath(panelName, -1);
-                Rhino.DocObjects.Layer parentLayer = doc.Layers[index];
+                    Point3d origin = panel.Origin.Origin;
+                    GeometryBase blockPanel = GH_Convert.ToGeometryBase(panel.Model);
+                    GeometryBase blockOrigin = GH_Convert.ToGeometryBase(origin);
 
-                Rhino.DocObjects.ObjectAttributes attBrep = new Rhino.DocObjects.ObjectAttributes();
-                attBrep.Name = panelName;
-                attBrep.LayerIndex = index;
+                    string blockName = panel.Name;
+                    blockName = blockName.Trim();
+                    if (string.IsNullOrEmpty(blockName)) { throw new Exception("panel name empty"); }
 
-                // Gather all of the selected objects
-                var geometry = new List<GeometryBase>();
-                var attributes = new List<ObjectAttributes>();
-                //for (int i = 0; i < outputPanels.Count; i++)
-                //{
-                    
-                //}
-                if (outputPanels != null)
-                {
-                    geometry.Add(blockPanel);
-                    geometry.Add(blockOrigin);
-                    attributes.Add(attBrep);
-                }
-                int idef_index = doc.InstanceDefinitions.Add(idef_name, string.Empty, origin, geometry, attributes);
-                InstanceDefinition Bdef = doc.InstanceDefinitions.Find(idef_name);
-                Plane BasePlane = new Plane(origin, Vector3d.ZAxis);
-                // Creates a variable (Trans) that is the transformation between the World Origin 0,0,0 and a referenced plane
-                Transform Trans = Transform.PlaneToPlane(Rhino.Geometry.Plane.WorldXY, BasePlane);
+                    InstanceDefinition existing_idef = doc.InstanceDefinitions.Find(blockName);
+                    if (existing_idef != null)
+                    {
+                        doc.InstanceDefinitions.Delete(existing_idef.Index, true, true);
+                    }
 
-                // Creates the Block Instance in Rhino and outputs its Reference ID
-                var Ref_ID = doc.Objects.AddInstanceObject(Bdef.Index, Trans, attBrep);
+                    string panelName = panel.Name;
+                    int index = doc.Layers.FindByFullPath(panelName, -1);
+                    if (index < 0) { doc.Layers.Add(panelName, color); }
+                    index = doc.Layers.FindByFullPath(panelName, -1);
+                    Layer parentLayer = doc.Layers[index];
 
-                if (idef_index < 0)
-                {
-                    throw new Exception($"Unable to create block definition{idef_name}");
+                    ObjectAttributes attBrep = new ObjectAttributes();
+                    attBrep.Name = panelName;
+                    attBrep.LayerIndex = index;
+
+                    var geometry = new List<GeometryBase>();
+                    var attributes = new List<ObjectAttributes>();
+
+                    if (outputPanels != null)
+                    {
+                        geometry.Add(blockPanel);
+                        geometry.Add(blockOrigin);
+                        attributes.Add(attBrep);
+                    }
+                    int idef_index = doc.InstanceDefinitions.Add(blockName, string.Empty, origin, geometry, attributes);
+
+                    // Creates a variable (Trans) that is the transformation between the World Origin 0,0,0 and a referenced plane
+                    Plane BasePlane = new Plane(origin, Vector3d.ZAxis);
+                    Transform Trans = Transform.PlaneToPlane(BasePlane, BasePlane);
+
+                    // Creates the Block Instance in Rhino and outputs its Reference ID
+                    var Ref_ID = doc.Objects.AddInstanceObject(idef_index, Trans, attBrep);
+
+                    if (idef_index < 0)
+                    {
+                        throw new Exception($"Unable to create block definition{blockName}");
+                    }
                 }
             }
 

@@ -4,6 +4,7 @@ using System.Linq;
 using Grasshopper.Kernel;
 using Grasshopper.Kernel.Data;
 using Grasshopper.Kernel.Types;
+using Grasshopper.Rhinoceros.Model;
 using Rhino.Geometry;
 
 namespace BrownBat.Param
@@ -44,7 +45,9 @@ namespace BrownBat.Param
         /// <param name="DA">The DA object is used to retrieve from inputs and store in outputs.</param>
         protected override void SolveInstance(IGH_DataAccess DA)
         {
+            GH_Structure<GH_ObjectWrapper> tinputModel;
             GH_Structure<IGH_GeometricGoo> inputModel;
+
             DA.GetDataTree(0, out inputModel);
             List<Brep> breps = new List<Brep>();
             Dictionary<string, Brep> blankPanel = new Dictionary<string, Brep>();
@@ -52,9 +55,8 @@ namespace BrownBat.Param
 
             for (int i = 0; i < inputModel.Branches.Count; i++)
             {
-                Brep brep = new Brep();
                 string n = inputModel[i][0].TypeName;
-                inputModel[i].Where(b => b.TypeName == "Brep").ToList().First().CastTo<Brep>(out brep);
+                inputModel[i].Where(b => b.TypeName == "Brep").ToList().First().CastTo(out Brep brep);
                 breps.Add(brep);
 
                 List<IGH_GeometricGoo> pointGoo = inputModel[i].Where(b => b.TypeName == "Point").ToList();

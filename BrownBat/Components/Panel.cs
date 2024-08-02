@@ -19,6 +19,7 @@ namespace BrownBat.Components
         public Plane Origin { get; }
         public Brep Model { get; }
         public Transform Matrix { get; }
+        public Transform InverseMatrix { get; private set; }
         public (double, double) GeometryShape { get; private set; }
         public double GeometryThickness { get; private set; }
         public Curve GeometryBaseCurve { get; private set; }
@@ -29,7 +30,6 @@ namespace BrownBat.Components
         public (int, int) PixelShape { get; private set; }
         public static void SetPanelTemperature(Panel panel, List<double[]> pixelTemperature) => panel.PixelTemperature = pixelTemperature;
         public static void SetPanelConductivity(Panel panel, List<double[]> pixelConductivity) => panel.PixelConductivity = pixelConductivity;
-
 
 
 
@@ -110,6 +110,12 @@ namespace BrownBat.Components
             }
 
             panel.PixelShape = (rowLength, columnLength);
+        }
+        public static void TryGetInverseMatrix(Panel panel, Transform matrix) 
+        {
+            bool m = matrix.TryGetInverse(out Transform inverseMatrix);
+            if (m == false) { throw new Exception(); }
+            panel.InverseMatrix = inverseMatrix;
         }
 
         public IGH_GeometricGoo DuplicateGeometry()

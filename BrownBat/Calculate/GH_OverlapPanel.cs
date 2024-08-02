@@ -100,27 +100,38 @@ namespace BrownBat.Calculate
                         }
                         if (containment == PointContainment.Inside)
                         {
-                            string intersectPanelName = inputModelPanel[i].Name;
+                            Panel intersectPanel = inputModelPanel[i];
+                            string intersectPanelName = intersectPanel.Name;
                             intersectPanelNames.Add(intersectPanelName);
 
-                            Panel intersectModelPanel = inputModelPanel.Where(panel => panel.Name == intersectPanelName).First();
-                            Panel intersectOriginPanel = inputOriginPanel.Where(panel => panel.Name == intersectPanelName).First();
-                            Transform matrix = Transform.PlaneToPlane(intersectModelPanel.Origin, intersectOriginPanel.Origin);
-                            Point3d orientPoint = new Point3d(pixel.PixelGeometry);
-                            orientPoint.Transform(matrix);
-                            Point3d origin = intersectOriginPanel.Origin.Origin;
-                            double xPosition = Math.Abs(origin.X - orientPoint.X);
-                            double yPosition = Math.Abs(origin.Y - orientPoint.Y);
-                            (double, double) intersectPanelPosition = (xPosition, yPosition);
+                            #region TransformationToStandardPanel
+                            //Panel intersectModelPanel = inputModelPanel.Where(panel => panel.Name == intersectPanelName).First();
+                            //Panel intersectOriginPanel = inputOriginPanel.Where(panel => panel.Name == intersectPanelName).First();
+                            //Transform matrix = Transform.PlaneToPlane(intersectModelPanel.Origin, intersectOriginPanel.Origin);
+                            //Point3d orientPoint = new Point3d(pixel.PixelGeometry);
+                            //orientPoint.Transform(matrix);
+                            //Point3d origin = intersectOriginPanel.Origin.Origin;
+                            //double xPosition = Math.Abs(origin.X - orientPoint.X);
+                            //double yPosition = Math.Abs(origin.Y - orientPoint.Y);
+                            //(double, double) intersectPanelPosition = (xPosition, yPosition);
 
-                            //int xDomain = (int)Math.Round(xPosition * (inputWall.PixelShape / inputWall.GeometryShape.Item1));
-                            //int yDomain = (int)Math.Round(yPosition * (inputWall.PixelShape / inputWall.GeometryShape.Item2));
-                            int xDomain = (int)Math.Round(xPosition * (intersectOriginPanel.PixelShape.Item1 / intersectOriginPanel.GeometryShape.Item1));
-                            int yDomain = (int)Math.Round(yPosition * (intersectOriginPanel.PixelShape.Item2 / intersectOriginPanel.GeometryShape.Item2));
+                            //int xDomain = (int)Math.Round(xPosition * (intersectOriginPanel.PixelShape.Item1 / intersectOriginPanel.GeometryShape.Item1));
+                            //int yDomain = (int)Math.Round(yPosition * (intersectOriginPanel.PixelShape.Item2 / intersectOriginPanel.GeometryShape.Item2));
+
+                            #endregion
+
+                            Point3d orientPoint = new Point3d(pixel.PixelGeometry);
+                            Transform matrix = intersectPanel.InverseMatrix;                            
+                            orientPoint.Transform(matrix);
+
+                            double xPosition = Math.Abs(0 - orientPoint.X);
+                            double yPosition = Math.Abs(0 - orientPoint.Y);
+                            int xDomain = (int)Math.Round(xPosition * (intersectPanel.PixelShape.Item1 / intersectPanel.GeometryShape.Item1));
+                            int yDomain = (int)Math.Round(yPosition * (intersectPanel.PixelShape.Item2 / intersectPanel.GeometryShape.Item2));
 
                             (int, int) intersectPanelDomain = (xDomain, yDomain);
 
-                            panelToPosition.Add(intersectPanelName, intersectPanelPosition);
+                            //panelToPosition.Add(intersectPanelName, intersectPanelPosition);
                             panelToDomain.Add(intersectPanelName, intersectPanelDomain);
                         }
                         #region intersectCalculation
@@ -164,7 +175,7 @@ namespace BrownBat.Calculate
 
                     }
                     Pixel.SetOverlapPanels(pixel, intersectPanelNames);
-                    Pixel.SetPixelPosition(pixel, panelToPosition);
+                    //Pixel.SetPixelPosition(pixel, panelToPosition);
                     Pixel.SetPixelDomain(pixel, panelToDomain);
                 }
 

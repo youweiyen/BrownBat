@@ -49,7 +49,11 @@ namespace BrownBat.Components
 
         public string TypeDescription => throw new NotImplementedException();
 
- 
+
+        public Panel(string name)
+        {
+            Name = name;
+        }
         public Panel(string name, Plane origin, Brep panel)
         {
             Name = name;

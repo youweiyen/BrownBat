@@ -1,6 +1,7 @@
 using BrownBat.Components;
 using Grasshopper;
 using Grasshopper.Kernel;
+using Rhino.DocObjects;
 using Rhino.Geometry;
 using Rhino.Geometry.Collections;
 using System;
@@ -22,24 +23,28 @@ namespace BrownBat.Construct
         {
             pManager.AddBrepParameter("PanelBrep", "P", "Input Panel Brep", GH_ParamAccess.list);
             pManager.AddTextParameter("PanelName", "N", "Input Panel Name", GH_ParamAccess.list);
+            pManager.AddBooleanParameter("Bake", "B", "Bake Brep, Name, Origin plane", GH_ParamAccess.item, false);
+            pManager[2].Optional = true;
+
         }
 
         protected override void RegisterOutputParams(GH_OutputParamManager pManager)
         {
-            pManager.AddGeometryParameter("PanelGeometry", "G", "Panel Geometry", GH_ParamAccess.list);
         }
 
         protected override void SolveInstance(IGH_DataAccess DA)
         {
             List<Brep> inputPanels = new List<Brep>();
             List<string> inputNames = new List<string>();
+            bool inputBake = false;
+
             DA.GetDataList(0, inputPanels);
             DA.GetDataList(1, inputNames);
-            
+            DA.GetData(2, ref inputBake);
+
             List<Panel> outputPanels = new List<Panel>();
             for (int p = 0;  p < inputPanels.Count; p++)
             {
-
                 BrepVertexList profileVertexList = inputPanels[p].Vertices;
 
                 List<Point3d> profileVertices = new List<Point3d>();
@@ -61,8 +66,112 @@ namespace BrownBat.Construct
                 Panel panel = new Panel(inputNames[p], originPlane, inputPanels[p]);
                 outputPanels.Add(panel);
             }
+            if (inputBake)
+            {
+                #region normalBake
+                ////Paraent Layer
+                //Rhino.RhinoDoc doc = Rhino.RhinoDoc.ActiveDoc;
+                //Panel panel = outputPanels[0];
+                //string panelName = panel.Name;
+                //System.Drawing.Color color = new System.Drawing.Color();
+                //color = System.Drawing.Color.FromArgb(255, 0, 0, 255);
 
-            DA.SetDataList(0, outputPanels);
+                //int index = doc.Layers.FindByFullPath(panelName, -1);
+                //if (index < 0)
+                //{
+                //    doc.Layers.Add(panelName, color);
+                //}
+                //index = doc.Layers.FindByFullPath(panelName, -1);
+                //Rhino.DocObjects.Layer parentLayer = doc.Layers[index];
+
+                ////set attributes
+                //Rhino.DocObjects.ObjectAttributes attBrep = new Rhino.DocObjects.ObjectAttributes();
+                //Rhino.DocObjects.ObjectAttributes attOrigin = new Rhino.DocObjects.ObjectAttributes();
+                //Rhino.DocObjects.ObjectAttributes attX = new Rhino.DocObjects.ObjectAttributes();
+                //Rhino.DocObjects.ObjectAttributes attY = new Rhino.DocObjects.ObjectAttributes();
+
+                //attBrep.Name = panelName;
+                //attBrep.LayerIndex = index;
+
+                //attOrigin.Name = "0";
+                //attOrigin.LayerIndex = index;
+                //attX.Name = "1";
+                //attX.LayerIndex = index;
+                //attY.Name = "2";
+                //attY.LayerIndex = index;
+
+                //Plane originPlane = outputPanels[0].Origin;
+                //Point3d originPoint = originPlane.Origin;
+
+                //Vector3d vectorX = originPlane.XAxis;
+                //Vector3d vectorY = originPlane.YAxis;
+                //Point3d originX = originPoint + vectorX;
+                //Point3d originY = originPoint + vectorY;
+
+                ////bake with attributes
+                //doc.Objects.AddBrep(panel.Model, attBrep);
+
+                //doc.Objects.AddPoint(originPoint, attOrigin);
+                //doc.Objects.AddPoint(originX, attX);
+                //doc.Objects.AddPoint(originY, attY);
+                #endregion
+
+                //bakeBlock
+                Rhino.RhinoDoc doc = Rhino.RhinoDoc.ActiveDoc;
+                System.Drawing.Color color = new System.Drawing.Color();
+                color = System.Drawing.Color.FromArgb(255, 0, 0, 255);
+
+                for (int i = 0; i < outputPanels.Count; i++)
+                {
+                    Panel panel = outputPanels[i];
+
+                    Point3d origin = panel.Origin.Origin;
+                    GeometryBase blockPanel = GH_Convert.ToGeometryBase(panel.Model);
+                    GeometryBase blockOrigin = GH_Convert.ToGeometryBase(origin);
+
+                    string blockName = panel.Name;
+                    blockName = blockName.Trim();
+                    if (string.IsNullOrEmpty(blockName)) { throw new Exception("panel name empty"); }
+
+                    InstanceDefinition existing_idef = doc.InstanceDefinitions.Find(blockName);
+                    if (existing_idef != null)
+                    {
+                        doc.InstanceDefinitions.Delete(existing_idef.Index, true, true);
+                    }
+
+                    string panelName = panel.Name;
+                    int index = doc.Layers.FindByFullPath(panelName, -1);
+                    if (index < 0) { doc.Layers.Add(panelName, color); }
+                    index = doc.Layers.FindByFullPath(panelName, -1);
+                    Layer parentLayer = doc.Layers[index];
+
+                    ObjectAttributes attBrep = new ObjectAttributes();
+                    attBrep.Name = panelName;
+                    attBrep.LayerIndex = index;
+
+                    var geometry = new List<GeometryBase>();
+                    var attributes = new List<ObjectAttributes>();
+
+                    if (outputPanels != null)
+                    {
+                        geometry.Add(blockPanel);
+                        attributes.Add(attBrep);
+                    }
+                    int idef_index = doc.InstanceDefinitions.Add(blockName, string.Empty, origin, geometry, attributes);
+
+                    // Creates a variable (Trans) that is the transformation between the World Origin 0,0,0 and a referenced plane
+                    Plane BasePlane = new Plane(origin, Vector3d.ZAxis);
+                    Transform Trans = Transform.PlaneToPlane(BasePlane, BasePlane);
+
+                    // Creates the Block Instance in Rhino and outputs its Reference ID
+                    var Ref_ID = doc.Objects.AddInstanceObject(idef_index, Trans, attBrep);
+
+                    if (idef_index < 0)
+                    {
+                        throw new Exception($"Unable to create block definition{blockName}");
+                    }
+                }
+            }
         }
 
         /// <summary>

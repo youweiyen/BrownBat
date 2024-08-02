@@ -1,17 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
-
 using Grasshopper.Kernel;
 using Rhino.Geometry;
 
-namespace BrownBat.Param
+namespace BrownBat.Construct
 {
-    public class GH_ImportPanel : GH_Component
+    public class GH_ConstructPanel : GH_Component
     {
         /// <summary>
         /// Initializes a new instance of the GH_ImportPanel class.
         /// </summary>
-        public GH_ImportPanel()
+        public GH_ConstructPanel()
           : base("ImportPanel", "Nickname",
               "Description",
               "BrownBat", "Param")
@@ -21,14 +20,14 @@ namespace BrownBat.Param
         /// <summary>
         /// Registers all the input parameters for this component.
         /// </summary>
-        protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
+        protected override void RegisterInputParams(GH_InputParamManager pManager)
         {
         }
 
         /// <summary>
         /// Registers all the output parameters for this component.
         /// </summary>
-        protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
+        protected override void RegisterOutputParams(GH_OutputParamManager pManager)
         {
         }
 

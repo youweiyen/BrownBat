@@ -22,8 +22,7 @@ namespace BrownBat.Calculate
 
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
-            pManager.AddGenericParameter("ModelPanel", "MP", "Modeled Panel", GH_ParamAccess.list);
-            pManager.AddGenericParameter("OriginPanel", "P", "Panel", GH_ParamAccess.list);
+            pManager.AddGenericParameter("BatPanel", "MP", "Modeled Panel", GH_ParamAccess.list);
             pManager.AddGenericParameter("Wall", "W", "Wall", GH_ParamAccess.item);
         }
 
@@ -38,19 +37,17 @@ namespace BrownBat.Calculate
         protected override void SolveInstance(IGH_DataAccess DA)
         {
             List<Panel> inputModelPanel = new List<Panel>();
-            List<Panel> inputOriginPanel = new List<Panel>();
             Wall inputWall = new Wall();
             DA.GetDataList(0, inputModelPanel);
-            DA.GetDataList(1, inputOriginPanel);
-            DA.GetData(2, ref inputWall);
+            DA.GetData(1, ref inputWall);
 
             //point in curve calculation
-            List<Curve> tcurves = new List<Curve>();
-            foreach (Panel inputPanel in inputModelPanel)
-            {
-                Panel.BaseCurve(inputPanel);
-                tcurves.Add(inputPanel.GeometryBaseCurve);
-            }
+            //List<Curve> tcurves = new List<Curve>();
+            //foreach (Panel inputPanel in inputModelPanel)
+            //{
+            //    Panel.BaseCurve(inputPanel);
+            //    tcurves.Add(inputPanel.GeometryBaseCurve);
+            //}
 
             #region intersectCalculation
             ////intersect calculation
@@ -68,6 +65,8 @@ namespace BrownBat.Calculate
             //                                .First();
             #endregion
             List<Pixel[]> wallPixels = inputWall.Pixel;
+
+            //visualize points
             Wall.WallShape(inputWall);
             List<Point3d> twallpoints = new List<Point3d>();
             for (int rowPoint = 0; rowPoint < wallPixels.Count; rowPoint++)
@@ -188,7 +187,7 @@ namespace BrownBat.Calculate
 
             DA.SetData(0, inputWall);
             DA.SetDataList(1, twallpoints);
-            DA.SetDataList(2, tcurves);
+            //DA.SetDataList(2, tcurves);
             DA.SetData(3, elapsedTime);
 
 

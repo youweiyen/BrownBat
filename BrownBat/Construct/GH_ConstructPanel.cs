@@ -53,6 +53,7 @@ namespace BrownBat.Construct
                                                         (geometry.Name,
                                                         geometry.InverseMatrix,
                                                         geometry.Model,
+                                                        geometry.GeometryBaseCurve,
                                                         geometry.GeometryShape,
                                                         data.PixelShape,
                                                         data.PixelConductivity)).ToList();

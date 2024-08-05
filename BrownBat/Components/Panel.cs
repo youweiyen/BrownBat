@@ -66,7 +66,7 @@ namespace BrownBat.Components
             Matrix = matrix;
             Model = panel;
         }
-        public Panel(string name, Transform inverseMatrix, Brep panel, (double, double) geometryShape, (int, int) pixelShape, List<double[]> pixelConductivity) 
+        public Panel(string name, Transform inverseMatrix, Brep panel, Curve geometryBaseCurve, (double, double) geometryShape, (int, int) pixelShape, List<double[]> pixelConductivity) 
         {
             Name = name;
             InverseMatrix = inverseMatrix;
@@ -74,6 +74,7 @@ namespace BrownBat.Components
             GeometryShape = geometryShape;
             PixelShape = pixelShape;
             PixelConductivity = pixelConductivity;
+            GeometryBaseCurve = geometryBaseCurve;
         }
         public static void ModelShape(Panel panel) 
         {

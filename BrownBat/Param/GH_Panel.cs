@@ -70,8 +70,10 @@ namespace BrownBat.Param
                 //breps.Add(brep);
                 Brep panelBrep = inputBrep[i];
                 Panel panel = new Panel(panelName, panelTransform, panelBrep);
+
                 Panel.ModelShape(panel);
                 Panel.TryGetInverseMatrix(panel, panelTransform);
+                Panel.BaseCurve(panel);
 
                 panelList.Add(panel);
                 brepList.Add(panelBrep);

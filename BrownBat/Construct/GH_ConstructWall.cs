@@ -87,7 +87,7 @@ namespace BrownBat.Construct
                 Array.Resize(ref rowPoints, rowPoints.Length - 1);
                 Pixel[] pixelRow = rowPoints.Select((p, index) => new Pixel(p, (i+1, index))).ToArray();
                 pointRowList.Add(pixelRow);
-                wallPoints.AddRange(rowPoints);
+                wallPoints.AddRange(rowPoints, new GH_Path(i));
             }
             
             Wall wall = new Wall(inputName, pointRowList, inputWall, inputNumber);

@@ -57,17 +57,18 @@ namespace BrownBat.Calculate
                     {
                         double coefficient = HeatTransfer.Coefficient(pixels[row][col], inputWall, inputPanel);
                         double wallPixelArea = Area.WallPixelArea(inputWall);
-            
+
                         double flux = coefficient * wallPixelArea * inputdT;
                         Pixel.SetHeatFlux(pixels[row][col], flux);
-                        pixelFlux.Add(flux);
+                        pixelFlux.Add(flux, new Grasshopper.Kernel.Data.GH_Path(row, col));
                     }
+                    else { pixelFlux.Add(25); }
                 }
                 
             }
             
             DA.SetData(0, inputWall);
-            DA.SetDataTree(0, pixelFlux);
+            DA.SetDataTree(1, pixelFlux);
         }
 
         protected override System.Drawing.Bitmap Icon

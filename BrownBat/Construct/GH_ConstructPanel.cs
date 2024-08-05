@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using BrownBat.Components;
 using Grasshopper.Kernel;
 using Rhino.Geometry;
 
@@ -31,7 +33,7 @@ namespace BrownBat.Construct
         /// </summary>
         protected override void RegisterOutputParams(GH_OutputParamManager pManager)
         {
-            pManager.AddGenericParameter("Bat Object", "O", "Bat Object wiht all the panel data", GH_ParamAccess.list);
+            pManager.AddGenericParameter("BatPanel", "O", "Bat Object wiht all the panel data", GH_ParamAccess.list);
         }
 
         /// <summary>
@@ -40,6 +42,21 @@ namespace BrownBat.Construct
         /// <param name="DA">The DA object is used to retrieve from inputs and store in outputs.</param>
         protected override void SolveInstance(IGH_DataAccess DA)
         {
+            List<Panel> inputGeometryPanel = new List<Panel>();
+            List<Panel> inputDataPanel = new List<Panel>();
+
+            DA.GetDataList(0, inputGeometryPanel);
+            DA.GetDataList(1, inputDataPanel);
+
+            var combinedPanels = inputGeometryPanel.Join(inputDataPanel, geometryName => geometryName.Name, dataName => dataName.Name,
+                                                        (geometry, data) => new Panel
+                                                        (geometry.Name,
+                                                        geometry.InverseMatrix,
+                                                        geometry.Model,
+                                                        geometry.GeometryShape,
+                                                        data.PixelShape,
+                                                        data.PixelConductivity)).ToList();
+            DA.SetDataList(0, combinedPanels);
         }
 
         /// <summary>

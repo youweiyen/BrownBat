@@ -49,7 +49,7 @@ namespace BrownBat.Construct
             List<string> inputNames = new List<string>();
 
             DA.GetDataList(0, inputPaths);
-            DA.GetDataList(0, inputNames);
+            DA.GetDataList(1, inputNames);
 
 
             List<Panel> outputPanels = new List<Panel>();

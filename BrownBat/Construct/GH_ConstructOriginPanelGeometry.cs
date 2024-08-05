@@ -161,7 +161,7 @@ namespace BrownBat.Construct
 
                     // Creates a variable (Trans) that is the transformation between the World Origin 0,0,0 and a referenced plane
                     Plane BasePlane = new Plane(origin, Vector3d.ZAxis);
-                    Transform Trans = Transform.PlaneToPlane(BasePlane, BasePlane);
+                    Transform Trans = Transform.PlaneToPlane(Plane.WorldXY, BasePlane);
 
                     // Creates the Block Instance in Rhino and outputs its Reference ID
                     var Ref_ID = doc.Objects.AddInstanceObject(idef_index, Trans, attBrep);

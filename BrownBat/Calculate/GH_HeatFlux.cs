@@ -7,6 +7,7 @@ using Rhino.Runtime;
 using BrownBat.Components;
 using BrownBat.CalculateHelper;
 using System.Linq;
+using Grasshopper;
 
 namespace BrownBat.Calculate
 {
@@ -30,6 +31,7 @@ namespace BrownBat.Calculate
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
             pManager.AddGenericParameter("Wall", "W", "Wall", GH_ParamAccess.item);
+            pManager.AddNumberParameter("Flux", "F", "Flux of each Pixel", GH_ParamAccess.tree);
         }
 
 
@@ -45,6 +47,8 @@ namespace BrownBat.Calculate
             
             List<Pixel[]> pixels = inputWall.Pixel;
 
+            DataTree<double> pixelFlux = new DataTree<double>();
+
             for (int row = 0; row < pixels.Count; row++)
             {
                 for (int col = 0; col < pixels[row].Count(); col++)
@@ -56,11 +60,14 @@ namespace BrownBat.Calculate
             
                         double flux = coefficient * wallPixelArea * inputdT;
                         Pixel.SetHeatFlux(pixels[row][col], flux);
+                        pixelFlux.Add(flux);
                     }
                 }
                 
             }
+            
             DA.SetData(0, inputWall);
+            DA.SetDataTree(0, pixelFlux);
         }
 
         protected override System.Drawing.Bitmap Icon

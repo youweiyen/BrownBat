@@ -29,7 +29,6 @@ namespace BrownBat.Calculate
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
             pManager.AddGenericParameter("Wall", "W", "Wall", GH_ParamAccess.list);
-            pManager.AddGeometryParameter("point", "p", "wallpoint", GH_ParamAccess.list);
             pManager.AddGeometryParameter("curve", "c", "pointcurve", GH_ParamAccess.list);
             pManager.AddTextParameter("Stopwatch", "s", "stopwatch", GH_ParamAccess.item);
         }
@@ -65,17 +64,6 @@ namespace BrownBat.Calculate
             //                                .First();
             #endregion
             List<Pixel[]> wallPixels = inputWall.Pixel;
-
-            //visualize points
-            Wall.WallShape(inputWall);
-            List<Point3d> twallpoints = new List<Point3d>();
-            for (int rowPoint = 0; rowPoint < wallPixels.Count; rowPoint++)
-            {
-                foreach (Pixel pixel in wallPixels[rowPoint])
-                {
-                    twallpoints.Add(pixel.PixelGeometry);
-                }
-            }
 
             Stopwatch stopWatch = new Stopwatch();
             stopWatch.Start();
@@ -186,9 +174,8 @@ namespace BrownBat.Calculate
             ts.Milliseconds / 10);
 
             DA.SetData(0, inputWall);
-            DA.SetDataList(1, twallpoints);
             //DA.SetDataList(2, tcurves);
-            DA.SetData(3, elapsedTime);
+            DA.SetData(2, elapsedTime);
 
 
         }

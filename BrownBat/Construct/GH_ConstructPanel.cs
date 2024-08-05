@@ -54,9 +54,15 @@ namespace BrownBat.Construct
                                                         geometry.InverseMatrix,
                                                         geometry.Model,
                                                         geometry.GeometryBaseCurve,
-                                                        geometry.GeometryShape,
                                                         data.PixelShape,
                                                         data.PixelConductivity)).ToList();
+            //calculate geometry size properties
+            foreach (Panel panel in combinedPanels)
+            {
+                Panel.ModelThickness(panel);
+                Panel.ModelShape(panel);
+            }
+
             DA.SetDataList(0, combinedPanels);
         }
 

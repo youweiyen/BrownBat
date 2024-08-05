@@ -6,6 +6,9 @@ using Rhino.Geometry;
 using Rhino.Geometry.Collections;
 using System.Linq;
 using BrownBat.Components;
+using Grasshopper.Kernel.Data;
+using Grasshopper;
+using Eto.Forms;
 
 namespace BrownBat.Construct
 {
@@ -27,7 +30,8 @@ namespace BrownBat.Construct
 
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
-            pManager.AddGenericParameter("Wall", "Wall", "Wall Geometry", GH_ParamAccess.item);
+            pManager.AddGenericParameter("Wall", "W", "Wall Geometry", GH_ParamAccess.item);
+            pManager.AddPointParameter("Point", "P", "Point", GH_ParamAccess.tree);
         }
 
         /// <summary>
@@ -42,9 +46,11 @@ namespace BrownBat.Construct
             DA.GetData(0, ref inputWall);
             DA.GetData(1, ref inputNumber);
             DA.GetData(2, ref inputName);
-           
+            
+            BrepFaceList faces = inputWall.Faces;
+            Brep topSurface = faces.OrderByDescending(f => f.PointAt(0.5, 0.5).Z).First().ToBrep();
 
-            BrepEdgeList edgeList = inputWall.Edges;
+            BrepEdgeList edgeList = topSurface.Edges;
 
             List<Curve> sortedEdge = edgeList.Select(e => e.EdgeCurve)
                                     .OrderByDescending(edge => edge.PointAtNormalizedLength(0.5).Y)
@@ -67,9 +73,9 @@ namespace BrownBat.Construct
                                                 , bottomPoint.Y - topPoint.Y
                                                 , 0);
             copyDirection.Unitize();
-            List<Pixel[]> pointRowList = new List<Pixel[]>();
-            pointRowList.Add(firstPixelRow);
+            List<Pixel[]> pointRowList = new List<Pixel[]> { firstPixelRow };
 
+            DataTree<Point3d> wallPoints = new DataTree<Point3d>();
 
             Curve moveEdge = topCurve.DuplicateCurve();
             Transform moveTransform = Transform.Translation(copyDirection * copyDistance);
@@ -81,11 +87,13 @@ namespace BrownBat.Construct
                 Array.Resize(ref rowPoints, rowPoints.Length - 1);
                 Pixel[] pixelRow = rowPoints.Select((p, index) => new Pixel(p, (i+1, index))).ToArray();
                 pointRowList.Add(pixelRow);
+                wallPoints.AddRange(rowPoints);
             }
             
             Wall wall = new Wall(inputName, pointRowList, inputWall, inputNumber);
-            
+
             DA.SetData(0, wall);
+            DA.SetDataTree(1, wallPoints);
         }
 
         /// <summary>

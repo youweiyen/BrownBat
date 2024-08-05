@@ -24,6 +24,7 @@ namespace BrownBat.CalculateHelper
                 double conductivity = panel.PixelConductivity[row][col];
                 double thickness = panel.GeometryThickness;
                 double ratio = thickness / conductivity;
+                ratioList.Add(ratio);
             }
             double overlapRatioSum = ratioList.Sum();
             double U = 1 / (1 / pixelArea) * overlapRatioSum;

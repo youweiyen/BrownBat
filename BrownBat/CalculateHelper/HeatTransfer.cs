@@ -9,11 +9,10 @@ namespace BrownBat.CalculateHelper
 {
     public static class HeatTransfer
     {
-        public static double Coefficient(Pixel pixel, Wall wall, List<Panel> panels)
+        public static double Coefficient(Pixel pixel, List<Panel> panels)
         {
             List<string> overlapNames = pixel.OverlapPanels;
             List<Panel> overlapPanels = panels.Where(p => overlapNames.Contains(p.Name)).ToList();
-            double pixelArea = Area.WallPixelArea(wall);
 
             List<double> ratioList = new List<double>();
             foreach (Panel panel in overlapPanels)
@@ -27,7 +26,7 @@ namespace BrownBat.CalculateHelper
                 ratioList.Add(ratio);
             }
             double overlapRatioSum = ratioList.Sum();
-            double U = 1 / (1 / pixelArea) * overlapRatioSum;
+            double U = 1 / overlapRatioSum;
             return U;
         }
     }

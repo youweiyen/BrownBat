@@ -113,9 +113,9 @@ namespace BrownBat.Calculate
 
                             double xPosition = Math.Abs(0 - orientPoint.X);
                             double yPosition = Math.Abs(0 - orientPoint.Y);
-                            int xDomain = (int)Math.Round(xPosition * (intersectPanel.PixelShape.Item1 / intersectPanel.GeometryShape.Item1));
-                            int yDomain = (int)Math.Round(yPosition * (intersectPanel.PixelShape.Item2 / intersectPanel.GeometryShape.Item2));
-
+                            int xDomain = (int)Math.Floor(xPosition * (intersectPanel.PixelShape.Item1 / intersectPanel.GeometryShape.Item1));
+                            int yDomain = (int)Math.Floor(yPosition * (intersectPanel.PixelShape.Item2 / intersectPanel.GeometryShape.Item2));
+                            
                             (int, int) intersectPanelDomain = (xDomain, yDomain);
 
                             //panelToPosition.Add(intersectPanelName, intersectPanelPosition);
@@ -161,9 +161,15 @@ namespace BrownBat.Calculate
                         #endregion
 
                     }
-                    Pixel.SetOverlapPanels(pixel, intersectPanelNames);
-                    //Pixel.SetPixelPosition(pixel, panelToPosition);
-                    Pixel.SetPixelDomain(pixel, panelToDomain);
+                        Pixel.SetOverlapPanels(pixel, intersectPanelNames);
+                        Pixel.SetPixelDomain(pixel, panelToDomain);
+                    //if(intersectPanelNames.Any())
+                    //{
+                    //}
+                    ////Pixel.SetPixelPosition(pixel, panelToPosition);
+                    //if (intersectPanelNames.Any())
+                    //{
+                    //}
                 }
 
             }

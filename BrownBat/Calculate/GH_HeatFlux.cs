@@ -48,6 +48,7 @@ namespace BrownBat.Calculate
             List<Pixel[]> pixels = inputWall.Pixel;
 
             DataTree<double> pixelFlux = new DataTree<double>();
+            Grasshopper.Kernel.Data.GH_Path path = new Grasshopper.Kernel.Data.GH_Path();
 
             for (int row = 0; row < pixels.Count; row++)
             {
@@ -55,14 +56,19 @@ namespace BrownBat.Calculate
                 {
                     if (pixels[row][col].OverlapPanels.Count != 0)
                     {
-                        double coefficient = HeatTransfer.Coefficient(pixels[row][col], inputWall, inputPanel);
+                        double coefficient = HeatTransfer.Coefficient(pixels[row][col], inputPanel);
                         double wallPixelArea = Area.WallPixelArea(inputWall);
 
                         double flux = coefficient * wallPixelArea * inputdT;
                         Pixel.SetHeatFlux(pixels[row][col], flux);
-                        pixelFlux.Add(flux, new Grasshopper.Kernel.Data.GH_Path(row, col));
+                        path = new Grasshopper.Kernel.Data.GH_Path(row);
+                        pixelFlux.Add(flux, path);
                     }
-                    else { pixelFlux.Add(25); }
+                    else 
+                    {
+                        path = new Grasshopper.Kernel.Data.GH_Path(row);
+                        pixelFlux.Add(0, path);
+                    }
                 }
                 
             }

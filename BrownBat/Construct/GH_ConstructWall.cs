@@ -76,6 +76,7 @@ namespace BrownBat.Construct
             List<Pixel[]> pointRowList = new List<Pixel[]> { firstPixelRow };
 
             DataTree<Point3d> wallPoints = new DataTree<Point3d>();
+            wallPoints.AddRange(firstRowPoints, new GH_Path(0));
 
             Curve moveEdge = topCurve.DuplicateCurve();
             Transform moveTransform = Transform.Translation(copyDirection * copyDistance);
@@ -87,7 +88,7 @@ namespace BrownBat.Construct
                 Array.Resize(ref rowPoints, rowPoints.Length - 1);
                 Pixel[] pixelRow = rowPoints.Select((p, index) => new Pixel(p, (i+1, index))).ToArray();
                 pointRowList.Add(pixelRow);
-                wallPoints.AddRange(rowPoints, new GH_Path(i));
+                wallPoints.AddRange(rowPoints, new GH_Path(i+1));
             }
             
             Wall wall = new Wall(inputName, pointRowList, inputWall, inputNumber);

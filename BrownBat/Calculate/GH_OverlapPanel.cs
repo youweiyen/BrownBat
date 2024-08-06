@@ -8,6 +8,8 @@ using Rhino.Geometry.Intersect;
 using BrownBat.Components;
 using System.Linq;
 using System.Diagnostics;
+using static Rhino.Render.ChangeQueue.Light;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace BrownBat.Calculate
 {
@@ -87,9 +89,6 @@ namespace BrownBat.Calculate
                         }
                         if (containment == PointContainment.Inside)
                         {
-                            Panel intersectPanel = inputModelPanel[i];
-                            string intersectPanelName = intersectPanel.Name;
-                            intersectPanelNames.Add(intersectPanelName);
 
                             #region TransformationToStandardPanel
                             //Panel intersectModelPanel = inputModelPanel.Where(panel => panel.Name == intersectPanelName).First();
@@ -107,15 +106,19 @@ namespace BrownBat.Calculate
 
                             #endregion
 
+                            Panel intersectPanel = inputModelPanel[i];
+                            string intersectPanelName = intersectPanel.Name;
+                            intersectPanelNames.Add(intersectPanelName);
+
                             Point3d orientPoint = new Point3d(pixel.PixelGeometry);
-                            Transform matrix = intersectPanel.InverseMatrix;                            
+                            Transform matrix = intersectPanel.InverseMatrix;
                             orientPoint.Transform(matrix);
 
                             double xPosition = Math.Abs(0 - orientPoint.X);
                             double yPosition = Math.Abs(0 - orientPoint.Y);
                             int xDomain = (int)Math.Floor(xPosition * (intersectPanel.PixelShape.Item1 / intersectPanel.GeometryShape.Item1));
                             int yDomain = (int)Math.Floor(yPosition * (intersectPanel.PixelShape.Item2 / intersectPanel.GeometryShape.Item2));
-                            
+
                             (int, int) intersectPanelDomain = (xDomain, yDomain);
 
                             //panelToPosition.Add(intersectPanelName, intersectPanelPosition);
@@ -161,8 +164,8 @@ namespace BrownBat.Calculate
                         #endregion
 
                     }
-                        Pixel.SetOverlapPanels(pixel, intersectPanelNames);
-                        Pixel.SetPixelDomain(pixel, panelToDomain);
+                    Pixel.SetOverlapPanels(pixel, intersectPanelNames);
+                    Pixel.SetPixelDomain(pixel, panelToDomain);
                     //if(intersectPanelNames.Any())
                     //{
                     //}

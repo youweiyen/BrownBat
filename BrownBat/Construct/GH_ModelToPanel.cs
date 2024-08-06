@@ -8,24 +8,24 @@ using Grasshopper.Kernel.Types;
 using Grasshopper.Rhinoceros.Model;
 using Rhino.Geometry;
 
-namespace BrownBat.Param
+namespace BrownBat.Construct
 {
-    public class GH_Panel : GH_Component
+    public class GH_ModelToPanel : GH_Component
     {
         /// <summary>
         /// Initializes a new instance of the GH_Param class.
         /// </summary>
-        public GH_Panel()
-          : base("Panel", "P",
+        public GH_ModelToPanel()
+          : base("ModelToPanel", "P",
               "Import Panel Block to Bat Object",
-              "BrownBat", "Param")
+              "BrownBat", "Construct")
         {
         }
 
         /// <summary>
         /// Registers all the input parameters for this component.
         /// </summary>
-        protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
+        protected override void RegisterInputParams(GH_InputParamManager pManager)
         {
             pManager.AddGenericParameter("Block Instance", "BI", "Block Instance", GH_ParamAccess.list);
             pManager.AddTransformParameter("Transform", "T", "Block Transform", GH_ParamAccess.list);
@@ -35,7 +35,7 @@ namespace BrownBat.Param
         /// <summary>
         /// Registers all the output parameters for this component.
         /// </summary>
-        protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
+        protected override void RegisterOutputParams(GH_OutputParamManager pManager)
         {
             pManager.AddGenericParameter("BatPanel", "B", "Bat Panel Object", GH_ParamAccess.list);
             pManager.AddBrepParameter("ModelBrep", "M", "Model as Brep", GH_ParamAccess.list);
@@ -64,7 +64,7 @@ namespace BrownBat.Param
 
                 //Transform panelTransformation = inputModel[i].ModelTransform;
                 Transform panelTransform = inputTransform[i];
-                
+
                 //string n = inputModel[i].TypeName;
                 //inputModel.Where(b => b.TypeName == "Block Instance").ToList().First().CastTo(out Brep brep);
                 //breps.Add(brep);
@@ -90,9 +90,9 @@ namespace BrownBat.Param
         {
             get
             {
+
                 //You can add image files to your project resources and access them like this:
-                // return Resources.IconForThisComponent;
-                return null;
+                return Properties.Resources.baticon;
             }
         }
 

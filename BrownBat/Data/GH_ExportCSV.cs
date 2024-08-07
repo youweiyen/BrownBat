@@ -80,6 +80,8 @@ namespace BrownBat.Data
                     
                     }
                 }
+                GH_RuntimeMessageLevel level = GH_RuntimeMessageLevel.Remark;
+                this.AddRuntimeMessage(level, "File Saved");
             }
 
         }

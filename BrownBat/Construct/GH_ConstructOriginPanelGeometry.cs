@@ -171,6 +171,8 @@ namespace BrownBat.Construct
                         throw new Exception($"Unable to create block definition{blockName}");
                     }
                 }
+                GH_RuntimeMessageLevel level = GH_RuntimeMessageLevel.Remark;
+                this.AddRuntimeMessage(level, "Geometry Baked");
             }
         }
 

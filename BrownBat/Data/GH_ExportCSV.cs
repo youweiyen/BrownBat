@@ -60,7 +60,7 @@ namespace BrownBat.Data
 
             if (inputSave)
             {
-                using (var writer = new StreamWriter($"{inputLocation}.csv"))
+                using (var writer = new StreamWriter($"{inputLocation}"))
                 {
                     var config = new CsvConfiguration(CultureInfo.InvariantCulture)
                     {

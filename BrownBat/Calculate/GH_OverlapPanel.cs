@@ -31,7 +31,6 @@ namespace BrownBat.Calculate
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
             pManager.AddGenericParameter("Wall", "W", "Wall", GH_ParamAccess.list);
-            pManager.AddGeometryParameter("curve", "c", "pointcurve", GH_ParamAccess.list);
             pManager.AddTextParameter("Stopwatch", "s", "stopwatch", GH_ParamAccess.item);
         }
 
@@ -41,14 +40,6 @@ namespace BrownBat.Calculate
             Wall inputWall = new Wall();
             DA.GetDataList(0, inputModelPanel);
             DA.GetData(1, ref inputWall);
-
-            //point in curve calculation
-            //List<Curve> tcurves = new List<Curve>();
-            //foreach (Panel inputPanel in inputModelPanel)
-            //{
-            //    Panel.BaseCurve(inputPanel);
-            //    tcurves.Add(inputPanel.GeometryBaseCurve);
-            //}
 
             #region intersectCalculation
             ////intersect calculation
@@ -183,8 +174,7 @@ namespace BrownBat.Calculate
             ts.Milliseconds / 10);
 
             DA.SetData(0, inputWall);
-            //DA.SetDataList(2, tcurves);
-            DA.SetData(2, elapsedTime);
+            DA.SetData(1, elapsedTime);
 
 
         }

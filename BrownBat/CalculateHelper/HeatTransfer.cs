@@ -9,13 +9,13 @@ namespace BrownBat.CalculateHelper
 {
     public static class HeatTransfer
     {
-        public static double Coefficient(Pixel pixel, List<Panel> panels)
+        public static double Coefficient(Pixel pixel, List<Element> panels)
         {
             List<string> overlapNames = pixel.OverlapPanels;
-            List<Panel> overlapPanels = panels.Where(p => overlapNames.Contains(p.Name)).ToList();
+            List<Element> overlapPanels = panels.Where(p => overlapNames.Contains(p.Name)).ToList();
 
             List<double> ratioList = new List<double>();
-            foreach (Panel panel in overlapPanels)
+            foreach (Element panel in overlapPanels)
             {
                 (int,int) domain = pixel.PixelDomain[panel.Name];
                 int row = domain.Item2;

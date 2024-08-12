@@ -42,14 +42,14 @@ namespace BrownBat.Construct
         /// <param name="DA">The DA object is used to retrieve from inputs and store in outputs.</param>
         protected override void SolveInstance(IGH_DataAccess DA)
         {
-            List<Panel> inputGeometryPanel = new List<Panel>();
-            List<Panel> inputDataPanel = new List<Panel>();
+            List<Element> inputGeometryPanel = new List<Element>();
+            List<Element> inputDataPanel = new List<Element>();
 
             DA.GetDataList(0, inputGeometryPanel);
             DA.GetDataList(1, inputDataPanel);
 
             var combinedPanels = inputGeometryPanel.Join(inputDataPanel, geometryName => geometryName.Name, dataName => dataName.Name,
-                                                        (geometry, data) => new Panel
+                                                        (geometry, data) => new Element
                                                         (geometry.Name,
                                                         geometry.InverseMatrix,
                                                         geometry.Model,
@@ -57,10 +57,10 @@ namespace BrownBat.Construct
                                                         data.PixelShape,
                                                         data.PixelConductivity)).ToList();
             //calculate geometry size properties
-            foreach (Panel panel in combinedPanels)
+            foreach (Element panel in combinedPanels)
             {
-                Panel.ModelThickness(panel);
-                Panel.ModelShape(panel);
+                Element.ModelThickness(panel);
+                Element.ModelShape(panel);
             }
 
             DA.SetDataList(0, combinedPanels);

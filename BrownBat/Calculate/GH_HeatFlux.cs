@@ -37,9 +37,9 @@ namespace BrownBat.Calculate
 
         protected override void SolveInstance(IGH_DataAccess DA)
         {
-            List<Panel> inputPanel = new List<Panel>();
+            List<Element> inputPanel = new List<Element>();
             double inputdT = default;
-            Wall inputWall = new Wall();
+            Structure inputWall = new Structure();
 
             DA.GetDataList(0, inputPanel);
             DA.GetData(1, ref inputWall);

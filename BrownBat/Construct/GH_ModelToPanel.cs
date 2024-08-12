@@ -56,7 +56,7 @@ namespace BrownBat.Construct
             DA.GetDataList(1, inputTransform);
             DA.GetDataList(2, inputBrep);
 
-            List<Panel> panelList = new List<Panel>();
+            List<Element> panelList = new List<Element>();
             List<Brep> brepList = new List<Brep>();
             for (int i = 0; i < inputBlock.Count; i++)
             {
@@ -69,10 +69,10 @@ namespace BrownBat.Construct
                 //inputModel.Where(b => b.TypeName == "Block Instance").ToList().First().CastTo(out Brep brep);
                 //breps.Add(brep);
                 Brep panelBrep = inputBrep[i];
-                Panel panel = new Panel(panelName, panelTransform, panelBrep);
+                Element panel = new Element(panelName, panelTransform, panelBrep);
 
-                Panel.TryGetInverseMatrix(panel, panelTransform);
-                Panel.BaseCurve(panel);
+                Element.TryGetInverseMatrix(panel, panelTransform);
+                Element.BaseCurve(panel);
 
                 panelList.Add(panel);
                 brepList.Add(panelBrep);

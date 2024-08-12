@@ -13,7 +13,7 @@ using System.Threading.Tasks;
 
 namespace BrownBat.Components
 {
-    public class Panel: IGH_GeometricGoo, IGH_Goo
+    public class Element: IGH_GeometricGoo, IGH_Goo
     {
         public string Name { get; }
         public Plane Origin { get; }
@@ -28,8 +28,8 @@ namespace BrownBat.Components
         public List<double[]> PixelConductivity { get; private set; }
 
         public (int, int) PixelShape { get; private set; }
-        public static void SetPanelTemperature(Panel panel, List<double[]> pixelTemperature) => panel.PixelTemperature = pixelTemperature;
-        public static void SetPanelConductivity(Panel panel, List<double[]> pixelConductivity) => panel.PixelConductivity = pixelConductivity;
+        public static void SetPanelTemperature(Element panel, List<double[]> pixelTemperature) => panel.PixelTemperature = pixelTemperature;
+        public static void SetPanelConductivity(Element panel, List<double[]> pixelConductivity) => panel.PixelConductivity = pixelConductivity;
 
 
 
@@ -50,23 +50,23 @@ namespace BrownBat.Components
         public string TypeDescription => throw new NotImplementedException();
 
 
-        public Panel(string name)
+        public Element(string name)
         {
             Name = name;
         }
-        public Panel(string name, Plane origin, Brep panel)
+        public Element(string name, Plane origin, Brep panel)
         {
             Name = name;
             Origin = origin;
             Model = panel;
         }
-        public Panel(string name, Transform matrix, Brep panel)
+        public Element(string name, Transform matrix, Brep panel)
         {
             Name = name;
             Matrix = matrix;
             Model = panel;
         }
-        public Panel(string name, Transform inverseMatrix, Brep panel, Curve geometryBaseCurve, (int, int) pixelShape, List<double[]> pixelConductivity) 
+        public Element(string name, Transform inverseMatrix, Brep panel, Curve geometryBaseCurve, (int, int) pixelShape, List<double[]> pixelConductivity) 
         {
             Name = name;
             InverseMatrix = inverseMatrix;
@@ -75,7 +75,7 @@ namespace BrownBat.Components
             PixelConductivity = pixelConductivity;
             GeometryBaseCurve = geometryBaseCurve;
         }
-        public static void ModelShape(Panel panel) 
+        public static void ModelShape(Element panel) 
         {
             Brep model = panel.Model;
             BrepFaceList faces = model.Faces;
@@ -86,7 +86,7 @@ namespace BrownBat.Components
             bool sizeBool = topSurface.GetSurfaceSize(out width, out height);
             panel.GeometryShape = (width, height);
         }
-        public static void ModelThickness(Panel panel)
+        public static void ModelThickness(Element panel)
         {
             Brep model = panel.Model;
             BrepFaceList faces = model.Faces;
@@ -95,7 +95,7 @@ namespace BrownBat.Components
             double surfaceDistance = Math.Abs(surfaceZ.First() - surfaceZ.Last());
             panel.GeometryThickness = surfaceDistance;
         }
-        public static void BaseCurve(Panel panel)
+        public static void BaseCurve(Element panel)
         {
             Brep model = panel.Model;
             BrepFaceList faces = model.Faces;
@@ -106,7 +106,7 @@ namespace BrownBat.Components
 
             panel.GeometryBaseCurve = joinedEdge;
         }
-        public static void CSVShape(Panel panel)
+        public static void CSVShape(Element panel)
         {
             int columnLength = default;
             int rowLength = default;
@@ -124,7 +124,7 @@ namespace BrownBat.Components
 
             panel.PixelShape = (rowLength, columnLength);
         }
-        public static void TryGetInverseMatrix(Panel panel, Transform matrix) 
+        public static void TryGetInverseMatrix(Element panel, Transform matrix) 
         {
             bool m = matrix.TryGetInverse(out Transform inverseMatrix);
             if (m == false) { throw new Exception(); }

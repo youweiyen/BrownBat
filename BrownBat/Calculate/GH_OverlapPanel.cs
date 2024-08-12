@@ -36,8 +36,8 @@ namespace BrownBat.Calculate
 
         protected override void SolveInstance(IGH_DataAccess DA)
         {
-            List<Panel> inputModelPanel = new List<Panel>();
-            Wall inputWall = new Wall();
+            List<Element> inputModelPanel = new List<Element>();
+            Structure inputWall = new Structure();
             DA.GetDataList(0, inputModelPanel);
             DA.GetData(1, ref inputWall);
 
@@ -97,7 +97,7 @@ namespace BrownBat.Calculate
 
                             #endregion
 
-                            Panel intersectPanel = inputModelPanel[i];
+                            Element intersectPanel = inputModelPanel[i];
                             string intersectPanelName = intersectPanel.Name;
                             intersectPanelNames.Add(intersectPanelName);
 

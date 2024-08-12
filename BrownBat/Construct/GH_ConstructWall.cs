@@ -91,7 +91,7 @@ namespace BrownBat.Construct
                 wallPoints.AddRange(rowPoints, new GH_Path(i+1));
             }
             
-            Wall wall = new Wall(inputName, pointRowList, inputWall, inputNumber);
+            Structure wall = new Structure(inputName, pointRowList, inputWall, inputNumber);
 
             DA.SetData(0, wall);
             DA.SetDataTree(1, wallPoints);

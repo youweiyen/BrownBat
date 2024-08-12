@@ -10,18 +10,18 @@ namespace BrownBat.CalculateHelper
 {
     public static class Area
     {
-        public static double PanelPixelArea(Panel panel)
+        public static double PanelPixelArea(Element panel)
         {
             if (panel.GeometryShape == default)
             {
-                Panel.ModelShape(panel);
+                Element.ModelShape(panel);
             }
             double width = panel.GeometryShape.Item1;
             double height = panel.GeometryShape.Item2;
 
             if (panel.PixelShape == default)
             {
-                Panel.CSVShape(panel);
+                Element.CSVShape(panel);
             }
             int rowCount = panel.PixelShape.Item1;
             int columnCount = panel.PixelShape.Item2;
@@ -33,11 +33,11 @@ namespace BrownBat.CalculateHelper
 
             return area;
         }
-        public static double WallPixelArea(Wall wall)
+        public static double WallPixelArea(Structure wall)
         {
             if (wall.GeometryShape == default)
             {
-                Wall.WallShape(wall);
+                Structure.WallShape(wall);
             }
             double width = wall.GeometryShape.Item1;
             double height = wall.GeometryShape.Item2;

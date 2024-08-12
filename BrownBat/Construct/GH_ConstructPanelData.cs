@@ -52,7 +52,7 @@ namespace BrownBat.Construct
             DA.GetDataList(1, inputNames);
 
 
-            List<Panel> outputPanels = new List<Panel>();
+            List<Element> outputPanels = new List<Element>();
 
             for (int i = 0; i < inputPaths.Count; i++)
             {
@@ -81,10 +81,10 @@ namespace BrownBat.Construct
                     }
                 }
                 //Panel panel = inputGeometry.Where(g => g.Name == name).FirstOrDefault();
-                Panel panel = new Panel(inputNames[i]);
+                Element panel = new Element(inputNames[i]);
 
-                Panel.SetPanelConductivity(panel, rowList);
-                Panel.CSVShape(panel);
+                Element.SetPanelConductivity(panel, rowList);
+                Element.CSVShape(panel);
 
                 outputPanels.Add(panel);
             }

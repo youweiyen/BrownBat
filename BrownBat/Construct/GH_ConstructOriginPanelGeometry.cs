@@ -42,7 +42,7 @@ namespace BrownBat.Construct
             DA.GetDataList(1, inputNames);
             DA.GetData(2, ref inputBake);
 
-            List<Panel> outputPanels = new List<Panel>();
+            List<Element> outputPanels = new List<Element>();
             for (int p = 0;  p < inputPanels.Count; p++)
             {
                 BrepVertexList profileVertexList = inputPanels[p].Vertices;
@@ -63,7 +63,7 @@ namespace BrownBat.Construct
 
                 Point3d profileStart = new Point3d(xStartProfile, yStartProfile, 0);
                 Plane originPlane = new Plane(profileStart, xDirection, yDirection);
-                Panel panel = new Panel(inputNames[p], originPlane, inputPanels[p]);
+                Element panel = new Element(inputNames[p], originPlane, inputPanels[p]);
                 outputPanels.Add(panel);
             }
             if (inputBake)
@@ -123,7 +123,7 @@ namespace BrownBat.Construct
 
                 for (int i = 0; i < outputPanels.Count; i++)
                 {
-                    Panel panel = outputPanels[i];
+                    Element panel = outputPanels[i];
 
                     Point3d origin = panel.Origin.Origin;
                     GeometryBase blockPanel = GH_Convert.ToGeometryBase(panel.Model);

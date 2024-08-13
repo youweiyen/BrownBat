@@ -21,7 +21,7 @@ namespace BrownBat.Construct
     {
 
         public GH_ConstructPanelData()
-          : base("ConstructOriginalPanelData", "OP",
+          : base("ConstructOriginPanelData", "OP",
               "Add the data",
               "BrownBat", "Construct")
         {

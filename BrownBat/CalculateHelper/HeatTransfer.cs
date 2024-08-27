@@ -9,7 +9,7 @@ namespace BrownBat.CalculateHelper
 {
     public static class HeatTransfer
     {
-        public static double Coefficient(Pixel pixel, List<Element> panels)
+        public static double Resistance(Pixel pixel, List<Element> panels)
         {
             List<string> overlapNames = pixel.OverlapPanels;
             List<Element> overlapPanels = panels.Where(p => overlapNames.Contains(p.Name)).ToList();
@@ -25,9 +25,8 @@ namespace BrownBat.CalculateHelper
                 double ratio = thickness / conductivity;
                 ratioList.Add(ratio);
             }
-            double overlapRatioSum = ratioList.Sum();
-            double U = 1 / overlapRatioSum;
-            return U;
+            double ratioSum = ratioList.Sum();
+            return ratioSum;
         }
     }
 }

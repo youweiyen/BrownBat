@@ -14,12 +14,12 @@ using Rhino.UI;
 
 namespace BrownBat.Data
 {
-    public class GH_QueryPanelName : GH_Component
+    public class GH_QueryElementName : GH_Component
     {
         /// <summary>
         /// Initializes a new instance of the GH_QueryPanelName class.
         /// </summary>
-        public GH_QueryPanelName()
+        public GH_QueryElementName()
           : base("QueryElementName", "QN",
               "Query Element Name",
               "BrownBat", "Data")

@@ -13,8 +13,8 @@ namespace BrownBat.Construct
         /// Initializes a new instance of the GH_ImportPanel class.
         /// </summary>
         public GH_ConstructPanel()
-          : base("ConstructPanel", "Nickname",
-              "Construct Bat Panel Object",
+          : base("ConstructElement", "Element",
+              "Construct Bat Element Object",
               "BrownBat", "Construct")
         {
         }

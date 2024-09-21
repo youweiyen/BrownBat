@@ -10,13 +10,13 @@ using Rhino.Geometry;
 
 namespace BrownBat.Construct
 {
-    public class GH_ModelToPanel : GH_Component
+    public class GH_BlockToObject : GH_Component
     {
         /// <summary>
         /// Initializes a new instance of the GH_Param class.
         /// </summary>
-        public GH_ModelToPanel()
-          : base("ModelToPanel", "P",
+        public GH_BlockToObject()
+          : base("BlockToObject", "P",
               "Import Panel Block to Bat Object",
               "BrownBat", "Construct")
         {
@@ -29,7 +29,7 @@ namespace BrownBat.Construct
         {
             pManager.AddGenericParameter("Block Instance", "BI", "Block Instance", GH_ParamAccess.list);
             pManager.AddTransformParameter("Transform", "T", "Block Transform", GH_ParamAccess.list);
-            pManager.AddBrepParameter("Model Panel", "P", "Model as Brep", GH_ParamAccess.list);
+            pManager.AddBrepParameter("Model", "M", "Model as Brep", GH_ParamAccess.list);
         }
 
         /// <summary>

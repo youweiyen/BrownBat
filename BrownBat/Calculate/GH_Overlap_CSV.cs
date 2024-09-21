@@ -13,11 +13,11 @@ using static System.Net.Mime.MediaTypeNames;
 
 namespace BrownBat.Calculate
 {
-    public class GH_OverlapPanel : GH_Component
+    public class GH_Overlap_CSV : GH_Component
     {
-        public GH_OverlapPanel()
-          : base("OverlapPanel", "Nickname",
-              "Description",
+        public GH_Overlap_CSV()
+          : base("Overlap_CSV", "OC",
+              "Calculate overlapping pixels using CSV data",
               "BrownBat", "Calculate")
         {
         }

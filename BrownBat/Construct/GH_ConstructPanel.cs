@@ -26,6 +26,7 @@ namespace BrownBat.Construct
         {
             pManager.AddGenericParameter("BatBlock", "D", "Import the geometrical data to Object", GH_ParamAccess.list);
             pManager.AddGenericParameter("BatData", "D", "Import the data to Object", GH_ParamAccess.list);
+            pManager[1].Optional = true;
         }
 
         /// <summary>

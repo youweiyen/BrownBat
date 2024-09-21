@@ -14,9 +14,9 @@ namespace BrownBat.Data
         /// Initializes a new instance of the GH_PostgresConnection class.
         /// </summary>
         public GH_PostgresConnection()
-          : base("PostgresConnection", "Nickname",
-              "Description",
-              "Category", "Subcategory")
+          : base("PostgresConnection", "PC",
+              "Postgres Connection",
+              "BrownBat", "Data")
         {
         }
 
@@ -25,11 +25,11 @@ namespace BrownBat.Data
         /// </summary>
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
-            pManager.AddBooleanParameter("Connect", "Con", "Connect to Postgres", GH_ParamAccess.item);
-            pManager.AddTextParameter("Host", "H", "Host, default set to local(127.0.0.1)", GH_ParamAccess.item);
-            pManager.AddTextParameter("")
+            pManager.AddTextParameter("Host", "H", "Host, default set to local(127.0.0.1)", GH_ParamAccess.item, "localhost");
+            pManager.AddTextParameter("Username", "U", "Username", GH_ParamAccess.item);
+            pManager.AddTextParameter("Password", "P", "Password", GH_ParamAccess.item);
             pManager.AddTextParameter("Database", "DB", "Database Name", GH_ParamAccess.item);
-            pManager[1].Optional = true;
+            pManager[0].Optional = true;
         }
 
         /// <summary>
@@ -37,6 +37,7 @@ namespace BrownBat.Data
         /// </summary>
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
+            pManager.AddTextParameter("ConnectionString", "CS", "Connection String for Database", GH_ParamAccess.item);
         }
 
         /// <summary>
@@ -45,31 +46,19 @@ namespace BrownBat.Data
         /// <param name="DA">The DA object is used to retrieve from inputs and store in outputs.</param>
         protected override void SolveInstance(IGH_DataAccess DA)
         {
-            bool connect = false;
             string host = "localhost";
             string username = default;
             string password = default;
             string database = default;
 
-            DA.GetData(0, ref connect);
-            DA.GetData(1, ref database);
+            DA.GetData(0, ref host);
+            DA.GetData(1, ref username);
+            DA.GetData(2, ref password);
+            DA.GetData(3, ref database);
 
-            var connectionString = $"Host={host};Username={username};Password={password};Database={database}";
-            NpgsqlConnection connection = new NpgsqlConnection(connectionString);
-
-            if(connect)
-            {
-                connection.Open();
-            }
-
-            else if (connect == false)
-            {
-                connection.Close();
-            }
-            var sql = "Select * from Employees";
-            NpgsqlCommand command = new NpgsqlCommand(sql, connection);
-
-            var dataReader = command.ExecuteReader();
+            string connectionString = $"Host={host};Username={username};Password={password};Database={database}";
+            
+            DA.SetData(0, connectionString);
         }
 
         /// <summary>

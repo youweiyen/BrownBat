@@ -11,11 +11,13 @@
   
   <ItemGroup>
     <PackageReference Include="CsvHelper" Version="33.0.1" />
+    <PackageReference Include="EntityFramework6.Npgsql" Version="6.4.3" />
     <PackageReference Include="Grasshopper" Version="8.0.23304.9001" IncludeAssets="compile;build" />
     <PackageReference Include="System.Drawing.Common" Version="8.0.6" />
   </ItemGroup>
   
   <ItemGroup>
+    <Reference Include="System.Data.Entity" />
     <Reference Include="System.Windows.Forms" />
   </ItemGroup>
   
@@ -44,6 +46,10 @@
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
+  </ItemGroup>
+  
+  <ItemGroup>
+    <Folder Include="DataHelper\" />
   </ItemGroup>
   
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">

@@ -7,12 +7,12 @@ using Rhino.Geometry;
 
 namespace BrownBat.Construct
 {
-    public class GH_ConstructPanel : GH_Component
+    public class GH_ConstructElement : GH_Component
     {
         /// <summary>
         /// Initializes a new instance of the GH_ImportPanel class.
         /// </summary>
-        public GH_ConstructPanel()
+        public GH_ConstructElement()
           : base("ConstructElement", "Element",
               "Construct Bat Element Object",
               "BrownBat", "Construct")
@@ -24,7 +24,7 @@ namespace BrownBat.Construct
         /// </summary>
         protected override void RegisterInputParams(GH_InputParamManager pManager)
         {
-            pManager.AddGenericParameter("BatBlock", "D", "Import the geometrical data to Object", GH_ParamAccess.list);
+            pManager.AddGenericParameter("Model", "B", "Design model with elements as block", GH_ParamAccess.list);
             pManager.AddGenericParameter("BatData", "D", "Import the data to Object", GH_ParamAccess.list);
             pManager[1].Optional = true;
         }
@@ -34,7 +34,7 @@ namespace BrownBat.Construct
         /// </summary>
         protected override void RegisterOutputParams(GH_OutputParamManager pManager)
         {
-            pManager.AddGenericParameter("BatPanel", "O", "Bat Object wiht all the panel data", GH_ParamAccess.list);
+            pManager.AddGenericParameter("BatElement", "O", "Bat Object wiht all the panel data", GH_ParamAccess.list);
         }
 
         /// <summary>

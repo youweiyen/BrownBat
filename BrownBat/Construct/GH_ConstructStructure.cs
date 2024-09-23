@@ -12,10 +12,10 @@ using Eto.Forms;
 
 namespace BrownBat.Construct
 {
-    public class GH_ConstructWall : GH_Component
+    public class GH_ConstructStructure : GH_Component
     {
-        public GH_ConstructWall()
-          : base("ConstructWall", "WallPix",
+        public GH_ConstructStructure()
+          : base("ConstructStructure", "WallPix",
               "Construct Wall Pixel Position",
               "BrownBat", "Construct")
         {

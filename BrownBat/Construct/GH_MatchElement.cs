@@ -64,9 +64,9 @@ namespace BrownBat.Construct
                 string panelName = inputBlock[i].InstanceDefinition.Name;
 
                 Transform panelTransform = inputTransform[i];
+                Transform nonTransform = new Transform(1);
 
-                //Transform transform = new Transform();
-                BoundingBox panelBox = inputBlock[i].GetBoundingBox(panelTransform);
+                BoundingBox panelBox = inputBlock[i].GetBoundingBox(nonTransform);
                 Brep panelBrep = panelBox.ToBrep();
                 brepList.Add(panelBrep);
 

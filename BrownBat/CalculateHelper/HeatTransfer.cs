@@ -6,6 +6,7 @@ using System.Data.Entity;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using NumSharp;
 
 namespace BrownBat.CalculateHelper
 {
@@ -51,7 +52,7 @@ namespace BrownBat.CalculateHelper
                 while (dataReader.Read())
                     Console.Write("{0}\t{1} \n", dataReader[0], dataReader[1]);
 
-                double conductivity = ;
+                double conductivity = 0;
                 double thickness = panel.GeometryThickness;
                 double ratio = thickness / conductivity;
                 ratioList.Add(ratio);

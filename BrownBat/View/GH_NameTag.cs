@@ -6,15 +6,15 @@ using Rhino.Geometry;
 
 namespace BrownBat.View
 {
-    public class MaterialMap : GH_Component
+    public class GH_NameTag : GH_Component
     {
         /// <summary>
-        /// Initializes a new instance of the MaterialMap class.
+        /// Initializes a new instance of the NameTag class.
         /// </summary>
-        public MaterialMap()
-          : base("MaterialMap", "Nickname",
+        public GH_NameTag()
+          : base("NameTag", "Nickname",
               "Description",
-              "Category", "Subcategory")
+              "BrownBat", "View")
         {
         }
 
@@ -58,7 +58,7 @@ namespace BrownBat.View
         /// </summary>
         public override Guid ComponentGuid
         {
-            get { return new Guid("7B836BD2-3C43-4602-B079-49156121F37C"); }
+            get { return new Guid("A8BBA882-CE87-4784-8B98-866E305E851D"); }
         }
     }
 }

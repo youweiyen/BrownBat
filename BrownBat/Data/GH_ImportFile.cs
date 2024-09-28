@@ -17,12 +17,12 @@ using Rhino.UI;
 
 namespace BrownBat.Data
 {
-    public class GH_ImportCSV : GH_Component
+    public class GH_ImportFile : GH_Component
     {
 
-        public GH_ImportCSV()
-          : base("ImportCSV", "InCsv",
-              "Add CSV data",
+        public GH_ImportFile()
+          : base("ImportFile", "I",
+              "Add data from Csv file",
               "BrownBat", "Data")
         {
         }

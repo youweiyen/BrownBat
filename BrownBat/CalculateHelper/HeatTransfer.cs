@@ -1,15 +1,17 @@
 ﻿using BrownBat.Components;
+using Npgsql;
 using System;
 using System.Collections.Generic;
+using System.Data.Entity;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace BrownBat.CalculateHelper
 {
-    public static class HeatTransfer
+    public class HeatTransfer
     {
-        public static double Resistance(Pixel pixel, List<Element> panels)
+        public static double ResistanceFromFile(Pixel pixel, List<Element> panels)
         {
             List<string> overlapNames = pixel.OverlapPanels;
             List<Element> overlapPanels = panels.Where(p => overlapNames.Contains(p.Name)).ToList();
@@ -21,6 +23,35 @@ namespace BrownBat.CalculateHelper
                 int row = domain.Item2;
                 int col = domain.Item1;
                 double conductivity = panel.PixelConductivity[row][col];
+                double thickness = panel.GeometryThickness;
+                double ratio = thickness / conductivity;
+                ratioList.Add(ratio);
+            }
+            double ratioSum = ratioList.Sum();
+            return ratioSum;
+        }
+        public static double ResistanceFromSql(Pixel pixel, List<Element> panels, string database, NpgsqlConnection connection)
+        {
+            List<string> overlapNames = pixel.OverlapPanels;
+            List<Element> overlapPanels = panels.Where(p => overlapNames.Contains(p.Name)).ToList();
+
+            List<double> ratioList = new List<double>();
+            foreach (Element panel in overlapPanels)
+            {
+                string name = panel.Name;
+                (int, int) domain = pixel.PixelDomain[name];
+                int row = domain.Item2;
+                int col = domain.Item1;
+
+                //TODO:save panel data in cache
+                var sql = $"SELECT Conductivity FROM {database} where Name = '{name}'";
+                NpgsqlCommand command = new NpgsqlCommand(sql, connection);
+                var dataReader = command.ExecuteReader();
+
+                while (dataReader.Read())
+                    Console.Write("{0}\t{1} \n", dataReader[0], dataReader[1]);
+
+                double conductivity = ;
                 double thickness = panel.GeometryThickness;
                 double ratio = thickness / conductivity;
                 ratioList.Add(ratio);

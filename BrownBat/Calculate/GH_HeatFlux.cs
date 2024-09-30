@@ -23,14 +23,14 @@ namespace BrownBat.Calculate
 
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
-            pManager.AddGenericParameter("Panel", "P", "Model Panels", GH_ParamAccess.list);
-            pManager.AddGenericParameter("Wall", "W", "Wall", GH_ParamAccess.item);
+            pManager.AddGenericParameter("BatElement", "B", "Bat Elements", GH_ParamAccess.list);
+            pManager.AddGenericParameter("Structure", "S", "Structure", GH_ParamAccess.item);
             pManager.AddNumberParameter("dT", "dT", "Temperature Difference", GH_ParamAccess.item);
         }
 
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
-            pManager.AddGenericParameter("Wall", "W", "Wall", GH_ParamAccess.item);
+            pManager.AddGenericParameter("Structure", "S", "Structure", GH_ParamAccess.item);
             pManager.AddNumberParameter("Flux", "F", "Flux of each Pixel", GH_ParamAccess.tree);
         }
 

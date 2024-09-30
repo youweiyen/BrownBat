@@ -16,16 +16,16 @@ namespace BrownBat.Construct
     {
         public GH_ConstructStructure()
           : base("ConstructStructure", "WallPix",
-              "Construct Wall Pixel Position",
+              "Construct Structure Pixels for calculation",
               "BrownBat", "Construct")
         {
         }
 
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
-            pManager.AddBrepParameter("WallBrep", "W", "Wall Geometry", GH_ParamAccess.item);
+            pManager.AddBrepParameter("Brep", "B", "Structure Brep", GH_ParamAccess.item);
             pManager.AddIntegerParameter("PixelCount", "N", "Number of Pixels to divide", GH_ParamAccess.item);
-            pManager.AddTextParameter("WallName", "WN", "Wall Name", GH_ParamAccess.item);
+            pManager.AddTextParameter("Name", "N", "Structure Name", GH_ParamAccess.item);
         }
 
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)

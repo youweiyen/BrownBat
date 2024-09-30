@@ -11,27 +11,27 @@ using Grasshopper;
 
 namespace BrownBat.Calculate
 {
-    public class GH_HeatFlux : GH_Component
+    public class GH_HeatFlux_File : GH_Component
     {
 
-        public GH_HeatFlux()
-          : base("HeatFlux", "F",
-              "Multiple panel heat flux",
+        public GH_HeatFlux_File()
+          : base("HeatFlux_CSV", "FC",
+              "Calculate multiple panel heat flux with CSV data",
               "BrownBat", "Calculate")
         {
         }
 
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
-            pManager.AddGenericParameter("BatElement", "B", "Bat Elements", GH_ParamAccess.list);
-            pManager.AddGenericParameter("Structure", "S", "Structure", GH_ParamAccess.item);
+            pManager.AddGenericParameter("Panel", "P", "Model Panels", GH_ParamAccess.list);
+            pManager.AddGenericParameter("Wall", "W", "Wall", GH_ParamAccess.item);
             pManager.AddNumberParameter("dT", "dT", "Temperature Difference", GH_ParamAccess.item);
         }
 
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
-            pManager.AddGenericParameter("Structure", "S", "Structure", GH_ParamAccess.item);
-            pManager.AddNumberParameter("Flux", "F", "Flux of each Pixel", GH_ParamAccess.tree);
+            pManager.AddGenericParameter("Structure", "S", "Bat Structure", GH_ParamAccess.item);
+            pManager.AddNumberParameter("Flux", "F", "Heat Flux of each pixel", GH_ParamAccess.tree);
         }
 
 
@@ -57,7 +57,7 @@ namespace BrownBat.Calculate
                 {
                     if (pixels[row][col].OverlapPanels.Count != 0)
                     {
-                        double resistance = HeatTransfer.Resistance(pixels[row][col], inputPanel);
+                        double resistance = HeatTransfer.ResistanceFromFile(pixels[row][col], inputPanel);
 
                         double flux = inputdT/resistance;
                         Pixel.SetHeatFlux(pixels[row][col], flux);

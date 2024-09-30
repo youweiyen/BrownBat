@@ -13,25 +13,25 @@ using static System.Net.Mime.MediaTypeNames;
 
 namespace BrownBat.Calculate
 {
-    public class GH_Overlap_CSV : GH_Component
+    public class GH_Overlap : GH_Component
     {
-        public GH_Overlap_CSV()
-          : base("Overlap_CSV", "OC",
-              "Calculate overlapping pixels using CSV data",
+        public GH_Overlap()
+          : base("Overlap", "O",
+              "Calculate overlapping elements and pixel's position",
               "BrownBat", "Calculate")
         {
         }
 
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
-            pManager.AddGenericParameter("BatElement", "B", "Bat object with geometry and csv data", GH_ParamAccess.list);
-            pManager.AddGenericParameter("Structure", "S", "Structure with pixel points", GH_ParamAccess.item);
+            pManager.AddGenericParameter("BatPanel", "MP", "Modeled Panel", GH_ParamAccess.list);
+            pManager.AddGenericParameter("Wall", "W", "Wall", GH_ParamAccess.item);
         }
 
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
-            pManager.AddGenericParameter("Structure", "S", "Structure", GH_ParamAccess.list);
-            pManager.AddTextParameter("Stopwatch", "s", "Stopwatch", GH_ParamAccess.item);
+            pManager.AddGenericParameter("Structure", "S", "Bat Structure", GH_ParamAccess.list);
+            pManager.AddTextParameter("Stopwatch", "s", "stopwatch", GH_ParamAccess.item);
         }
 
         protected override void SolveInstance(IGH_DataAccess DA)

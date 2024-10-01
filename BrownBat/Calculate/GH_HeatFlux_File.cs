@@ -15,7 +15,7 @@ namespace BrownBat.Calculate
     {
 
         public GH_HeatFlux_File()
-          : base("HeatFlux_CSV", "FC",
+          : base("HeatFlux_File", "FC",
               "Calculate multiple panel heat flux with CSV data",
               "BrownBat", "Calculate")
         {

@@ -6,6 +6,7 @@ using BrownBat.CalculateHelper;
 using BrownBat.Components;
 using Grasshopper.Kernel;
 using Rhino.Geometry;
+using Rhino.UI;
 
 namespace BrownBat.Calculate
 {
@@ -27,6 +28,7 @@ namespace BrownBat.Calculate
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
             pManager.AddGenericParameter("Element", "E", "Bat Element", GH_ParamAccess.list);
+            pManager.AddTextParameter("SelectName", "N", "Bat Element Name", GH_ParamAccess.list);
             pManager.AddIntegerParameter("CentralType", "C", "Central Tendency", GH_ParamAccess.item);
         }
 
@@ -36,6 +38,8 @@ namespace BrownBat.Calculate
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
             pManager.AddNumberParameter("Result", "R", "Result Conductivity", GH_ParamAccess.list);
+            pManager.AddTextParameter("Name", "N", "Element Name", GH_ParamAccess.list);
+
         }
 
         /// <summary>
@@ -44,20 +48,35 @@ namespace BrownBat.Calculate
         /// <param name="DA">The DA object is used to retrieve from inputs and store in outputs.</param>
         protected override void SolveInstance(IGH_DataAccess DA)
         {
-            GH_Document doc = new GH_Document();
-            AddedToDocument(doc);
 
             int inCentral = default;
             List<Element> inElement = new List<Element>();
+            List<string> inName = new List<string>();
 
-            DA.GetData(0, ref inElement);
-            DA.GetData(1, ref inCentral);
+            DA.GetDataList(0, inElement);
+            DA.GetDataList(1, inName);
+            DA.GetData(2, ref inCentral);
+
+            GH_Document doc = new GH_Document();
+            AddedToDocument(doc);
 
             List<double> centrals = new List<double>();
+            //List<Element> selectedElement = inElement.Where(p => inName.Contains(p.Name)).ToList();
+            var selectedSets = inElement.Select(i => new SelectedElements{ Elements = i, Name = i.Name }).Where(p => inName.Contains(p.Name)).ToList();
+            
+            List<Element> selectElement = new List<Element>();
+            List<string> selectName = new List<string>();
+
+            foreach (SelectedElements e in selectedSets)
+            {
+                selectElement.Add(e.Elements);
+                selectName.Add(e.Name);
+            }
+
 
             if (inCentral == (int)CentralTendency.Mean)
             {
-                foreach (Element element in inElement)
+                foreach (Element element in selectElement)
                 {
                     IEnumerable<double> conductivity = element.PixelConductivity.SelectMany(c => c);
                     double central = ElementCentral.Mean(conductivity);
@@ -66,7 +85,9 @@ namespace BrownBat.Calculate
 
             }
 
-            DA.SetData(0, centrals);
+            DA.SetDataList(0, centrals);
+            DA.SetDataList(1, selectName);
+
 
 
         }
@@ -98,7 +119,7 @@ namespace BrownBat.Calculate
 
 
             //Add Value List
-            int[] paramID = new int[] { 1 };//second param
+            int[] paramID = new int[] { 2 };//third param
 
             for (int i = 0; i < paramID.Length; i++)
             {

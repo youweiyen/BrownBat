@@ -1,4 +1,5 @@
-﻿using Rhino.Commands;
+﻿using BrownBat.Components;
+using Rhino.Commands;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -30,5 +31,11 @@ namespace BrownBat.CalculateHelper
         Mean,
         Median,
         Mode,
+    }
+
+    public class SelectedElements 
+    {
+        public Element Elements { get;set; }
+        public string Name { get; set; }
     }
 }

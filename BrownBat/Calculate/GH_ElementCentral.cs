@@ -61,8 +61,9 @@ namespace BrownBat.Calculate
             AddedToDocument(doc);
 
             List<double> centrals = new List<double>();
-            //List<Element> selectedElement = inElement.Where(p => inName.Contains(p.Name)).ToList();
-            var selectedSets = inElement.Select(i => new SelectedElements{ Elements = i, Name = i.Name }).Where(p => inName.Contains(p.Name)).ToList();
+            var selectedSets = inElement.Select(i => new SelectedElements{ Elements = i, Name = i.Name })
+                                        .Where(p => inName.Contains(p.Name))
+                                        .ToList();
             
             List<Element> selectElement = new List<Element>();
             List<string> selectName = new List<string>();
@@ -72,17 +73,24 @@ namespace BrownBat.Calculate
                 selectElement.Add(e.Elements);
                 selectName.Add(e.Name);
             }
-
-
-            if (inCentral == (int)CentralTendency.Mean)
+            foreach (Element element in selectElement)
             {
-                foreach (Element element in selectElement)
+                IEnumerable<double> conductivity = element.PixelConductivity.SelectMany(c => c);
+                double central = default;
+                switch (inCentral)
                 {
-                    IEnumerable<double> conductivity = element.PixelConductivity.SelectMany(c => c);
-                    double central = ElementCentral.Mean(conductivity);
-                    centrals.Add(central);
-                }
+                    case (int)CentralTendency.Mean:
+                        central = ElementCentral.Mean(conductivity);
+                            break;
 
+                    case (int)CentralTendency.Median:
+                        central = ElementCentral.Median(conductivity);
+                        break;
+                    case (int)CentralTendency.Mode:
+                        central = ElementCentral.Mode(conductivity);
+                        break;
+                }
+                centrals.Add(central);
             }
 
             DA.SetDataList(0, centrals);

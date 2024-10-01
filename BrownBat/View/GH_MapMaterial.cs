@@ -1,8 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-
+using BrownBat.Components;
 using Grasshopper.Kernel;
 using Rhino.Geometry;
+using Rhino.Render;
 
 namespace BrownBat.View
 {
@@ -12,8 +13,8 @@ namespace BrownBat.View
         /// Initializes a new instance of the MaterialMap class.
         /// </summary>
         public GH_MapMaterial()
-          : base("MapMaterial", "Nickname",
-              "Description",
+          : base("MapMaterial", "M",
+              "Map Bitmap to Material",
               "BrownBat", "View")
         {
         }
@@ -23,6 +24,8 @@ namespace BrownBat.View
         /// </summary>
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
+            pManager.AddGenericParameter("Element", "E", "Bat Element", GH_ParamAccess.list);
+            pManager.AddTextParameter("Path", "P", "Source Path", GH_ParamAccess.list);
         }
 
         /// <summary>
@@ -38,6 +41,12 @@ namespace BrownBat.View
         /// <param name="DA">The DA object is used to retrieve from inputs and store in outputs.</param>
         protected override void SolveInstance(IGH_DataAccess DA)
         {
+            List<Element> inElement =  new List<Element>();
+            List<string> inPath = new List<string>();
+
+
+            var rhinoTexture = Rhino.Render.RenderTexture.NewBitmapTexture(inPath[0], Rhino.RhinoDoc.ActiveDoc);
+            var texture = rhinoTexture.SimulatedTexture(RenderTexture.TextureGeneration.Allow).Texture();
         }
 
         /// <summary>

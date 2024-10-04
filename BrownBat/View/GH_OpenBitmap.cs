@@ -28,8 +28,8 @@ namespace BrownBat.View
         /// </summary>
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
-            pManager.AddTextParameter("Path", "P", "Path to Bitmap file", GH_ParamAccess.item);
-            //pManager.AddTextParameter("Name", "N", "Name of File to import", GH_ParamAccess.item);
+            pManager.AddTextParameter("Path", "P", "Path to Bitmap file", GH_ParamAccess.list);
+            pManager.AddTextParameter("Name", "N", "Name of File to import", GH_ParamAccess.list);
             pManager.AddBooleanParameter("Load", "L", "Load Bitmap", GH_ParamAccess.item);
         }
 
@@ -38,7 +38,7 @@ namespace BrownBat.View
         /// </summary>
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
-            pManager.AddGenericParameter("Bitmap", "B", "The loaded Bitmap object", GH_ParamAccess.item);
+            pManager.AddGenericParameter("Bitmap", "B", "The loaded Bitmap object", GH_ParamAccess.list);
         }
 
         /// <summary>
@@ -47,38 +47,46 @@ namespace BrownBat.View
         /// <param name="DA">The DA object is used to retrieve from inputs and store in outputs.</param>
         protected override void SolveInstance(IGH_DataAccess DA)
         {
-            string path = null;
-            if (!DA.GetData(0, ref path))
+            List<string> paths = new List<string>();
+            if (!DA.GetDataList(0, paths))
                 return;
-            //string name = null;
+            List<string> names = new List<string>();
+            if (!DA.GetDataList(1, names))
+                return;
             bool flag = false;
-            if (!DA.GetData(1, ref flag))
+            if (!DA.GetData(2, ref flag))
                 return;
 
-            //if (BitmapPlusEnvironment.FileIoBlocked)
-            //    this.AddRuntimeMessage((GH_RuntimeMessageLevel)20, "Reading images from files is blocked on this computer.");
-            else if (!File.Exists(path))
+           if (!File.Exists(paths[0]))
                 this.AddRuntimeMessage((GH_RuntimeMessageLevel)20, "The file provided path does not exist. Please verify this is a valid file path.");
-            else if (flag)
+            if (flag)
             {
-                Bitmap bitmap = null;
-                if (!path.GetBitmapFromFile(out bitmap))
+                List<Bitmap> bitmaps = new List<Bitmap>();
+                foreach (string path in paths)
                 {
-                    if (!Path.HasExtension(path))
+                    Bitmap bitmap = null;
+                    bool getName = names.Contains(Path.GetFileNameWithoutExtension(path));
+                    if (getName)
                     {
-                        this.AddRuntimeMessage((GH_RuntimeMessageLevel)20, "This is not a valid file path. This file does not have a valid bitmap extension");
-                        this.AddRuntimeMessage((GH_RuntimeMessageLevel)20, "This is not a valid file path. This file does not have a valid bitmap extension");
+                        if (!path.GetBitmapFromFile(out bitmap))
+                        {
+                            if (!Path.HasExtension(path))
+                            {
+                                this.AddRuntimeMessage((GH_RuntimeMessageLevel)20, "This is not a valid file path. This file does not have a valid bitmap extension");
+                                this.AddRuntimeMessage((GH_RuntimeMessageLevel)20, "This is not a valid file path. This file does not have a valid bitmap extension");
+                            }
+                            else
+                                this.AddRuntimeMessage((GH_RuntimeMessageLevel)20, "This is not a valid bitmap file type. The extension " + Path.GetExtension(path) + " is not a supported bitmap format");
+                        }
+                        else
+                        {
+                            bitmaps.Add(bitmap);
+                        }
                     }
-                    else
-                        this.AddRuntimeMessage((GH_RuntimeMessageLevel)20, "This is not a valid bitmap file type. The extension " + Path.GetExtension(path) + " is not a supported bitmap format");
+                    //else { return; }
                 }
-                else
-                {
-                    DA.SetData(0, bitmap);
-                }
+                DA.SetDataList(0, bitmaps);
             }
-            else
-                this.AddRuntimeMessage((GH_RuntimeMessageLevel)10, "To load a file the Load input must be set to true");
         }
 
         /// <summary>

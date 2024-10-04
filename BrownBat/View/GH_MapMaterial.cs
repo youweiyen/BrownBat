@@ -45,8 +45,8 @@ namespace BrownBat.View
             List<string> inPath = new List<string>();
 
 
-            var rhinoTexture = Rhino.Render.RenderTexture.NewBitmapTexture(inPath[0], Rhino.RhinoDoc.ActiveDoc);
-            var texture = rhinoTexture.SimulatedTexture(RenderTexture.TextureGeneration.Allow).Texture();
+            //var rhinoTexture = Rhino.Render.RenderTexture.NewBitmapTexture(inPath[0], Rhino.RhinoDoc.ActiveDoc);
+            //var texture = rhinoTexture.SimulatedTexture(RenderTexture.TextureGeneration.Allow).Texture();
         }
 
         /// <summary>

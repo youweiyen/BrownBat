@@ -7,6 +7,7 @@ using System.Drawing;
 using System.IO;
 using BrownBat.Components;
 using BrownBat.CalculateHelper;
+using System.Text;
 
 
 namespace BrownBat.View
@@ -66,6 +67,7 @@ namespace BrownBat.View
             if (flag)
             {
                 List<Bitmap> bitmaps = new List<Bitmap>();
+                string flipPath = default;
                 foreach (string path in paths)
                 {
                     Bitmap bitmap = null;
@@ -75,18 +77,22 @@ namespace BrownBat.View
                     {
                         if (path.Contains(sideAName))
                         {
-                            path.Replace(sideAName, sideBName);
+                            StringBuilder builder = new StringBuilder(path);
+                            builder.Replace(sideAName, sideBName);
+                            flipPath = builder.ToString();
                         }
                         else if (path.Contains(sideBName))
                         {
+                            StringBuilder builder = new StringBuilder(path);
                             path.Replace(sideBName, sideAName);
+                            flipPath = builder.ToString();
                         }
                         else 
                         {
                             AddRuntimeMessage((GH_RuntimeMessageLevel)20, "side not declared");
                         }
 
-                        if (!path.GetBitmapFromFile(out bitmap))
+                        if (!flipPath.GetBitmapFromFile(out bitmap))
                         {
                             if (!Path.HasExtension(path))
                             {

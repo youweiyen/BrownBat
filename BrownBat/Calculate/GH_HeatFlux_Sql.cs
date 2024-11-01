@@ -83,7 +83,7 @@ namespace BrownBat.Calculate
                     {
                         if (pixels[row][col].OverlapPanels.Count != 0)
                         {
-                            double resistance = HeatTransfer.ResistanceFromSql(pixels[row][col], inputElement, database, connection);
+                            double resistance = HeatTransfer.ConductiveResistanceFromSql(pixels[row][col], inputElement, database, connection);
 
                             double flux = inputdT / resistance;
                             Pixel.SetHeatFlux(pixels[row][col], flux);

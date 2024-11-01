@@ -58,7 +58,7 @@ namespace BrownBat.View
                 return;
 
            if (!File.Exists(paths[0]))
-                this.AddRuntimeMessage((GH_RuntimeMessageLevel)20, "The file provided path does not exist. Please verify this is a valid file path.");
+                AddRuntimeMessage((GH_RuntimeMessageLevel)20, "The file provided path does not exist. Please verify this is a valid file path.");
             if (flag)
             {
                 List<Bitmap> bitmaps = new List<Bitmap>();
@@ -72,18 +72,16 @@ namespace BrownBat.View
                         {
                             if (!Path.HasExtension(path))
                             {
-                                this.AddRuntimeMessage((GH_RuntimeMessageLevel)20, "This is not a valid file path. This file does not have a valid bitmap extension");
-                                this.AddRuntimeMessage((GH_RuntimeMessageLevel)20, "This is not a valid file path. This file does not have a valid bitmap extension");
+                                AddRuntimeMessage((GH_RuntimeMessageLevel)20, "This is not a valid file path. This file does not have a valid bitmap extension");
                             }
                             else
-                                this.AddRuntimeMessage((GH_RuntimeMessageLevel)20, "This is not a valid bitmap file type. The extension " + Path.GetExtension(path) + " is not a supported bitmap format");
+                                AddRuntimeMessage((GH_RuntimeMessageLevel)20, "This is not a valid bitmap file type. The extension " + Path.GetExtension(path) + " is not a supported bitmap format");
                         }
                         else
                         {
                             bitmaps.Add(bitmap);
                         }
                     }
-                    //else { return; }
                 }
                 DA.SetDataList(0, bitmaps);
             }

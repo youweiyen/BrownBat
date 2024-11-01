@@ -12,7 +12,7 @@ namespace BrownBat.CalculateHelper
 {
     public class HeatTransfer
     {
-        public static double ResistanceFromFile(Pixel pixel, List<Element> panels)
+        public static double ConductiveResistanceFromFile(Pixel pixel, List<Element> panels)
         {
             List<string> overlapNames = pixel.OverlapPanels;
             List<Element> overlapPanels = panels.Where(p => overlapNames.Contains(p.Name)).ToList();
@@ -31,7 +31,7 @@ namespace BrownBat.CalculateHelper
             double ratioSum = ratioList.Sum();
             return ratioSum;
         }
-        public static double ResistanceFromSql(Pixel pixel, List<Element> panels, string database, NpgsqlConnection connection)
+        public static double ConductiveResistanceFromSql(Pixel pixel, List<Element> panels, string database, NpgsqlConnection connection)
         {
             List<string> overlapNames = pixel.OverlapPanels;
             List<Element> overlapPanels = panels.Where(p => overlapNames.Contains(p.Name)).ToList();
@@ -60,5 +60,45 @@ namespace BrownBat.CalculateHelper
             double ratioSum = ratioList.Sum();
             return ratioSum;
         }
+        public static double ConvectiveCoefficientFromFile(Pixel pixel, List<Element> panels)
+        {
+            List<string> overlapNames = pixel.OverlapPanels;
+            List<Element> overlapPanels = panels.Where(p => overlapNames.Contains(p.Name)).ToList();
+
+            List<double> ratioList = new List<double>();
+            foreach (Element panel in overlapPanels)
+            {
+                (int, int) domain = pixel.PixelDomain[panel.Name];
+                int row = domain.Item2;
+                int col = domain.Item1;
+                double conductivity = panel.PixelConductivity[row][col];
+                double thickness = panel.GeometryThickness;
+                double ratio = thickness / conductivity;
+                ratioList.Add(ratio);
+            }
+            double ratioSum = ratioList.Sum();
+            return ratioSum;
+        }
+
+        //public static double OverallHeatTransferCoefficient(IHeatTransfer ConductiveResistance, IHeatTransfer ConvectiveCoefficient)
+        //{
+        //    List<string> overlapNames = pixel.OverlapPanels;
+        //    List<Element> overlapPanels = panels.Where(p => overlapNames.Contains(p.Name)).ToList();
+
+        //    List<double> ratioList = new List<double>();
+        //    foreach (Element panel in overlapPanels)
+        //    {
+        //        (int, int) domain = pixel.PixelDomain[panel.Name];
+        //        int row = domain.Item2;
+        //        int col = domain.Item1;
+        //        double conductivity = panel.PixelConductivity[row][col];
+        //        double thickness = panel.GeometryThickness;
+        //        double ratio = thickness / conductivity;
+        //        ratioList.Add(ratio);
+        //    }
+        //    double ratioSum = ratioList.Sum();
+        //    return ratioSum;
+        //}
+
     }
 }

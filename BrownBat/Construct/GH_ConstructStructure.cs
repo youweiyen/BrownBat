@@ -24,7 +24,8 @@ namespace BrownBat.Construct
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
             pManager.AddBrepParameter("Brep", "B", "Structure Brep", GH_ParamAccess.item);
-            pManager.AddIntegerParameter("PixelCount", "N", "Number of Pixels to divide", GH_ParamAccess.item);
+            pManager.AddIntegerParameter("UPixelCount", "N", "Number of Pixels in U", GH_ParamAccess.item);
+            pManager.AddIntegerParameter("VPixelCount", "N", "Number of Pixels in V", GH_ParamAccess.item);
             pManager.AddTextParameter("Name", "N", "Structure Name", GH_ParamAccess.item);
         }
 
@@ -41,11 +42,13 @@ namespace BrownBat.Construct
         protected override void SolveInstance(IGH_DataAccess DA)
         {
             Brep inputWall = new Brep();
-            int inputNumber = 20;
+            int inputUNumber = default;
+            int inputVNumber = default;
             string inputName = default;
             DA.GetData(0, ref inputWall);
-            DA.GetData(1, ref inputNumber);
-            DA.GetData(2, ref inputName);
+            DA.GetData(1, ref inputUNumber);
+            DA.GetData(2, ref inputVNumber);
+            DA.GetData(3, ref inputName);
             
             BrepFaceList faces = inputWall.Faces;
             Brep topSurface = faces.OrderByDescending(f => f.PointAt(0.5, 0.5).Z).First().ToBrep();
@@ -55,7 +58,7 @@ namespace BrownBat.Construct
             List<Curve> sortedEdge = edgeList.Select(e => e.EdgeCurve)
                                     .OrderByDescending(edge => edge.PointAtNormalizedLength(0.5).Y)
                                     .ToList();
-            double copyDistance = sortedEdge[1].GetLength() / inputNumber;
+            double copyDistance = sortedEdge[1].GetLength() / inputVNumber;
 
             Curve topCurve = sortedEdge[0].DuplicateCurve();
             if (sortedEdge[0].PointAtStart.X > sortedEdge[0].PointAtEnd.X)
@@ -63,7 +66,7 @@ namespace BrownBat.Construct
                 topCurve.Reverse();
             }
 
-            double[] divideBool = topCurve.DivideByCount(inputNumber, true, out Point3d[] firstRowPoints);
+            double[] divideBool = topCurve.DivideByCount(inputUNumber, true, out Point3d[] firstRowPoints);
             Array.Resize(ref firstRowPoints, firstRowPoints.Length - 1);
             Pixel[] firstPixelRow = firstRowPoints.Select((p, index) => new Pixel(p, (0, index))).ToArray();
 
@@ -80,18 +83,18 @@ namespace BrownBat.Construct
 
             Curve moveEdge = topCurve.DuplicateCurve();
             Transform moveTransform = Transform.Translation(copyDirection * copyDistance);
-            for (int i = 0; i < inputNumber - 1; i++)
+            for (int i = 0; i < inputVNumber - 1; i++)
             {
                 moveEdge.Transform(moveTransform);
 
-                moveEdge.DivideByCount(inputNumber, true, out Point3d[] rowPoints);
+                moveEdge.DivideByCount(inputUNumber, true, out Point3d[] rowPoints);
                 Array.Resize(ref rowPoints, rowPoints.Length - 1);
                 Pixel[] pixelRow = rowPoints.Select((p, index) => new Pixel(p, (i+1, index))).ToArray();
                 pointRowList.Add(pixelRow);
                 wallPoints.AddRange(rowPoints, new GH_Path(i+1));
             }
             
-            Structure wall = new Structure(inputName, pointRowList, inputWall, inputNumber);
+            Structure wall = new Structure(inputName, pointRowList, inputWall, (inputUNumber, inputVNumber));
 
             DA.SetData(0, wall);
             DA.SetDataTree(1, wallPoints);

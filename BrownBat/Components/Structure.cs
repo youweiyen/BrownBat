@@ -14,12 +14,13 @@ namespace BrownBat.Components
         public List<Pixel[]> Pixel { get; }
         public Brep Model { get; }
 
-        public int PixelShape {  get; }
+        public (int,int) PixelShape {  get; }
         public (double, double) GeometryShape { get; private set; }
+        public List<double[]> Temperature { get; private set; }
 
 
         public Structure() { }
-        public Structure(string name, List<Pixel[]> pixel, Brep model, int pixelShape)
+        public Structure(string name, List<Pixel[]> pixel, Brep model, (int, int) pixelShape)
         {
             Name = name;
             Pixel = pixel;
@@ -37,6 +38,7 @@ namespace BrownBat.Components
             bool sizeBool = topSurface.GetSurfaceSize(out width, out height);
             structure.GeometryShape = (width, height);
         }
+        public static void SetTemperature(Structure structure, List<double[]> temperature) => structure.Temperature = temperature;
 
     }
 }

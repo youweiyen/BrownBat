@@ -157,13 +157,6 @@ namespace BrownBat.Calculate
                     }
                     Pixel.SetOverlapPanels(pixel, intersectPanelNames);
                     Pixel.SetPixelDomain(pixel, panelToDomain);
-                    //if(intersectPanelNames.Any())
-                    //{
-                    //}
-                    ////Pixel.SetPixelPosition(pixel, panelToPosition);
-                    //if (intersectPanelNames.Any())
-                    //{
-                    //}
                 }
 
             }

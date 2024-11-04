@@ -1,7 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
-
+using System.Linq;
+using BrownBat.Components;
+using Grasshopper;
 using Grasshopper.Kernel;
+using Grasshopper.Kernel.Data;
+using Grasshopper.Kernel.Types;
 using Rhino.Geometry;
 
 namespace BrownBat.Construct
@@ -12,7 +16,7 @@ namespace BrownBat.Construct
         /// Initializes a new instance of the GH_StructureTemperature class.
         /// </summary>
         public GH_StructureTemperature()
-          : base("GH_StructureTemperature", "Nickname",
+          : base("StructureTemperature", "Nickname",
               "Description",
               "BrownBat", "Construct")
         {
@@ -24,7 +28,7 @@ namespace BrownBat.Construct
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
             pManager.AddGenericParameter("Structure", "S", "Constructed Bat Structure", GH_ParamAccess.item);
-            pManager.AddNumberParameter("Temperature", "T", "Tempertature for each Structure Pixel", GH_ParamAccess.tree);
+            pManager.AddGenericParameter("Temperature", "T", "Tempertature for each Structure Pixel", GH_ParamAccess.tree);
         }
 
         /// <summary>
@@ -32,7 +36,7 @@ namespace BrownBat.Construct
         /// </summary>
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
-            pManager.AddGenericParameter("Structure", "S", "Bat Structure with Temperature", GH_ParamAccess.item);
+            pManager.AddGenericParameter("Structure", "S", "Structure with Temperature", GH_ParamAccess.item);
         }
 
         /// <summary>
@@ -41,6 +45,28 @@ namespace BrownBat.Construct
         /// <param name="DA">The DA object is used to retrieve from inputs and store in outputs.</param>
         protected override void SolveInstance(IGH_DataAccess DA)
         {
+            Structure inStructure = default;
+            GH_Structure<IGH_Goo> inTemperature = new GH_Structure<IGH_Goo>();
+
+            DA.GetData(0, ref inStructure);
+            DA.GetDataTree(1, out inTemperature);
+
+            List<double[]> structureTemperature = new List<double[]>();
+            for (int branch = 0; branch < inTemperature.Branches.Count; branch++)
+            {
+                var value = inTemperature.Branches[branch];
+                double[] temperatureArray = new double[value.Count];
+                for (int t = 0; t < value.Count; t++)
+                {
+                    value[t].CastTo<double>(out double temperature);
+                    temperatureArray[t] = temperature;
+                }
+                structureTemperature.Add(temperatureArray);
+            }
+            Structure.SetTemperature(inStructure, structureTemperature);
+
+            DA.SetData(0, inStructure);
+
         }
 
         /// <summary>

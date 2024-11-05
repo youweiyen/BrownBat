@@ -66,12 +66,14 @@ namespace BrownBat.Construct
                 Transform panelTransform = inputTransform[i];
                 Transform nonTransform = new Transform(1);
 
+                //inputBlock[0].CastTo(out Brep brepFromBlock);
+
                 BoundingBox panelBox = inputBlock[i].GetBoundingBox(nonTransform);
                 Brep panelBrep = panelBox.ToBrep();
                 brepList.Add(panelBrep);
 
                 //Transform panelTransformation = inputModel[i].ModelTransform;
-
+                
                 //string n = inputModel[i].TypeName;
                 //inputModel.Where(b => b.TypeName == "Block Instance").ToList().First().CastTo(out Brep brep);
                 //breps.Add(brep);

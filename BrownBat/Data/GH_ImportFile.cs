@@ -15,28 +15,28 @@ using Rhino;
 using Rhino.DocObjects;
 using Rhino.UI;
 
-namespace BrownBat.Construct
+namespace BrownBat.Data
 {
-    public class GH_ConstructPanelData : GH_Component
+    public class GH_ImportFile : GH_Component
     {
 
-        public GH_ConstructPanelData()
-          : base("ConstructOriginPanelData", "OP",
-              "Add the data",
-              "BrownBat", "Construct")
+        public GH_ImportFile()
+          : base("ImportFile", "I",
+              "Add data from Csv file",
+              "BrownBat", "Data")
         {
         }
 
-        protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
+        protected override void RegisterInputParams(GH_InputParamManager pManager)
         {
-            pManager.AddTextParameter("DataPath", "D", "Data Source Path", GH_ParamAccess.list);
-            pManager.AddTextParameter("PanelName", "N", "Input Panel Name", GH_ParamAccess.list);
+            pManager.AddTextParameter("DataPath", "D", "CSV Source Path", GH_ParamAccess.list);
+            pManager.AddTextParameter("ElementName", "N", "Input Element Name", GH_ParamAccess.list);
 
         }
 
-        protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
+        protected override void RegisterOutputParams(GH_OutputParamManager pManager)
         {
-            pManager.AddGenericParameter("BatPanel", "P", "Panel", GH_ParamAccess.list);
+            pManager.AddGenericParameter("BatData", "P", "Panel", GH_ParamAccess.list);
         }
 
         /// <summary>
@@ -56,7 +56,7 @@ namespace BrownBat.Construct
 
             for (int i = 0; i < inputPaths.Count; i++)
             {
-                List<double[]>rowList = new List<double[]>();
+                List<double[]> rowList = new List<double[]>();
                 string name = Path.GetFileNameWithoutExtension(inputPaths[i]);
                 using (StreamReader reader = new StreamReader(inputPaths[i]))
                 {
@@ -66,11 +66,11 @@ namespace BrownBat.Construct
                     };
                     using (var csv = new CsvReader(reader, csvConfig))
                     {
-                        while (csv.Read()) 
+                        while (csv.Read())
                         {
 
                             List<double> rows = new List<double>();
-                            for (int p = 0; csv.TryGetField<double>(p, out double pixel); p++)
+                            for (int p = 0; csv.TryGetField(p, out double pixel); p++)
                             {
                                 rows.Add(pixel);
                             }
@@ -88,7 +88,7 @@ namespace BrownBat.Construct
 
                 outputPanels.Add(panel);
             }
-            
+
             DA.SetDataList(0, outputPanels);
         }
 

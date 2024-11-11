@@ -10,14 +10,14 @@ using Rhino.Geometry;
 
 namespace BrownBat.Construct
 {
-    public class GH_ModelToPanel : GH_Component
+    public class GH_MatchElement : GH_Component
     {
         /// <summary>
         /// Initializes a new instance of the GH_Param class.
         /// </summary>
-        public GH_ModelToPanel()
-          : base("ModelToPanel", "P",
-              "Import Panel Block to Bat Object",
+        public GH_MatchElement()
+          : base("MatchElement", "P",
+              "Match design elements to origin",
               "BrownBat", "Construct")
         {
         }
@@ -27,9 +27,9 @@ namespace BrownBat.Construct
         /// </summary>
         protected override void RegisterInputParams(GH_InputParamManager pManager)
         {
-            pManager.AddGenericParameter("Block Instance", "BI", "Block Instance", GH_ParamAccess.list);
+            pManager.AddGenericParameter("ModelBlockInstance", "MI", "Block Instance of design model", GH_ParamAccess.list);
             pManager.AddTransformParameter("Transform", "T", "Block Transform", GH_ParamAccess.list);
-            pManager.AddBrepParameter("Model Panel", "P", "Model as Brep", GH_ParamAccess.list);
+
         }
 
         /// <summary>
@@ -37,8 +37,8 @@ namespace BrownBat.Construct
         /// </summary>
         protected override void RegisterOutputParams(GH_OutputParamManager pManager)
         {
-            pManager.AddGenericParameter("BatPanel", "B", "Bat Panel Object", GH_ParamAccess.list);
-            pManager.AddBrepParameter("ModelBrep", "M", "Model as Brep", GH_ParamAccess.list);
+            pManager.AddGenericParameter("BatBlock", "B", "Element with block properties", GH_ParamAccess.list);
+            pManager.AddGenericParameter("brep", "B", "b", GH_ParamAccess.list);
 
         }
 
@@ -54,32 +54,41 @@ namespace BrownBat.Construct
 
             DA.GetDataList(0, inputBlock);
             DA.GetDataList(1, inputTransform);
-            DA.GetDataList(2, inputBrep);
+
+
+            List<Brep> brepList = new List<Brep>();
 
             List<Element> panelList = new List<Element>();
-            List<Brep> brepList = new List<Brep>();
             for (int i = 0; i < inputBlock.Count; i++)
             {
                 string panelName = inputBlock[i].InstanceDefinition.Name;
 
-                //Transform panelTransformation = inputModel[i].ModelTransform;
                 Transform panelTransform = inputTransform[i];
+                Transform nonTransform = new Transform(1);
 
+                //inputBlock[0].CastTo(out Brep brepFromBlock);
+
+                BoundingBox panelBox = inputBlock[i].GetBoundingBox(nonTransform);
+                Brep panelBrep = panelBox.ToBrep();
+                brepList.Add(panelBrep);
+
+                //Transform panelTransformation = inputModel[i].ModelTransform;
+                
                 //string n = inputModel[i].TypeName;
                 //inputModel.Where(b => b.TypeName == "Block Instance").ToList().First().CastTo(out Brep brep);
                 //breps.Add(brep);
-                Brep panelBrep = inputBrep[i];
+                //Brep panelBrep = inputBrep[i];
                 Element panel = new Element(panelName, panelTransform, panelBrep);
 
                 Element.TryGetInverseMatrix(panel, panelTransform);
                 Element.BaseCurve(panel);
 
                 panelList.Add(panel);
-                brepList.Add(panelBrep);
             }
 
             DA.SetDataList(0, panelList);
             DA.SetDataList(1, brepList);
+
 
         }
 

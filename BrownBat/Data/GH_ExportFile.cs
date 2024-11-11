@@ -15,14 +15,14 @@ using CsvHelper.Configuration.Attributes;
 
 namespace BrownBat.Data
 {
-    public class GH_ExportCSV : GH_Component
+    public class GH_ExportFile : GH_Component
     {
         /// <summary>
         /// Initializes a new instance of the GH_ExportCSV class.
         /// </summary>
-        public GH_ExportCSV()
-          : base("ExportCSV", "E",
-              "Export Data to Csv File",
+        public GH_ExportFile()
+          : base("ExportFile", "E",
+              "Export Data to CSV File",
               "BrownBat", "Data")
         {
         }

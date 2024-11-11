@@ -10,19 +10,19 @@ using System.Linq;
 
 namespace BrownBat.Construct
 {
-    public class GH_ConstructOriginPanelGeometry : GH_Component
+    public class GH_BakeOriginGeometry : GH_Component
     {
-        public GH_ConstructOriginPanelGeometry()
-          : base("ConstructOriginPanelGeometry", "Panel",
-            "Construct name and geometry as Base Panel",
+        public GH_BakeOriginGeometry()
+          : base("BakeOriginGeometry", "Geo",
+            "Bake name and geometry as block",
             "BrownBat", "Construct")
         {
         }
 
         protected override void RegisterInputParams(GH_InputParamManager pManager)
         {
-            pManager.AddBrepParameter("PanelBrep", "P", "Input Panel Brep", GH_ParamAccess.list);
-            pManager.AddTextParameter("PanelName", "N", "Input Panel Name", GH_ParamAccess.list);
+            pManager.AddBrepParameter("ElementBrep", "P", "Input Element Brep", GH_ParamAccess.list);
+            pManager.AddTextParameter("ElementName", "N", "Input Element Name", GH_ParamAccess.list);
             pManager.AddBooleanParameter("Bake", "B", "Bake Brep, Name, Origin plane", GH_ParamAccess.item, false);
             pManager[2].Optional = true;
 

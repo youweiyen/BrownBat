@@ -33,23 +33,23 @@ namespace BrownBat.CalculateHelper
 
             return area;
         }
-        public static double WallPixelArea(Structure wall)
-        {
-            if (wall.GeometryShape == default)
-            {
-                Structure.WallShape(wall);
-            }
-            double width = wall.GeometryShape.Item1;
-            double height = wall.GeometryShape.Item2;
+        //public static double WallPixelArea(Structure wall)
+        //{
+        //    if (wall.GeometryShape == default)
+        //    {
+        //        Structure.WallShape(wall);
+        //    }
+        //    double width = wall.GeometryShape.Item1;
+        //    double height = wall.GeometryShape.Item2;
 
-            int segment = wall.PixelShape;
+        //    int segment = wall.PixelShape;
 
-            double pixelWidthEdge = width / segment;
-            double pixelHeightEdge = height / segment;
+        //    double pixelWidthEdge = width / segment;
+        //    double pixelHeightEdge = height / segment;
 
-            double area = pixelWidthEdge * pixelHeightEdge;
+        //    double area = pixelWidthEdge * pixelHeightEdge;
 
-            return area;
-        }
+        //    return area;
+        //}
     }
 }

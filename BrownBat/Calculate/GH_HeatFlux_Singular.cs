@@ -11,39 +11,39 @@ using Grasshopper;
 
 namespace BrownBat.Calculate
 {
-    public class GH_HeatFlux : GH_Component
+    public class GH_HeatFlux_Singular : GH_Component
     {
 
-        public GH_HeatFlux()
-          : base("HeatFlux", "F",
-              "Multiple panel heat flux",
+        public GH_HeatFlux_Singular()
+          : base("HeatFlux_Singular", "FC",
+              "Calculate multiple panel heat flux with CSV data, Singular Structure temperature",
               "BrownBat", "Calculate")
         {
         }
 
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
-            pManager.AddGenericParameter("Panel", "P", "Model Panels", GH_ParamAccess.list);
-            pManager.AddGenericParameter("Wall", "W", "Wall", GH_ParamAccess.item);
-            pManager.AddNumberParameter("dT", "dT", "Temperature Difference", GH_ParamAccess.item);
+            pManager.AddGenericParameter("Element", "E", "Element", GH_ParamAccess.list);
+            pManager.AddGenericParameter("Structure", "S", "Structure", GH_ParamAccess.item);
+            pManager.AddNumberParameter("dT", "T", "Temperature Difference", GH_ParamAccess.item);
         }
 
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
-            pManager.AddGenericParameter("Wall", "W", "Wall", GH_ParamAccess.item);
-            pManager.AddNumberParameter("Flux", "F", "Flux of each Pixel", GH_ParamAccess.tree);
+            pManager.AddGenericParameter("Structure", "S", "Bat Structure", GH_ParamAccess.item);
+            pManager.AddNumberParameter("Flux", "F", "Heat Flux of each pixel", GH_ParamAccess.tree);
         }
 
 
         protected override void SolveInstance(IGH_DataAccess DA)
         {
             List<Element> inputPanel = new List<Element>();
-            double inputdT = default;
+            double dT = default;
             Structure inputWall = new Structure();
 
             DA.GetDataList(0, inputPanel);
             DA.GetData(1, ref inputWall);
-            DA.GetData(2, ref inputdT);
+            DA.GetData(2, ref dT);
             
             List<Pixel[]> pixels = inputWall.Pixel;
             double nonOverlapData = -1;
@@ -57,9 +57,9 @@ namespace BrownBat.Calculate
                 {
                     if (pixels[row][col].OverlapPanels.Count != 0)
                     {
-                        double resistance = HeatTransfer.Resistance(pixels[row][col], inputPanel);
-
-                        double flux = inputdT/resistance;
+                        double resistance = HeatTransfer.ConductiveResistanceFromFile(pixels[row][col], inputPanel);
+                        
+                        double flux = dT / resistance;
                         Pixel.SetHeatFlux(pixels[row][col], flux);
                         path = new Grasshopper.Kernel.Data.GH_Path(row);
                         pixelFlux.Add(flux, path);
@@ -90,7 +90,7 @@ namespace BrownBat.Calculate
         /// </summary>
         public override Guid ComponentGuid
         {
-            get { return new Guid("64B5BF84-79B1-4886-9A8B-DAB9C332B93B"); }
+            get { return new Guid("8016871d-53ca-41b2-ba25-c0f0f120bffc"); }
         }
     }
 }

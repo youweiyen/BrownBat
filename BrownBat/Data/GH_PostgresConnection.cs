@@ -14,7 +14,7 @@ namespace BrownBat.Data
         /// Initializes a new instance of the GH_PostgresConnection class.
         /// </summary>
         public GH_PostgresConnection()
-          : base("PostgresConnection", "PC",
+          : base("PostgresConnection_WIP", "PC",
               "Postgres Connection",
               "BrownBat", "Data")
         {

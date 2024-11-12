@@ -18,7 +18,7 @@ namespace BrownBat.Calculate
         /// Initializes a new instance of the GH_OverlapElement_SQL class.
         /// </summary>
         public GH_HeatFlux_Sql()
-          : base("HeatFlux_Sql", "OS",
+          : base("HeatFlux_Sql_WIP", "HSQL",
               "Calculate overlapping pixels using SQL data",
               "BrownBat", "Calculate")
         {

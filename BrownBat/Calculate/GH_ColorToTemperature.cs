@@ -12,7 +12,7 @@ namespace BrownBat.Calculate
         /// Initializes a new instance of the GH_WallColorToTemperature class.
         /// </summary>
         public GH_ColorToTemperature()
-          : base("GH_ColorToTemperature", "Nickname",
+          : base("ColorToTemperature", "Nickname",
               "Description",
               "BrownBat", "Calculate")
         {

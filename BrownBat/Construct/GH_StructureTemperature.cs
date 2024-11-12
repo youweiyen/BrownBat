@@ -16,7 +16,7 @@ namespace BrownBat.Construct
         /// Initializes a new instance of the GH_StructureTemperature class.
         /// </summary>
         public GH_StructureTemperature()
-          : base("StructureTemperature", "Nickname",
+          : base("StructureTemperature", "T",
               "Description",
               "BrownBat", "Construct")
         {

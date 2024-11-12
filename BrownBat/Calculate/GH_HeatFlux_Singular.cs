@@ -16,7 +16,7 @@ namespace BrownBat.Calculate
 
         public GH_HeatFlux_Singular()
           : base("HeatFlux_Singular", "FC",
-              "Calculate multiple panel heat flux with CSV data, Singular Structure temperature",
+              "Calculate multiple panel heat flux with CSV data, set temperature difference",
               "BrownBat", "Calculate")
         {
         }

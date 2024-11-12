@@ -15,7 +15,7 @@ namespace BrownBat.Construct
     public class GH_ConstructStructure : GH_Component
     {
         public GH_ConstructStructure()
-          : base("ConstructStructure", "WallPix",
+          : base("ConstructStructure", "CS",
               "Construct Structure Pixels for calculation",
               "BrownBat", "Construct")
         {

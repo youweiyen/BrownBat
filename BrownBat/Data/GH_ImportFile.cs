@@ -21,7 +21,7 @@ namespace BrownBat.Data
     {
 
         public GH_ImportFile()
-          : base("ImportFile", "I",
+          : base("ImportFile", "Im",
               "Add data from Csv file",
               "BrownBat", "Data")
         {

@@ -15,7 +15,7 @@ namespace BrownBat.Calculate
     {
 
         public GH_Resistance()
-          : base("ConductivityResistance", "R",
+          : base("Resistance", "R",
               "Calculate multiple overlapping panel Conductivity Resistance (Resistance = sum of thickness/ sum of conductivity)",
               "BrownBat", "Calculate")
         {

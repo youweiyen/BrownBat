@@ -17,7 +17,7 @@ namespace BrownBat.Calculate
         /// </summary>
         public GH_Conductivity()
           : base("Conductivity", "C",
-              "Get Conductivity value from Element after arranging geometry",
+              "Get conductivity value from Element after arranging geometry",
               "BrownBat", "Calculate")
         {
         }

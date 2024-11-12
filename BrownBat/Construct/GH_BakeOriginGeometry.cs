@@ -13,7 +13,7 @@ namespace BrownBat.Construct
     public class GH_BakeOriginGeometry : GH_Component
     {
         public GH_BakeOriginGeometry()
-          : base("BakeOriginGeometry", "Geo",
+          : base("BakeOriginGeometry", "B",
             "Bake name and geometry as block",
             "BrownBat", "Construct")
         {

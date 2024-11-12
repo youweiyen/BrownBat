@@ -16,7 +16,7 @@ namespace BrownBat.Construct
         /// Initializes a new instance of the GH_Param class.
         /// </summary>
         public GH_MatchElement()
-          : base("MatchElement", "P",
+          : base("MatchElement", "M",
               "Match design elements to origin",
               "BrownBat", "Construct")
         {

@@ -21,7 +21,7 @@ namespace BrownBat.Data
         /// Initializes a new instance of the GH_ExportCSV class.
         /// </summary>
         public GH_ExportFile()
-          : base("ExportFile", "E",
+          : base("ExportFile", "Ex",
               "Export Data to CSV File",
               "BrownBat", "Data")
         {

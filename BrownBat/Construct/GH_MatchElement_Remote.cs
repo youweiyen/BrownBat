@@ -1,22 +1,24 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 using BrownBat.Components;
 using Grasshopper.Kernel;
 using Grasshopper.Kernel.Data;
 using Grasshopper.Kernel.Types;
 using Grasshopper.Rhinoceros.Model;
+using Rhino.Display;
 using Rhino.Geometry;
 
 namespace BrownBat.Construct
 {
-    public class GH_MatchElement : GH_Component
+    public class GH_MatchElement_Remote : GH_Component
     {
         /// <summary>
         /// Initializes a new instance of the GH_Param class.
         /// </summary>
-        public GH_MatchElement()
-          : base("MatchElement", "M",
+        public GH_MatchElement_Remote()
+          : base("MatchElement", "MR",
               "Match design elements to origin",
               "BrownBat", "Construct")
         {
@@ -38,10 +40,21 @@ namespace BrownBat.Construct
         protected override void RegisterOutputParams(GH_OutputParamManager pManager)
         {
             pManager.AddGenericParameter("BatBlock", "B", "Element with block properties", GH_ParamAccess.list);
-            pManager.AddGenericParameter("brep", "B", "b", GH_ParamAccess.list);
+            //pManager.AddGenericParameter("brep", "B", "b", GH_ParamAccess.list);
 
         }
 
+        List<Brep> brepList = new List<Brep>();
+        private DisplayMaterial mat = new DisplayMaterial(Color.Blue);
+        private Mesh previewMesh = new Mesh();
+        //public override void DrawViewportMeshes(IGH_PreviewArgs args)
+        //{
+        //    if (!Locked && previewMesh != null && previewMesh.IsValid)
+        //    {
+        //        args.Display.DrawMeshShaded(previewMesh, mat);
+        //    }
+
+        //}
         /// <summary>
         /// This is the method that actually does the work.
         /// </summary>
@@ -55,10 +68,8 @@ namespace BrownBat.Construct
             DA.GetDataList(0, inputBlock);
             DA.GetDataList(1, inputTransform);
 
-
-            List<Brep> brepList = new List<Brep>();
-
             List<Element> panelList = new List<Element>();
+            Mesh meshes = new Mesh();
             for (int i = 0; i < inputBlock.Count; i++)
             {
                 string panelName = inputBlock[i].InstanceDefinition.Name;
@@ -66,18 +77,19 @@ namespace BrownBat.Construct
                 Transform panelTransform = inputTransform[i];
                 Transform nonTransform = new Transform(1);
 
-                //inputBlock[0].CastTo(out Brep brepFromBlock);
 
                 BoundingBox panelBox = inputBlock[i].GetBoundingBox(nonTransform);
                 Brep panelBrep = panelBox.ToBrep();
-                brepList.Add(panelBrep);
+                Mesh panelMesh = Mesh.CreateFromBox(panelBox, 2, 2, 2);
 
-                //Transform panelTransformation = inputModel[i].ModelTransform;
-                
+                meshes.Append(panelMesh);
+
+
                 //string n = inputModel[i].TypeName;
                 //inputModel.Where(b => b.TypeName == "Block Instance").ToList().First().CastTo(out Brep brep);
                 //breps.Add(brep);
                 //Brep panelBrep = inputBrep[i];
+
                 Element panel = new Element(panelName, panelTransform, panelBrep);
 
                 Element.TryGetInverseMatrix(panel, panelTransform);
@@ -85,12 +97,13 @@ namespace BrownBat.Construct
 
                 panelList.Add(panel);
             }
+            previewMesh = meshes;
 
             DA.SetDataList(0, panelList);
-            DA.SetDataList(1, brepList);
-
+            //DA.SetDataList(1, brepList);
 
         }
+
 
         /// <summary>
         /// Provides an Icon for the component.

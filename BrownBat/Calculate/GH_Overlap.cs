@@ -26,6 +26,8 @@ namespace BrownBat.Calculate
         {
             pManager.AddGenericParameter("Element", "E", "Element", GH_ParamAccess.list);
             pManager.AddGenericParameter("Structure", "S", "Structure", GH_ParamAccess.item);
+            pManager.AddBooleanParameter("GapExists", "G", "If the structure has air gaps, set to true", GH_ParamAccess.item);
+
         }
 
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
@@ -38,8 +40,10 @@ namespace BrownBat.Calculate
         {
             List<Element> inputModelPanel = new List<Element>();
             Structure inputWall = new Structure();
+            bool airgap = false;
             DA.GetDataList(0, inputModelPanel);
             DA.GetData(1, ref inputWall);
+            DA.GetData(2, ref airgap);
 
             #region intersectCalculation
             ////intersect calculation
@@ -157,6 +161,46 @@ namespace BrownBat.Calculate
                     }
                     Pixel.SetOverlapPanels(pixel, intersectPanelNames);
                     Pixel.SetPixelDomain(pixel, panelToDomain);
+
+                    if (airgap && pixel.OverlapPanels.Count() != 0)
+                    {
+                        List<string> overlapNames = pixel.OverlapPanels;
+                        IEnumerable<Element> overlapElement = inputModelPanel.Where(p => overlapNames.Contains(p.Name));
+                        List<Element> orderedOverlap = overlapElement.OrderBy(e => Element.BaseFace(e)
+                                                                                            .First()
+                                                                                            .PointAt(0.5,0.5).Z)
+                                                                                            .ToList();
+                        IEnumerable<Point3d> structurePoint = new List<Point3d> { pixel.PixelGeometry};
+
+                        int gapCount = default;
+                        for (int e = 0; e < orderedOverlap.Count(); e++)
+                        {
+                            if(e == 0)
+                            {
+                                IEnumerable<Brep> firstPiece = Element.BaseFace(orderedOverlap[e]).Select(f => f.ToBrep());
+                                double firstHeight = Intersection.ProjectPointsToBreps(firstPiece, structurePoint, Vector3d.ZAxis, 0.002).First().Z;
+                                double distance = firstHeight - pixel.PixelGeometry.Z;
+                                if(distance > 0.02)
+                                {
+                                    gapCount += 1;
+                                }
+                            }
+                            if(e < orderedOverlap.Count()-1)
+                            {
+                                IEnumerable<Brep> bottomPiece = Element.TopFace(orderedOverlap[e]).Select(f => f.ToBrep());
+                                IEnumerable<Brep> topPiece = Element.BaseFace(orderedOverlap[e+1]).Select(f => f.ToBrep());
+                                double bottom = Intersection.ProjectPointsToBreps(bottomPiece, structurePoint, Vector3d.ZAxis, 0.002).First().Z;
+                                double top = Intersection.ProjectPointsToBreps(topPiece, structurePoint, Vector3d.ZAxis, 0.002).First().Z;
+                                double gapDistance = top - bottom;
+                                if (gapDistance > 0.02)
+                                {
+                                    gapCount += 1;
+                                }
+                            }
+                        }
+
+                        Pixel.SetAirGap(pixel, gapCount);
+                    }
                 }
 
             }

@@ -15,6 +15,7 @@ namespace BrownBat.Components
         public Dictionary<string, (double, double)> PixelPosition {  get; private set; }
         public Dictionary<string, (int, int)> PixelDomain { get; private set; }
         public double HeatFlux { get; private set; }
+        public int AirGap { get; private set; }
 
         public Pixel(Point3d pixelGeometry, (int,int) pixelSequence)
         {
@@ -25,6 +26,7 @@ namespace BrownBat.Components
         public static void SetPixelPosition(Pixel pixel, Dictionary<string, (double, double)> pixelPosition) => pixel.PixelPosition = pixelPosition;
         public static void SetPixelDomain(Pixel pixel, Dictionary<string, (int, int)> pixelDomain) => pixel.PixelDomain = pixelDomain;
         public static void SetHeatFlux(Pixel pixel, double heatFlux) => pixel.HeatFlux = heatFlux;
+        public static void SetAirGap(Pixel pixel, int airGap) => pixel.AirGap = airGap;
 
 
     }

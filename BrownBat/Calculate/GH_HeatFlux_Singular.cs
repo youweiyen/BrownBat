@@ -57,8 +57,12 @@ namespace BrownBat.Calculate
                 {
                     if (pixels[row][col].OverlapPanels.Count != 0)
                     {
-                        double resistance = HeatTransfer.ConductiveResistanceFromFile(pixels[row][col], inputPanel);
-                        
+
+                        double conductive = HeatTransfer.ConductiveResistanceFromFile(pixels[row][col], inputPanel);
+                        double convective = HeatTransfer.ConvectiveCoefficient(pixels[row][col]);
+
+                        double resistance = HeatTransfer.OverallHeatTransferCoefficient(conductive, convective);
+
                         double flux = dT / resistance;
                         Pixel.SetHeatFlux(pixels[row][col], flux);
                         path = new Grasshopper.Kernel.Data.GH_Path(row);

@@ -60,45 +60,19 @@ namespace BrownBat.CalculateHelper
             double ratioSum = ratioList.Sum();
             return ratioSum;
         }
-        public static double ConvectiveCoefficientFromFile(Pixel pixel, List<Element> panels)
+        public static double ConvectiveCoefficient(Pixel pixel)
         {
-            List<string> overlapNames = pixel.OverlapPanels;
-            List<Element> overlapPanels = panels.Where(p => overlapNames.Contains(p.Name)).ToList();
-
-            List<double> ratioList = new List<double>();
-            foreach (Element panel in overlapPanels)
-            {
-                (int, int) domain = pixel.PixelDomain[panel.Name];
-                int row = domain.Item2;
-                int col = domain.Item1;
-                double conductivity = panel.PixelConductivity[row][col];
-                double thickness = panel.GeometryThickness;
-                double ratio = thickness / conductivity;
-                ratioList.Add(ratio);
-            }
-            double ratioSum = ratioList.Sum();
-            return ratioSum;
+            int gapCount = pixel.AirGap;
+            double naturalAirConvection = 10; //(W/m2k)
+            double overallCoefficient = (1 / naturalAirConvection) * gapCount;
+            return overallCoefficient;
         }
 
-        //public static double OverallHeatTransferCoefficient(IHeatTransfer ConductiveResistance, IHeatTransfer ConvectiveCoefficient)
-        //{
-        //    List<string> overlapNames = pixel.OverlapPanels;
-        //    List<Element> overlapPanels = panels.Where(p => overlapNames.Contains(p.Name)).ToList();
-
-        //    List<double> ratioList = new List<double>();
-        //    foreach (Element panel in overlapPanels)
-        //    {
-        //        (int, int) domain = pixel.PixelDomain[panel.Name];
-        //        int row = domain.Item2;
-        //        int col = domain.Item1;
-        //        double conductivity = panel.PixelConductivity[row][col];
-        //        double thickness = panel.GeometryThickness;
-        //        double ratio = thickness / conductivity;
-        //        ratioList.Add(ratio);
-        //    }
-        //    double ratioSum = ratioList.Sum();
-        //    return ratioSum;
-        //}
+        public static double OverallHeatTransferCoefficient(double ConductiveResistance, double ConvectiveCoefficient)
+        {
+            double coefficient = ConductiveResistance + ConvectiveCoefficient;
+            return coefficient;
+        }
 
     }
 }

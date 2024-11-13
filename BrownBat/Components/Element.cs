@@ -10,6 +10,7 @@ using System.Data;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows.Forms;
 
 namespace BrownBat.Components
 {
@@ -18,6 +19,8 @@ namespace BrownBat.Components
         public string Name { get; }
         public Plane Origin { get; }
         public Brep Model { get; }
+        public Mesh ModelMesh { get; }
+
         public Transform Matrix { get; }
         public Transform InverseMatrix { get; private set; }
         public (double, double) GeometryShape { get; private set; }
@@ -97,14 +100,35 @@ namespace BrownBat.Components
         }
         public static void BaseCurve(Element panel)
         {
-            Brep model = panel.Model;
-            BrepFaceList faces = model.Faces;
-            BrepFace bottomFace = faces.OrderBy(f => f.PointAt(0.5, 0.5).Z).First();
+            IEnumerable<BrepFace> bottomFace = BaseFace(panel);
 
-            Curve[] edgeCurves = bottomFace.ToBrep().DuplicateEdgeCurves();
+            Curve[] edgeCurves = bottomFace.First().ToBrep().DuplicateEdgeCurves();
             Curve joinedEdge = Curve.JoinCurves(edgeCurves)[0];
 
             panel.GeometryBaseCurve = joinedEdge;
+        }
+        public static IEnumerable<BrepFace> BaseFace(Element element) 
+        {
+            Brep model = element.Model;
+            BrepFaceList faces = model.Faces;
+            //BrepFace bottomFace = faces.OrderBy(f => f.PointAt(0.5, 0.5).Z).First();
+            IEnumerable<BrepFace> bottomFaces = faces.Where(f => f.NormalAt(0.5, 0.5).Z < 0);
+            return bottomFaces;
+        }
+        public static IEnumerable<BrepFace> TopFace(Element element)
+        {
+            Brep model = element.Model;
+            BrepFaceList faces = model.Faces;
+            //BrepFace topFace = faces.OrderBy(f => f.PointAt(0.5, 0.5).Z).Last();
+            IEnumerable<BrepFace> topFaces = faces.Where(f => f.NormalAt(0.5, 0.5).Z > 0);
+            return topFaces;
+        }
+        public static BrepFace TopMeshFaces(Element element)
+        {
+            Brep model = element.Model;
+            BrepFaceList faces = model.Faces;
+            BrepFace topFace = faces.OrderBy(f => f.PointAt(0.5, 0.5).Z).Last();
+            return topFace;
         }
         public static void CSVShape(Element panel)
         {

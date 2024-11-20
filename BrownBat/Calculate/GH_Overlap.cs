@@ -109,8 +109,9 @@ namespace BrownBat.Calculate
                             Transform matrix = intersectPanel.InverseMatrix;
                             orientPoint.Transform(matrix);
 
-                            double xPosition = Math.Abs(0 - orientPoint.X);
-                            double yPosition = Math.Abs(0 - orientPoint.Y);
+                            bool aa = intersectPanel.Origin.IsValid;
+                            double xPosition = Math.Abs(intersectPanel.Origin.OriginX - orientPoint.X);
+                            double yPosition = Math.Abs(intersectPanel.Origin.OriginY - orientPoint.Y);
                             int xDomain = (int)Math.Floor(xPosition * (intersectPanel.PixelShape.Item1 / intersectPanel.GeometryShape.Item1));
                             int yDomain = (int)Math.Floor(yPosition * (intersectPanel.PixelShape.Item2 / intersectPanel.GeometryShape.Item2));
 

@@ -10,7 +10,7 @@ using NumSharp;
 
 namespace BrownBat.CalculateHelper
 {
-    public class HeatTransfer
+    public struct HeatTransfer
     {
         public static double ConductiveResistanceFromFile(Pixel pixel, List<Element> panels)
         {

@@ -17,7 +17,7 @@ namespace BrownBat.Components
     public class Element: IGH_GeometricGoo, IGH_Goo
     {
         public string Name { get; }
-        public Plane Origin { get; }
+        public Plane Origin { get; private set; }
         public Brep Model { get; }
         public Mesh ModelMesh { get; }
 
@@ -33,6 +33,8 @@ namespace BrownBat.Components
         public (int, int) PixelShape { get; private set; }
         public static void SetPanelTemperature(Element panel, List<double[]> pixelTemperature) => panel.PixelTemperature = pixelTemperature;
         public static void SetPanelConductivity(Element panel, List<double[]> pixelConductivity) => panel.PixelConductivity = pixelConductivity;
+        public static void SetOrigin(Element panel, Plane origin) => panel.Origin = origin;
+
 
 
 

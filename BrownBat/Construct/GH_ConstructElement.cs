@@ -4,6 +4,7 @@ using System.Linq;
 using BrownBat.Components;
 using Grasshopper.Kernel;
 using Rhino.Geometry;
+using Rhino.Geometry.Collections;
 
 namespace BrownBat.Construct
 {
@@ -57,6 +58,37 @@ namespace BrownBat.Construct
                                                         geometry.GeometryBaseCurve,
                                                         data.PixelShape,
                                                         data.PixelConductivity)).ToList();
+            
+            for (int p = 0; p < combinedPanels.Count(); p++)
+            { 
+                if (combinedPanels[p].Origin.IsValid == false)
+                {
+                    Transform matrix = combinedPanels[p].InverseMatrix;
+                    Brep dupPanel = combinedPanels[p].Model.DuplicateBrep();
+                    dupPanel.Transform(matrix);
+                    BrepVertexList profileVertexList = dupPanel.Vertices;
+
+                    List<Point3d> profileVertices = new List<Point3d>();
+                    for (int i = 0; i < profileVertexList.Count; i++)
+                    {
+                        Point3d vertex = profileVertexList[i].Location;
+                        profileVertices.Add(vertex);
+                    }
+                    double xStartProfile = profileVertices.OrderBy(v => v.X).Select(v => v.X).First();
+                    double yStartProfile = profileVertices.OrderByDescending(v => v.Y).Select(v => v.Y).First();
+                    double ySmallest = profileVertices.OrderBy(v => v.Y).Select(v => v.Y).First();
+                    double xLargest = profileVertices.OrderByDescending(v => v.X).Select(v => v.X).First();
+
+                    Vector3d xDirection = new Vector3d(xLargest - xStartProfile, 0, 0);
+                    Vector3d yDirection = new Vector3d(0, yStartProfile - ySmallest, 0);
+
+                    Point3d profileStart = new Point3d(xStartProfile, yStartProfile, 0);
+                    Plane originPlane = new Plane(profileStart, xDirection, yDirection);
+                    Element.SetOrigin(combinedPanels[p], originPlane);
+                    
+                }
+            }
+
             //calculate geometry size properties
             foreach (Element panel in combinedPanels)
             {

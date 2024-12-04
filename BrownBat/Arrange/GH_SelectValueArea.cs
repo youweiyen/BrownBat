@@ -8,6 +8,7 @@ using System.Data.Common.CommandTrees;
 using BrownBat.CalculateHelper;
 using Dbscan;
 using Grasshopper.GUI;
+using Dbscan.RBush;
 
 namespace BrownBat.Arrange
 {
@@ -39,6 +40,8 @@ namespace BrownBat.Arrange
         protected override void RegisterOutputParams(GH_OutputParamManager pManager)
         {
             pManager.AddCurveParameter("Boundary", "B", "Boundaries of value area", GH_ParamAccess.list);
+            pManager.AddPointParameter("p", "p", "Boundaries of value area", GH_ParamAccess.list);
+
         }
 
         /// <summary>
@@ -51,10 +54,11 @@ namespace BrownBat.Arrange
             DA.GetDataList(0, inData);
             double inValue = default;
             DA.GetData(1, ref inValue);
-            int inMinArea = default;
+            double inMinArea = default;
             DA.GetData(2, ref inMinArea);
 
 
+            var pts = new List<Point3d>();
             foreach (Element element in inData)
             {
                 List<DbscanPoint> fitID = new List<DbscanPoint>();
@@ -67,16 +71,23 @@ namespace BrownBat.Arrange
                         if (data[row][col] > inValue)
                         {
                             var id = new DbscanPoint(row, col);
+                            var pt = new Point3d(row, col, 0);
+                            pts.Add(pt);
                             fitID.Add(id);
                         }
                     }
                 }
                 double pixelCount = inMinArea / (element.PixelShape.Item1 * element.PixelShape.Item2);
                 int minPoints = (int)Math.Round(pixelCount);
-                double epsilon = 2.0;
-                var clusters = Dbscan.Dbscan.CalculateClusters(fitID, epsilon, minPoints);
-                //var largerClusters = clusters.Clusters.Select(c => c.Objects.Count > inMinPoints);
+                double epsilon = 20;
+                var clusters = DbscanRBush.CalculateClusters(fitID, epsilon, minPoints);
+                var a = clusters.Clusters[0];
+                foreach (var cluster in clusters.Clusters)
+                {
+                    var p = cluster.Objects;
+                }
             }
+            DA.SetDataList(1, pts);
         }
 
         /// <summary>

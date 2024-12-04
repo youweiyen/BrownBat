@@ -89,13 +89,14 @@ namespace BrownBat.Construct
                 }
             }
 
-            //calculate geometry size properties
+            //calculate geometry and pixel size properties
             foreach (Element panel in combinedPanels)
             {
                 Element.ModelThickness(panel);
                 Element.ModelShape(panel);
+                Element.GetPixelSize(panel);
             }
-
+            
             DA.SetDataList(0, combinedPanels);
         }
 

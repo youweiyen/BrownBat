@@ -54,6 +54,8 @@ namespace BrownBat.View
             {
                 AddRuntimeMessage((GH_RuntimeMessageLevel)20, "No valid bitmap given.");
             }
+            //TODO: Add top layer pixel color fuction for overlay view
+
             else
             {
                 int width = inBitmap.Width;

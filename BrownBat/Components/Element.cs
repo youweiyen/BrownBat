@@ -31,6 +31,8 @@ namespace BrownBat.Components
         public List<double[]> PixelConductivity { get; private set; }
 
         public (int, int) PixelShape { get; private set; }
+        public (double, double) PixelSize { get; private set; }
+
         public static void SetPanelTemperature(Element panel, List<double[]> pixelTemperature) => panel.PixelTemperature = pixelTemperature;
         public static void SetPanelConductivity(Element panel, List<double[]> pixelConductivity) => panel.PixelConductivity = pixelConductivity;
         public static void SetOrigin(Element panel, Plane origin) => panel.Origin = origin;
@@ -149,6 +151,12 @@ namespace BrownBat.Components
             }
 
             panel.PixelShape = (rowLength, columnLength);
+        }
+        public static void GetPixelSize(Element element)
+        {
+            double xSize= element.GeometryShape.Item1 / element.PixelShape.Item1;
+            double ySize = element.GeometryShape.Item2 / element.PixelShape.Item2;
+            element.PixelSize = (xSize, ySize);
         }
         public static void TryGetInverseMatrix(Element panel, Transform matrix) 
         {

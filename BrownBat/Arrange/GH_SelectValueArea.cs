@@ -11,6 +11,7 @@ using Grasshopper.GUI;
 using Dbscan.RBush;
 using Grasshopper;
 using Grasshopper.Kernel.Data;
+using MIConvexHull;
 
 namespace BrownBat.Arrange
 {
@@ -97,9 +98,15 @@ namespace BrownBat.Arrange
                         path = new GH_Path(c);
                         ClusteredPts.Add(rhinoPoint, path);
                     }
-
+                    var vpoint = new ConvexVertex[] { new ConvexVertex(1.1, 1.2) };
+                    double[] vp = new double[] { 1.0, 2.0 };
+                    ConvexHull.Create2D(vpoint, 1e-10);
                 }
             }
+            //1. Cluster UV Parallel to object plane
+            //2. longest distance on UV direction
+            //3. intersection as center point
+            //4. +-X, +-Y vector
             DA.SetDataTree(1, ClusteredPts);
             DA.SetDataList(2, op);
         }

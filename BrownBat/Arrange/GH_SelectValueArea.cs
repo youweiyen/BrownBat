@@ -12,6 +12,9 @@ using Dbscan.RBush;
 using Grasshopper;
 using Grasshopper.Kernel.Data;
 using MIConvexHull;
+using Eto.Forms;
+using System.Configuration;
+using System.Xml.Linq;
 
 namespace BrownBat.Arrange
 {
@@ -21,7 +24,7 @@ namespace BrownBat.Arrange
         /// Initializes a new instance of the GH_SelectValueArea class.
         /// </summary>
         public GH_SelectValueArea()
-          : base("SelectValueArea", "SA",
+          : base("SelectValue", "SV",
               "Selecting area with chosen value",
               "BrownBat", "Arrange")
         {
@@ -65,7 +68,9 @@ namespace BrownBat.Arrange
             DataTree<Point3d> ClusteredPts = new DataTree<Point3d>();
             GH_Path path = new GH_Path();
 
-            List<Point3d> op = new List<Point3d>();
+            List<Point3d> op = new List<Point3d>();//visual
+
+            var tol = Rhino.RhinoDoc.ActiveDoc.ModelAbsoluteTolerance;
 
             foreach (Element element in inData)
             {
@@ -81,7 +86,7 @@ namespace BrownBat.Arrange
                             var id = new DbscanPoint(row, col);
                             Point3d pp = new Point3d(row, col, 0);
                             fitID.Add(id);
-                            op.Add(pp);
+                            op.Add(pp);//visual
                         }
                     }
                 }
@@ -89,21 +94,49 @@ namespace BrownBat.Arrange
                 int minPoints = (int)Math.Round(pixelCount);
                 double epsilon = 5;
                 var clusters = DbscanRBush.CalculateClusters(fitID, epsilon, minPoints);
+
+                List<ConvexVertex[]> convexGroups = new List<ConvexVertex[]>();
                 for (int c = 0; c < clusters.Clusters.Count; c++)
                 {
                     var points = clusters.Clusters[c].Objects;
+                    var vpoint = points.Select(p => new ConvexVertex(p.Point.X, p.Point.Y)).ToArray();
+                    //var vpoint = new ConvexVertex[] { new ConvexVertex(point.Point.X, point.Point.Y) };
+                    var hullResult = ConvexHull.Create2D(vpoint, 1e-10).Result.ToArray();
+
+                    convexGroups.Add(hullResult);
+
                     foreach (var point in points)
                     {
                         Point3d rhinoPoint = new Point3d(point.Point.X, point.Point.Y, 0);
                         path = new GH_Path(c);
                         ClusteredPts.Add(rhinoPoint, path);
                     }
-                    var vpoint = new ConvexVertex[] { new ConvexVertex(1.1, 1.2) };
-                    double[] vp = new double[] { 1.0, 2.0 };
-                    ConvexHull.Create2D(vpoint, 1e-10);
                 }
+
+                Vector3d uDirection = element.Origin.XAxis;
+                Vector3d vDirection = element.Origin.YAxis;
+
+                double pixelXSize = element.PixelShape.Item1 / element.GeometryShape.Item1;
+                double pixelYSize = element.PixelShape.Item2 / element.GeometryShape.Item2;
+
+                for (int g = 0; g < convexGroups.Count; g++)
+                {
+                    var rhinoPointGroup = convexGroups[g].Select(ver => new Point3d(element.Origin.OriginX + (ver.X * pixelXSize),
+                                                                        element.Origin.OriginY - (ver.Y * pixelYSize),
+                                                                        0));
+
+                    Polyline convexBoundary = new Polyline(rhinoPointGroup);
+
+                    Line xAxis = AxisLine(rhinoPointGroup, uDirection, element.GeometryShape.Item1, convexBoundary, tol);
+                    Line yAxis = AxisLine(rhinoPointGroup, vDirection, element.GeometryShape.Item2, convexBoundary, tol);
+                    Rhino.Geometry.Intersect.Intersection.LineLine(xAxis, yAxis, out double xParameter, out double yParameter);
+                    Point3d center = xAxis.PointAt(xParameter);
+                }
+
+
             }
             //1. Cluster UV Parallel to object plane
+
             //2. longest distance on UV direction
             //3. intersection as center point
             //4. +-X, +-Y vector
@@ -132,6 +165,35 @@ namespace BrownBat.Arrange
             get { return new Guid("3A58AB18-598B-4A2C-B57A-CCA47E079470"); }
         }
 
+        public Line AxisLine(IEnumerable<Point3d> rhinoPointGroup, Vector3d direction, double length, Polyline convexBoundary,double tolerance)
+        {
+            var points = new List<(Point3d, Point3d)>();
+            foreach (Point3d pt in rhinoPointGroup)
+            {
+                Line line = new Line(pt, direction, length + 1);
+                var intersection = Rhino.Geometry.Intersect.Intersection.CurveLine(convexBoundary.ToNurbsCurve(), line, tolerance, tolerance);
+                if (intersection.Count > 0)
+                {
+                    points.Add((pt, intersection[0].PointA));
+                }
+                else
+                {
+                    line = new Line(pt, -direction, length + 1);
+                    intersection = Rhino.Geometry.Intersect.Intersection.CurveLine(convexBoundary.ToNurbsCurve(), line, tolerance, tolerance);
+                    if (intersection.Count > 0)
+                    {
+                        points.Add((pt, intersection[0].PointA));
+                    }
+                    else
+                    {
+                        points.Add((pt, pt));
+                    }
+                }
+            }
+            var furthestPoints = points.OrderByDescending(p => p.Item1.DistanceTo(p.Item2)).First();
+            Line axis = new Line(furthestPoints.Item1, furthestPoints.Item2);
+            return axis;
+        }
 
     }
 }

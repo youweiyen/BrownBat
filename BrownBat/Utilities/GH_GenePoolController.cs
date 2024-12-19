@@ -15,7 +15,7 @@ namespace BrownBat.Utilities
         public GH_GenePoolController()
           : base("GenePoolController", "GNC",
               "Controlling Interval, Decimal-Number and the number of sliders in a GenePool",
-              "Utilities", "BrownBat")
+              "BrownBat", "Utilities")
         {
         }
 

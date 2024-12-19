@@ -70,7 +70,11 @@ namespace BrownBat.Construct
             Mesh meshes = new Mesh();
             for (int i = 0; i < inputBlock.Count; i++)
             {
+                //var panel = inputBlock[i].InstanceDefinition;
                 string panelName = inputBlock[i].InstanceDefinition.Name;
+
+                //Rhino.DocObjects.InstanceObject obj = panel.GetReferences(0)[0];
+                //inputBlock[i].InstanceDefinition.Objects;
 
                 Transform panelTransform = inputTransform[i];
                 Transform nonTransform = new Transform(1);

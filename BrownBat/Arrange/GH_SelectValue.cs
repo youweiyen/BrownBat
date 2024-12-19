@@ -46,9 +46,10 @@ namespace BrownBat.Arrange
         /// </summary>
         protected override void RegisterOutputParams(GH_OutputParamManager pManager)
         {
-            pManager.AddCurveParameter("Boundary", "B", "Boundaries of value area", GH_ParamAccess.list);
+            pManager.AddGenericParameter("Element", "E", "Elements with selected heat value sorted", GH_ParamAccess.list);
             pManager.AddPointParameter("ClusterPoints", "CP", "Clustered Points", GH_ParamAccess.tree);
             pManager.AddPointParameter("OverPoints", "P", "Over Points", GH_ParamAccess.list);
+            pManager.AddLineParameter("axis", "a", "axis", GH_ParamAccess.list);
         }
 
         /// <summary>
@@ -68,9 +69,13 @@ namespace BrownBat.Arrange
             DataTree<Point3d> ClusteredPts = new DataTree<Point3d>();
             GH_Path path = new GH_Path();
 
-            List<Point3d> op = new List<Point3d>();//visual
+            DataTree<Point3d> boundaryPoints = new DataTree<Point3d>();//visual
+            List<Line> axisListView = new List<Line>();//visualize
+
 
             var tol = Rhino.RhinoDoc.ActiveDoc.ModelAbsoluteTolerance;
+
+            List<Element> elementCluster = new List<Element>();
 
             foreach (Element element in inData)
             {
@@ -84,9 +89,7 @@ namespace BrownBat.Arrange
                         if (data[row][col] > inValue)
                         {
                             var id = new DbscanPoint(row, col);
-                            Point3d pp = new Point3d(row, col, 0);
                             fitID.Add(id);
-                            op.Add(pp);//visual
                         }
                     }
                 }
@@ -94,6 +97,9 @@ namespace BrownBat.Arrange
                 int minPoints = (int)Math.Round(pixelCount);
                 double epsilon = 5;
                 var clusters = DbscanRBush.CalculateClusters(fitID, epsilon, minPoints);
+
+                double pixelXSize = element.PixelShape.Item1 / element.GeometryShape.Item1;
+                double pixelYSize = element.PixelShape.Item2 / element.GeometryShape.Item2;
 
                 List<ConvexVertex[]> convexGroups = new List<ConvexVertex[]>();
                 for (int c = 0; c < clusters.Clusters.Count; c++)
@@ -105,19 +111,29 @@ namespace BrownBat.Arrange
 
                     convexGroups.Add(hullResult);
 
-                    foreach (var point in points)
+                    foreach (var point in points)//visualize
                     {
-                        Point3d rhinoPoint = new Point3d(point.Point.X, point.Point.Y, 0);
+                        //convert to rhino points
+                        Point3d rhinoPoint = new Point3d(element.Origin.OriginX + (point.Point.X * pixelXSize), 
+                                                            element.Origin.OriginY - (point.Point.Y * pixelYSize), 0);
                         path = new GH_Path(c);
                         ClusteredPts.Add(rhinoPoint, path);
+
+                    }
+                    foreach (var hull in hullResult)//visualize
+                    {
+                        //convert to rhino points
+                        Point3d rhinoPoint = new Point3d(element.Origin.OriginX + (hull.X * pixelXSize),
+                                                            element.Origin.OriginY - (hull.Y * pixelYSize), 0);
+                        path = new GH_Path(c);
+                        boundaryPoints.Add(rhinoPoint, path);
+
                     }
                 }
 
                 Vector3d uDirection = element.Origin.XAxis;
                 Vector3d vDirection = element.Origin.YAxis;
 
-                double pixelXSize = element.PixelShape.Item1 / element.GeometryShape.Item1;
-                double pixelYSize = element.PixelShape.Item2 / element.GeometryShape.Item2;
 
                 for (int g = 0; g < convexGroups.Count; g++)
                 {
@@ -133,11 +149,18 @@ namespace BrownBat.Arrange
                     Point3d center = xAxis.PointAt(xParameter);
                     HeatCluster heatCluster = new HeatCluster(element.Name, convexBoundary, center, xAxis, yAxis);
                     Element.SetHeatCluster(element, heatCluster);
+                    elementCluster.Add(element);
+                    //what happens if I change the value of heat? will the old cluster still be there? 
+                    //since heatcluster is a property of element
+                    axisListView.Add(xAxis);
+                    axisListView.Add(yAxis);
                 }
 
             }
+            DA.SetDataList(0, elementCluster);
             DA.SetDataTree(1, ClusteredPts);
-            DA.SetDataList(2, op);
+            DA.SetDataTree(2, boundaryPoints);
+            DA.SetDataList(3, axisListView);
         }
 
         /// <summary>
@@ -166,19 +189,21 @@ namespace BrownBat.Arrange
             var points = new List<(Point3d, Point3d)>();
             foreach (Point3d pt in rhinoPointGroup)
             {
-                Line line = new Line(pt, direction, length + 1);
+                Line line = new Line(pt, direction);
                 var intersection = Rhino.Geometry.Intersect.Intersection.CurveLine(convexBoundary.ToNurbsCurve(), line, tolerance, tolerance);
                 if (intersection.Count > 0)
                 {
-                    points.Add((pt, intersection[0].PointA));
+                    if (intersection.Count > 1) { points.Add((pt, intersection[1].PointA)); }
+                    else { points.Add((pt, intersection[0].PointA)); }
                 }
                 else
                 {
-                    line = new Line(pt, -direction, length + 1);
+                    line = new Line(pt, -direction);
                     intersection = Rhino.Geometry.Intersect.Intersection.CurveLine(convexBoundary.ToNurbsCurve(), line, tolerance, tolerance);
                     if (intersection.Count > 0)
                     {
-                        points.Add((pt, intersection[0].PointA));
+                        if (intersection.Count > 1) { points.Add((pt, intersection[1].PointA)); }
+                        else { points.Add((pt, intersection[0].PointA)); }
                     }
                     else
                     {

@@ -18,12 +18,12 @@ using System.Xml.Linq;
 
 namespace BrownBat.Arrange
 {
-    public class GH_SelectValueArea : GH_Component
+    public class GH_SelectValue : GH_Component
     {
         /// <summary>
         /// Initializes a new instance of the GH_SelectValueArea class.
         /// </summary>
-        public GH_SelectValueArea()
+        public GH_SelectValue()
           : base("SelectValue", "SV",
               "Selecting area with chosen value",
               "BrownBat", "Arrange")
@@ -131,15 +131,11 @@ namespace BrownBat.Arrange
                     Line yAxis = AxisLine(rhinoPointGroup, vDirection, element.GeometryShape.Item2, convexBoundary, tol);
                     Rhino.Geometry.Intersect.Intersection.LineLine(xAxis, yAxis, out double xParameter, out double yParameter);
                     Point3d center = xAxis.PointAt(xParameter);
+                    HeatCluster heatCluster = new HeatCluster(element.Name, convexBoundary, center, xAxis, yAxis);
+                    Element.SetHeatCluster(element, heatCluster);
                 }
 
-
             }
-            //1. Cluster UV Parallel to object plane
-
-            //2. longest distance on UV direction
-            //3. intersection as center point
-            //4. +-X, +-Y vector
             DA.SetDataTree(1, ClusteredPts);
             DA.SetDataList(2, op);
         }

@@ -20,6 +20,7 @@ namespace BrownBat.Components
         public Plane Origin { get; private set; }
         public Brep Model { get; }
         public Mesh ModelMesh { get; }
+        public HeatCluster HeatCluster { get; private set; }
 
         public Transform Matrix { get; }
         public Transform InverseMatrix { get; private set; }
@@ -36,8 +37,7 @@ namespace BrownBat.Components
         public static void SetPanelTemperature(Element panel, List<double[]> pixelTemperature) => panel.PixelTemperature = pixelTemperature;
         public static void SetPanelConductivity(Element panel, List<double[]> pixelConductivity) => panel.PixelConductivity = pixelConductivity;
         public static void SetOrigin(Element panel, Plane origin) => panel.Origin = origin;
-
-
+        public static void SetHeatCluster(Element panel, HeatCluster heatCluster) => panel.HeatCluster = heatCluster;
 
 
         public BoundingBox Boundingbox => throw new NotImplementedException();

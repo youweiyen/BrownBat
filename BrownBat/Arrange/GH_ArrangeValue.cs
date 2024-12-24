@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-
+using BrownBat.Components;
 using Grasshopper.Kernel;
 using Rhino.Geometry;
 
@@ -23,6 +23,9 @@ namespace BrownBat.Arrange
         /// </summary>
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
+            pManager.AddGenericParameter("Element", "E", "Element with selected range of heat value", GH_ParamAccess.list);
+            pManager.AddGenericParameter("Structure", "S", "Structure to build", GH_ParamAccess.item);
+            pManager.AddCurveParameter("Area", "A", "Area to assign high conductivity values", GH_ParamAccess.list);
         }
 
         /// <summary>
@@ -30,6 +33,7 @@ namespace BrownBat.Arrange
         /// </summary>
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
+            pManager.AddTransformParameter("Transform", "T", "Transformation of element on to the structure", GH_ParamAccess.tree);
         }
 
         /// <summary>
@@ -38,6 +42,19 @@ namespace BrownBat.Arrange
         /// <param name="DA">The DA object is used to retrieve from inputs and store in outputs.</param>
         protected override void SolveInstance(IGH_DataAccess DA)
         {
+            List<Element> inElement = new List<Element>();
+            Structure inStructure = new Structure();
+            List<Curve> inRegion = new List<Curve>();
+
+            DA.GetDataList(0, inElement);
+            DA.GetData(1, ref inStructure);
+            DA.GetDataList(2, inRegion);
+
+            inRegion[0].TryGetPolyline(out Polyline plineRegion);
+            HeatCluster cluster = inElement[0].HeatClusterGroup[0];
+            //cluster.XAxis;
+            
+            
         }
 
         /// <summary>

@@ -15,6 +15,7 @@ using MIConvexHull;
 using Eto.Forms;
 using System.Configuration;
 using System.Xml.Linq;
+using System.Diagnostics;
 
 namespace BrownBat.Arrange
 {
@@ -24,8 +25,8 @@ namespace BrownBat.Arrange
         /// Initializes a new instance of the GH_SelectValueArea class.
         /// </summary>
         public GH_SelectValue()
-          : base("SelectValue", "SV",
-              "Selecting area with chosen value",
+          : base("SelectValue_View", "SV",
+              "Selecting area with chosen value and view cluster",
               "BrownBat", "Arrange")
         {
         }
@@ -37,8 +38,17 @@ namespace BrownBat.Arrange
         {
             pManager.AddGenericParameter("Element", "E", "Imported Element geometry with data", GH_ParamAccess.list);
             pManager.AddNumberParameter("Value", "V", "Value to draw out area", GH_ParamAccess.item);
-            pManager.AddNumberParameter("MinArea", "Min", "Minimum area of cluster. Default set to 1mm2", GH_ParamAccess.item);
+            pManager.AddIntegerParameter("MinPoints",
+                                        "Min", 
+                                        "Minimum points for DBSCAN calculation. Default set to 5", 
+                                        GH_ParamAccess.item);
+            pManager.AddIntegerParameter("Epsilon", 
+                                        "E", 
+                                        "Distance to determine same area points. Default set to 5",
+                                        GH_ParamAccess.item);
             pManager[2].Optional = true;
+            pManager[3].Optional = true;
+
         }
 
         /// <summary>
@@ -48,8 +58,10 @@ namespace BrownBat.Arrange
         {
             pManager.AddGenericParameter("Element", "E", "Elements with selected heat value sorted", GH_ParamAccess.list);
             pManager.AddPointParameter("ClusterPoints", "CP", "Clustered Points", GH_ParamAccess.tree);
-            pManager.AddPointParameter("OverPoints", "P", "Over Points", GH_ParamAccess.list);
+            pManager.AddPointParameter("ConvexPoints", "P", "Convex Points", GH_ParamAccess.list);
             pManager.AddLineParameter("axis", "a", "axis", GH_ParamAccess.list);
+            pManager.AddTextParameter("stopwatch", "s", "clustertime", GH_ParamAccess.list);
+
         }
 
         /// <summary>
@@ -62,8 +74,10 @@ namespace BrownBat.Arrange
             DA.GetDataList(0, inData);
             double inValue = default;
             DA.GetData(1, ref inValue);
-            double inMinArea = 1;
-            DA.GetData(2, ref inMinArea);
+            int inMinPoints = 5;
+            DA.GetData(2, ref inMinPoints);
+            int inEpsilon = 5;
+            DA.GetData(2, ref inEpsilon);
 
 
             DataTree<Point3d> ClusteredPts = new DataTree<Point3d>();
@@ -71,6 +85,7 @@ namespace BrownBat.Arrange
 
             DataTree<Point3d> boundaryPoints = new DataTree<Point3d>();//visual
             List<Line> axisListView = new List<Line>();//visualize
+            List<string> times = new List<string>();
 
 
             var tol = Rhino.RhinoDoc.ActiveDoc.ModelAbsoluteTolerance;
@@ -93,13 +108,27 @@ namespace BrownBat.Arrange
                         }
                     }
                 }
-                double pixelCount = 1 / (element.PixelSize.Item1 * element.PixelSize.Item2);
-                int minPoints = (int)Math.Round(pixelCount);
-                double epsilon = 5;
-                var clusters = DbscanRBush.CalculateClusters(fitID, epsilon, minPoints);
 
-                double pixelXSize = element.PixelShape.Item1 / element.GeometryShape.Item1;
-                double pixelYSize = element.PixelShape.Item2 / element.GeometryShape.Item2;
+                //double pixelCount = inMinArea / (element.PixelSize.Item1 * element.PixelSize.Item2);
+                //int minPoints = (int)Math.Round(pixelCount);
+                //double epsilon = 10;
+
+                //stopwatch
+                Stopwatch stopWatch = new Stopwatch();
+                stopWatch.Start();
+
+                var clusters = DbscanRBush.CalculateClusters(fitID, inEpsilon, inMinPoints);
+
+
+                stopWatch.Stop();
+                TimeSpan ts = stopWatch.Elapsed;
+                string elapsedTime = String.Format("{0:00}:{1:00}:{2:00}.{3:00}",
+                ts.Hours, ts.Minutes, ts.Seconds,
+                ts.Milliseconds / 10);
+                times.Add(elapsedTime);
+
+                double pixelXSize = element.GeometryShape.Item1 / element.PixelShape.Item1;
+                double pixelYSize = element.GeometryShape.Item2 / element.PixelShape.Item2;
 
                 List<ConvexVertex[]> convexGroups = new List<ConvexVertex[]>();
                 Dictionary<int, HeatCluster> heatClusterGroup = new Dictionary<int, HeatCluster>();
@@ -116,8 +145,8 @@ namespace BrownBat.Arrange
                     foreach (var point in points)//visualize
                     {
                         //convert to rhino points
-                        Point3d rhinoPoint = new Point3d(element.Origin.OriginX + (point.Point.X * pixelXSize), 
-                                                            element.Origin.OriginY - (point.Point.Y * pixelYSize), 0);
+                        Point3d rhinoPoint = new Point3d(element.Origin.OriginX + (point.Point.Y * pixelXSize), 
+                                                            element.Origin.OriginY - (point.Point.X * pixelYSize), 0);
                         path = new GH_Path(c);
                         ClusteredPts.Add(rhinoPoint, path);
 
@@ -125,39 +154,43 @@ namespace BrownBat.Arrange
                     foreach (var hull in hullResult)//visualize
                     {
                         //convert to rhino points
-                        Point3d rhinoPoint = new Point3d(element.Origin.OriginX + (hull.X * pixelXSize),
-                                                            element.Origin.OriginY - (hull.Y * pixelYSize), 0);
-                        path = new GH_Path(c);
+                        Point3d rhinoPoint = new Point3d(element.Origin.OriginX + (hull.Y * pixelXSize),
+                                                            element.Origin.OriginY - (hull.X * pixelYSize), 0);
+                        
                         boundaryPoints.Add(rhinoPoint, path);
 
                     }
                 }
 
-                Vector3d uDirection = element.Origin.XAxis;
-                Vector3d vDirection = element.Origin.YAxis;
-
                 for (int g = 0; g < convexGroups.Count; g++)
                 {
-                    var rhinoPointGroup = convexGroups[g].Select(ver => new Point3d(element.Origin.OriginX + (ver.X * pixelXSize),
-                                                                        element.Origin.OriginY - (ver.Y * pixelYSize),
+                    var rhinoPointGroup = convexGroups[g].Select(ver => new Point3d(element.Origin.OriginX + (ver.Y * pixelXSize),
+                                                                        element.Origin.OriginY - (ver.X * pixelYSize),
                                                                         0));
+                    var closePolyPoints = rhinoPointGroup.Concat(new[] { rhinoPointGroup.First()});
+                    Polyline convexBoundary = new Polyline(closePolyPoints);
 
-                    Polyline convexBoundary = new Polyline(rhinoPointGroup);
-                    
-                    //Min boundingbox to find axis vector direction
+                    Point3d averagePoint = new Point3d(ClusteredPts.Branch(g).Select(pt => pt.X).Average(),
+                                                       ClusteredPts.Branch(g).Select(pt => pt.Y).Average(),
+                                                       ClusteredPts.Branch(g).Select(pt => pt.Z).Average());
+
                     Plane boundingPlane = BoundingPlane(rhinoPointGroup, element.Origin);
 
-                    Line xAxis = AxisLine(rhinoPointGroup, boundingPlane.XAxis, element.GeometryShape.Item1, convexBoundary, tol);
-                    Line yAxis = AxisLine(rhinoPointGroup, boundingPlane.YAxis, element.GeometryShape.Item2, convexBoundary, tol);
-                    Rhino.Geometry.Intersect.Intersection.LineLine(xAxis, yAxis, out double xParameter, out double yParameter);
-                    Point3d center = xAxis.PointAt(xParameter);
-                    HeatCluster heatCluster = new HeatCluster(element.Name, g, center, xAxis, yAxis);
-                    heatClusterGroup.Add(g, heatCluster);
+                    //Line xAxis = AxisLine(rhinoPointGroup, boundingPlane.XAxis, element.GeometryShape.Item1, convexBoundary, tol);
+                    //Line yAxis = AxisLine(rhinoPointGroup, boundingPlane.YAxis, element.GeometryShape.Item2, convexBoundary, tol);
+                    //Rhino.Geometry.Intersect.Intersection.LineLine(xAxis, yAxis, out double xParameter, out double yParameter);
+                    //Point3d center = xAxis.PointAt(xParameter);
+                    //HeatCluster heatCluster = new HeatCluster(element.Name, g, center, xAxis, yAxis);
+                    //heatClusterGroup.Add(g, heatCluster);
+                    Line xAxis = AxisLineFromCenter(averagePoint, boundingPlane.XAxis, convexBoundary);
+                    Line yAxis = AxisLineFromCenter(averagePoint, boundingPlane.YAxis, convexBoundary);
                     elementCluster.Add(element);
+
                     //what happens if I change the value of heat? will the old cluster still be there? 
                     //since heatcluster is a property of element
-                    axisListView.Add(xAxis);
-                    axisListView.Add(yAxis);
+
+                    axisListView.Add(xAxis);//visualize
+                    axisListView.Add(yAxis);//visualize
                 }
                 Element.SetHeatCluster(element, heatClusterGroup);
 
@@ -166,6 +199,8 @@ namespace BrownBat.Arrange
             DA.SetDataTree(1, ClusteredPts);
             DA.SetDataTree(2, boundaryPoints);
             DA.SetDataList(3, axisListView);
+            DA.SetDataList(4, times);
+
         }
 
         /// <summary>
@@ -219,6 +254,23 @@ namespace BrownBat.Arrange
             var furthestPoints = points.OrderByDescending(p => p.Item1.DistanceTo(p.Item2)).First();
             Line axis = new Line(furthestPoints.Item1, furthestPoints.Item2);
             return axis;
+        }
+        public Line AxisLineFromCenter(Point3d centerPoint, Vector3d axisDirection, Polyline convexBoundary)
+        {
+            Point3d pointPositive = new Point3d();
+            Point3d pointNegative = new Point3d();
+
+            var tolerance = Rhino.RhinoDoc.ActiveDoc.ModelAbsoluteTolerance;
+            Line lineX1 = new Line(centerPoint, axisDirection);
+            var intersection = Rhino.Geometry.Intersect.Intersection.CurveLine(convexBoundary.ToNurbsCurve(), lineX1, tolerance, tolerance);
+            if (intersection.Count > 1)
+            {
+                pointPositive = intersection[0].PointA;
+                pointNegative = intersection[1].PointA;
+            }
+            Line lineX = new Line(pointPositive, pointNegative);
+
+            return lineX;
         }
         public Plane BoundingPlane(IEnumerable<Point3d> inputPoints, Plane inputPlane)
         {

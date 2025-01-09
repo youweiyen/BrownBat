@@ -25,7 +25,7 @@ namespace BrownBat.Arrange
         {
             pManager.AddGenericParameter("Element", "E", "Element with selected range of heat value", GH_ParamAccess.list);
             pManager.AddGenericParameter("Structure", "S", "Structure to build", GH_ParamAccess.item);
-            pManager.AddCurveParameter("Area", "A", "Area to assign high conductivity values", GH_ParamAccess.list);
+            pManager.AddCurveParameter("Boundary", "B", "Boundary area to assign high conductivity values", GH_ParamAccess.list);
         }
 
         /// <summary>
@@ -50,10 +50,12 @@ namespace BrownBat.Arrange
             DA.GetData(1, ref inStructure);
             DA.GetDataList(2, inRegion);
 
-            inRegion[0].TryGetPolyline(out Polyline plineRegion);
-            HeatCluster cluster = inElement[0].HeatClusterGroup[0];
-            //cluster.XAxis;
+            Curve boundaryCurve = inRegion[0];
+            double boundaryArea = AreaMassProperties.Compute(boundaryCurve).Area;
             
+            HeatCluster cluster = inElement[0].HeatClusterGroup[0];
+            double clusterArea = (cluster.XAxis.Length) * (cluster.YAxis.Length);
+            //boundaryCurve.
             
         }
 

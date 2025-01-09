@@ -174,9 +174,9 @@ namespace BrownBat.Arrange
                     //Line yAxis = AxisLine(rhinoPointGroup, boundingPlane.YAxis, element.GeometryShape.Item2, convexBoundary, tol);
                     //Rhino.Geometry.Intersect.Intersection.LineLine(xAxis, yAxis, out double xParameter, out double yParameter);
                     //Point3d center = xAxis.PointAt(xParameter);
-
-                    Line xAxis = AreaHelper.AxisLineFromCenter(averagePoint, boundingPlane.XAxis, convexBoundary);
-                    Line yAxis = AreaHelper.AxisLineFromCenter(averagePoint, boundingPlane.YAxis, convexBoundary);
+                    Curve boundaryCurve = convexBoundary.ToNurbsCurve();
+                    Line xAxis = AreaHelper.AxisLineFromCenter(averagePoint, boundingPlane.XAxis, boundaryCurve);
+                    Line yAxis = AreaHelper.AxisLineFromCenter(averagePoint, boundingPlane.YAxis, boundaryCurve);
 
                     HeatCluster heatCluster = new HeatCluster(element.Name, g, averagePoint, xAxis, yAxis);
                     heatClusterGroup.Add(g, heatCluster);

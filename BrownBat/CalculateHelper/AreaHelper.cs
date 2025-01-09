@@ -175,14 +175,14 @@ namespace BrownBat.CalculateHelper
             Line axis = new Line(furthestPoints.Item1, furthestPoints.Item2);
             return axis;
         }
-        public static Line AxisLineFromCenter(Point3d centerPoint, Vector3d axisDirection, Polyline convexBoundary)
+        public static Line AxisLineFromCenter(Point3d centerPoint, Vector3d axisDirection, Curve convexBoundary)
         {
             Point3d pointPositive = new Point3d();
             Point3d pointNegative = new Point3d();
 
             var tolerance = Rhino.RhinoDoc.ActiveDoc.ModelAbsoluteTolerance;
             Line lineX1 = new Line(centerPoint, axisDirection);
-            var intersection = Rhino.Geometry.Intersect.Intersection.CurveLine(convexBoundary.ToNurbsCurve(), lineX1, tolerance, tolerance);
+            var intersection = Rhino.Geometry.Intersect.Intersection.CurveLine(convexBoundary, lineX1, tolerance, tolerance);
             if (intersection.Count > 1)
             {
                 pointPositive = intersection[0].PointA;

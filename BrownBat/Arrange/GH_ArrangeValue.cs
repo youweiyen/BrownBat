@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using BrownBat.Components;
 using Grasshopper.Kernel;
 using Rhino.Geometry;
+using BrownBat.CalculateHelper;
+using Grasshopper;
 
 namespace BrownBat.Arrange
 {
@@ -26,6 +28,10 @@ namespace BrownBat.Arrange
             pManager.AddGenericParameter("Element", "E", "Element with selected range of heat value", GH_ParamAccess.list);
             pManager.AddGenericParameter("Structure", "S", "Structure to build", GH_ParamAccess.item);
             pManager.AddCurveParameter("Boundary", "B", "Boundary area to assign high conductivity values", GH_ParamAccess.list);
+            pManager.AddNumberParameter("Difference", "D", 
+                "Heat area axis size difference. Default set to 10", 
+                GH_ParamAccess.item);
+            pManager[3].Optional = true;
         }
 
         /// <summary>
@@ -33,6 +39,7 @@ namespace BrownBat.Arrange
         /// </summary>
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
+            pManager.AddBrepParameter("Geometry", "G", "Transformed element geometry", GH_ParamAccess.tree);
             pManager.AddTransformParameter("Transform", "T", "Transformation of element on to the structure", GH_ParamAccess.tree);
         }
 
@@ -45,18 +52,48 @@ namespace BrownBat.Arrange
             List<Element> inElement = new List<Element>();
             Structure inStructure = new Structure();
             List<Curve> inRegion = new List<Curve>();
+            double inDifference = 10;
 
             DA.GetDataList(0, inElement);
             DA.GetData(1, ref inStructure);
             DA.GetDataList(2, inRegion);
+            DA.GetData(3, ref inDifference);
 
-            Curve boundaryCurve = inRegion[0];
-            double boundaryArea = AreaMassProperties.Compute(boundaryCurve).Area;
+            DataTree<Transform> transformOptions = new DataTree<Transform>();
+
+            foreach(Curve boundaryCurve in inRegion)
+            {
+                Point3d boundaryCenter = AreaMassProperties.Compute(boundaryCurve).Centroid;
             
-            HeatCluster cluster = inElement[0].HeatClusterGroup[0];
-            double clusterArea = (cluster.XAxis.Length) * (cluster.YAxis.Length);
-            //boundaryCurve.
-            
+                Point3d[] boundaryPoints = boundaryCurve.MaxCurvaturePoints();
+                Rectangle3d boundaryBox = AreaHelper.MinBoundingBox(boundaryPoints, inElement[0].Origin);
+                Plane boundaryPlane = new Plane(boundaryCenter, boundaryBox.Plane.XAxis, boundaryBox.Plane.YAxis);
+
+                double xLength = boundaryBox.Width;
+                double yLength = boundaryBox.Height;
+                List<Transform> transformPlanes = new List<Transform>();
+
+                foreach (Element element in inElement)
+                {
+                    for (int i = 0; i < element.HeatClusterGroup.Count; i++)
+                    {
+                        HeatCluster cluster = element.HeatClusterGroup[i];
+
+                        if (Math.Abs(cluster.XAxis.Length - xLength) < inDifference
+                            && Math.Abs(cluster.YAxis.Length - yLength) < inDifference
+                            || Math.Abs(cluster.XAxis.Length - yLength) < inDifference
+                            && Math.Abs(cluster.YAxis.Length - xLength) < inDifference)
+                        {
+                            Plane clusterPlane = new Plane(cluster.Center, cluster.XAxis.To, cluster.YAxis.To);
+                            Transform transformPlane = Transform.PlaneToPlane(clusterPlane, boundaryPlane);
+                            transformPlanes.Add(transformPlane);
+                        }
+                    }
+                }
+                
+            }
+
+            DA.SetDataTree(0, transformPlanes);
         }
 
         /// <summary>

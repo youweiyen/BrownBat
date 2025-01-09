@@ -84,7 +84,7 @@ namespace BrownBat.Arrange
 
             var tol = Rhino.RhinoDoc.ActiveDoc.ModelAbsoluteTolerance;
 
-            List<Element> elementCluster = new List<Element>();
+            List<Element> elements = new List<Element>();
 
             foreach (Element element in inData)
             {
@@ -180,7 +180,8 @@ namespace BrownBat.Arrange
 
                     HeatCluster heatCluster = new HeatCluster(element.Name, g, averagePoint, xAxis, yAxis);
                     heatClusterGroup.Add(g, heatCluster);
-                    elementCluster.Add(element);
+                    Element.SetHeatCluster(element, heatClusterGroup);
+                    
 
                     //what happens if I change the value of heat? will the old cluster still be there? 
                     //since heatcluster is a property of element
@@ -188,10 +189,10 @@ namespace BrownBat.Arrange
                     axisListView.Add(xAxis);//visualize
                     axisListView.Add(yAxis);//visualize
                 }
-                Element.SetHeatCluster(element, heatClusterGroup);
-
+                elements.Add(element);
             }
-            DA.SetDataList(0, elementCluster);
+
+            DA.SetDataList(0, elements);
             DA.SetDataTree(1, ClusteredPts);
             DA.SetDataTree(2, boundaryPoints);
             DA.SetDataList(3, axisListView);

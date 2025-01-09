@@ -5,6 +5,9 @@ using Grasshopper.Kernel;
 using Rhino.Geometry;
 using BrownBat.CalculateHelper;
 using Grasshopper;
+using Dbscan;
+using System.Xml.Linq;
+using Grasshopper.Kernel.Data;
 
 namespace BrownBat.Arrange
 {
@@ -40,7 +43,7 @@ namespace BrownBat.Arrange
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
             pManager.AddBrepParameter("Geometry", "G", "Transformed element geometry", GH_ParamAccess.tree);
-            pManager.AddTransformParameter("Transform", "T", "Transformation of element on to the structure", GH_ParamAccess.tree);
+            pManager.AddTextParameter("Name", "N", "Element Name", GH_ParamAccess.tree);
         }
 
         /// <summary>
@@ -59,7 +62,8 @@ namespace BrownBat.Arrange
             DA.GetDataList(2, inRegion);
             DA.GetData(3, ref inDifference);
 
-            DataTree<Transform> transformOptions = new DataTree<Transform>();
+            DataTree<Brep> transformOptions = new DataTree<Brep>();
+            DataTree<string> transformNames = new DataTree<string>();
 
             foreach(Curve boundaryCurve in inRegion)
             {
@@ -71,29 +75,47 @@ namespace BrownBat.Arrange
 
                 double xLength = boundaryBox.Width;
                 double yLength = boundaryBox.Height;
-                List<Transform> transformPlanes = new List<Transform>();
 
                 foreach (Element element in inElement)
                 {
+                    int p = 0;
+                    GH_Path path = new GH_Path(p);
+
                     for (int i = 0; i < element.HeatClusterGroup.Count; i++)
                     {
                         HeatCluster cluster = element.HeatClusterGroup[i];
 
                         if (Math.Abs(cluster.XAxis.Length - xLength) < inDifference
-                            && Math.Abs(cluster.YAxis.Length - yLength) < inDifference
-                            || Math.Abs(cluster.XAxis.Length - yLength) < inDifference
+                            && Math.Abs(cluster.YAxis.Length - yLength) < inDifference)
+                        {
+                            Brep transformedElement = AxisAlignedTransform(cluster.Center, 
+                                                                            cluster.XAxis.To, 
+                                                                            cluster.YAxis.To,
+                                                                            element,
+                                                                            boundaryPlane);
+                            transformOptions.Add(transformedElement, path);
+                            transformNames.Add(element.Name, path);
+                            p++;
+                        }
+                        else if (Math.Abs(cluster.XAxis.Length - yLength) < inDifference
                             && Math.Abs(cluster.YAxis.Length - xLength) < inDifference)
                         {
-                            Plane clusterPlane = new Plane(cluster.Center, cluster.XAxis.To, cluster.YAxis.To);
-                            Transform transformPlane = Transform.PlaneToPlane(clusterPlane, boundaryPlane);
-                            transformPlanes.Add(transformPlane);
+                            Brep transformedElement = AxisAlignedTransform(cluster.Center, 
+                                                                            cluster.YAxis.To,
+                                                                            cluster.XAxis.To,
+                                                                            element,
+                                                                            boundaryPlane);
+                            transformOptions.Add(transformedElement, path);
+                            transformNames.Add(element.Name, path);
+                            p++;
                         }
                     }
                 }
                 
             }
 
-            DA.SetDataTree(0, transformPlanes);
+            DA.SetDataTree(0, transformOptions);
+            DA.SetDataTree(1, transformNames);
         }
 
         /// <summary>
@@ -115,6 +137,16 @@ namespace BrownBat.Arrange
         public override Guid ComponentGuid
         {
             get { return new Guid("C3641087-4F32-41BF-A831-84E1A3E48468"); }
+        }
+        public Brep AxisAlignedTransform(Point3d center, Point3d xEnd, Point3d yEnd, Element element, Plane boundaryPlane)
+        {
+            Plane clusterPlane = new Plane(center, xEnd, yEnd);
+            Transform transformPlane = Transform.PlaneToPlane(clusterPlane, boundaryPlane);
+
+            Brep transformElement = element.Model.DuplicateBrep();
+            transformElement.Transform(transformPlane);
+
+            return transformElement;
         }
     }
 }

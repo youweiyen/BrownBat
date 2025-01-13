@@ -8,6 +8,8 @@ using Grasshopper;
 using Dbscan;
 using System.Xml.Linq;
 using Grasshopper.Kernel.Data;
+using System.Collections;
+using System.Linq;
 
 namespace BrownBat.Arrange
 {
@@ -44,6 +46,7 @@ namespace BrownBat.Arrange
         {
             pManager.AddBrepParameter("Geometry", "G", "Transformed element geometry", GH_ParamAccess.tree);
             pManager.AddTextParameter("Name", "N", "Element Name", GH_ParamAccess.tree);
+            pManager.AddTransformParameter("T", "T", "T", GH_ParamAccess.tree);
         }
 
         /// <summary>
@@ -64,13 +67,31 @@ namespace BrownBat.Arrange
 
             DataTree<Brep> transformOptions = new DataTree<Brep>();
             DataTree<string> transformNames = new DataTree<string>();
+            DataTree<Transform> transformTransform = new DataTree<Transform>();
 
-            foreach(Curve boundaryCurve in inRegion)
+
+            foreach (Curve boundaryCurve in inRegion)
             {
                 Point3d boundaryCenter = AreaMassProperties.Compute(boundaryCurve).Centroid;
             
                 Point3d[] boundaryPoints = boundaryCurve.MaxCurvaturePoints();
-                Rectangle3d boundaryBox = AreaHelper.MinBoundingBox(boundaryPoints, inElement[0].Origin);
+
+                //remove duplicate points
+                var threshold = 0.000001;
+                Func<double, double, double, double, double> distance
+                    = (x0, y0, x1, y1) =>
+                        Math.Sqrt(Math.Pow(x1 - x0, 2.0) + Math.Pow(y1 - y0, 2.0));
+
+                var result = boundaryPoints.Skip(1).Aggregate(boundaryPoints.Take(1).ToList(), (xys, xy) =>
+                {
+                    if (xys.All(xy2 => distance(xy.X, xy.Y, xy2.X, xy2.Y) >= threshold))
+                    {
+                        xys.Add(xy);
+                    }
+                    return xys;
+                });
+
+                Rectangle3d boundaryBox = AreaHelper.MinBoundingBox(result, inElement[0].Origin);
                 Plane boundaryPlane = new Plane(boundaryCenter, boundaryBox.Plane.XAxis, boundaryBox.Plane.YAxis);
 
                 double xLength = boundaryBox.Width;
@@ -80,6 +101,8 @@ namespace BrownBat.Arrange
                 {
                     int p = 0;
                     GH_Path path = new GH_Path(p);
+                    Brep elementBrep = element.Model;
+                    Transform transformPlane = new Transform();
 
                     for (int i = 0; i < element.HeatClusterGroup.Count; i++)
                     {
@@ -88,13 +111,20 @@ namespace BrownBat.Arrange
                         if (Math.Abs(cluster.XAxis.Length - xLength) < inDifference
                             && Math.Abs(cluster.YAxis.Length - yLength) < inDifference)
                         {
-                            Brep transformedElement = AxisAlignedTransform(cluster.Center, 
-                                                                            cluster.XAxis.To, 
-                                                                            cluster.YAxis.To,
-                                                                            element,
-                                                                            boundaryPlane);
-                            transformOptions.Add(transformedElement, path);
+                            Plane clusterPlane = new Plane(cluster.Center, cluster.XAxis.To, cluster.YAxis.To);
+                            transformPlane = Transform.PlaneToPlane(clusterPlane, boundaryPlane);
+
+                            Brep transformElement = new Brep();
+                            transformElement = elementBrep.DuplicateBrep();
+                            transformElement.Transform(transformPlane);
+                            //Brep transformedElement = AxisAlignedTransform(cluster.Center, 
+                            //                                                cluster.XAxis.To, 
+                            //                                                cluster.YAxis.To,
+                            //                                                element,
+                            //                                                boundaryPlane);
+                            transformOptions.Add(transformElement, path);
                             transformNames.Add(element.Name, path);
+                            transformTransform.Add(transformPlane, path);
                             p++;
                         }
                         else if (Math.Abs(cluster.XAxis.Length - yLength) < inDifference
@@ -103,7 +133,7 @@ namespace BrownBat.Arrange
                             Brep transformedElement = AxisAlignedTransform(cluster.Center, 
                                                                             cluster.YAxis.To,
                                                                             cluster.XAxis.To,
-                                                                            element,
+                                                                            elementBrep,
                                                                             boundaryPlane);
                             transformOptions.Add(transformedElement, path);
                             transformNames.Add(element.Name, path);
@@ -116,6 +146,8 @@ namespace BrownBat.Arrange
 
             DA.SetDataTree(0, transformOptions);
             DA.SetDataTree(1, transformNames);
+            DA.SetDataTree(2, transformTransform);
+
         }
 
         /// <summary>
@@ -138,12 +170,13 @@ namespace BrownBat.Arrange
         {
             get { return new Guid("C3641087-4F32-41BF-A831-84E1A3E48468"); }
         }
-        public Brep AxisAlignedTransform(Point3d center, Point3d xEnd, Point3d yEnd, Element element, Plane boundaryPlane)
+        public Brep AxisAlignedTransform(Point3d center, Point3d xEnd, Point3d yEnd, Brep element, Plane boundaryPlane)
         {
             Plane clusterPlane = new Plane(center, xEnd, yEnd);
             Transform transformPlane = Transform.PlaneToPlane(clusterPlane, boundaryPlane);
 
-            Brep transformElement = element.Model.DuplicateBrep();
+            Brep transformElement = new Brep();
+            transformElement = element.DuplicateBrep();
             transformElement.Transform(transformPlane);
 
             return transformElement;

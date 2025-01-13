@@ -77,21 +77,10 @@ namespace BrownBat.Arrange
                 Point3d[] boundaryPoints = boundaryCurve.MaxCurvaturePoints();
 
                 //remove duplicate points
-                var threshold = 0.000001;
-                Func<double, double, double, double, double> distance
-                    = (x0, y0, x1, y1) =>
-                        Math.Sqrt(Math.Pow(x1 - x0, 2.0) + Math.Pow(y1 - y0, 2.0));
+                double threshold = 0.000001;
+                IEnumerable<Point3d> boundingPoints = AreaHelper.RemoveDuplicatePoints(boundaryPoints, threshold);
 
-                var result = boundaryPoints.Skip(1).Aggregate(boundaryPoints.Take(1).ToList(), (xys, xy) =>
-                {
-                    if (xys.All(xy2 => distance(xy.X, xy.Y, xy2.X, xy2.Y) >= threshold))
-                    {
-                        xys.Add(xy);
-                    }
-                    return xys;
-                });
-
-                Rectangle3d boundaryBox = AreaHelper.MinBoundingBox(result, inElement[0].Origin);
+                Rectangle3d boundaryBox = AreaHelper.MinBoundingBox(boundingPoints, inElement[0].Origin);
                 Plane boundaryPlane = new Plane(boundaryCenter, boundaryBox.Plane.XAxis, boundaryBox.Plane.YAxis);
 
                 double xLength = boundaryBox.Width;

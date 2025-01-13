@@ -192,6 +192,22 @@ namespace BrownBat.CalculateHelper
 
             return lineX;
         }
+        public static IEnumerable<Point3d> RemoveDuplicatePoints(IEnumerable<Point3d> points, double threshold)
+        {
+            
+            Func<double, double, double, double, double> distance
+                = (x0, y0, x1, y1) =>
+                    Math.Sqrt(Math.Pow(x1 - x0, 2.0) + Math.Pow(y1 - y0, 2.0));
 
+            var result = points.Skip(1).Aggregate(points.Take(1).ToList(), (xys, xy) =>
+            {
+                if (xys.All(xy2 => distance(xy.X, xy.Y, xy2.X, xy2.Y) >= threshold))
+                {
+                    xys.Add(xy);
+                }
+                return xys;
+            });
+            return result;
+        }
     }
 }

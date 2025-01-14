@@ -55,13 +55,12 @@ namespace BrownBat.Arrange
         {
             List<Element> inElement = new List<Element>();
             Structure inStructure = new Structure();
-            GH_Structure<IGH_Goo> inRegion = new GH_Structure<IGH_Goo>();
+            GH_Structure<GH_Point> inRegion = new GH_Structure<GH_Point>();
             double inDifference = 10;
 
             DA.GetDataList(0, inElement);
-            DA.GetData(1, ref inStructure);
-            DA.GetDataTree(2, out inRegion);
-            DA.GetData(3, ref inDifference);
+            DA.GetDataTree(1, out inRegion);
+            DA.GetData(2, ref inDifference);
 
             for (int i = 0; i < inRegion.Branches.Count(); i++)
             {

@@ -37,6 +37,7 @@ namespace BrownBat.Arrange
             pManager.AddColourParameter("PointColor", "IC", "Image Color from selected points", GH_ParamAccess.list);
             pManager.AddPointParameter("PaletteColor", "PC", "Palette Color as points constructed from matplotlib", GH_ParamAccess.list);
             pManager.AddNumberParameter("MinTemperature", "MinT", "Select points with temperature over this value", GH_ParamAccess.item);
+            pManager.AddNumberParameter("PointDistance", "PD", "Point subdivide distance", GH_ParamAccess.item);
         }
 
         /// <summary>
@@ -58,10 +59,14 @@ namespace BrownBat.Arrange
             List<Point3d> inPoint = new List<Point3d>();
             List<Color> inPointColor = new List<Color>();
             List<Point3d> inPaletteColor = new List<Point3d>();
+            double inTemperature = default;
+            double inDistance = default;
 
             DA.GetDataList(0, inPoint);
             DA.GetDataList(1, inPointColor);
             DA.GetDataList(2, inPaletteColor);
+            DA.GetData(3, ref inTemperature);
+            DA.GetData(4, ref inDistance);
 
             int minTemp = 10;
             int maxTemp = 40;
@@ -80,17 +85,22 @@ namespace BrownBat.Arrange
                 double pixelTemp = (((maxTemp - minTemp) * smallestIndex) / numOfTemp) + minTemp;
                 pixelTemperature.Add(pixelTemp);
             }
-            var SelectPoints = inPoint
+            var selectPoints = inPoint
                 .Zip(pixelTemperature, (p, t) => new { p, t })
-                .Where(pair => pair.t > 25)
+                .Where(pair => pair.t > inTemperature)
                 .Select(pair => pair.p);
-            
+
+            //Remove outlier
+            PointCloud pointCloud = new PointCloud(selectPoints);
+            var cleanPoints = selectPoints.Where(point => point
+                                .DistanceTo(pointCloud.PointAt(pointCloud.ClosestPoint(point))) < (inDistance + 1));
+
             List<Point3d> convexPoints = new List<Point3d>();
 
-            //To convexhull points
-            var vpoint = SelectPoints.Select(p => new ConvexVertex(p.X, p.Y)).ToArray();
-            if (vpoint.Length > 0)
+            if (cleanPoints.Count() > 2)
             {
+                //To convexhull points
+                var vpoint = cleanPoints.Select(p => new ConvexVertex(p.X, p.Y)).ToArray();
                 var hullResult = ConvexHull.Create2D(vpoint, 1e-10).Result;
                 if (hullResult != null)
                 {

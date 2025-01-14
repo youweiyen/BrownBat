@@ -11,8 +11,7 @@ namespace BrownBat.CalculateHelper
     public class DbscanPoint : IPointData
     {
 
-        public DbscanPoint(double x, double y) =>
-            Point = new Point(x, y);
+        public DbscanPoint(double x, double y) => Point = new Point(x, y);
 
         public Point Point { get; }
     }

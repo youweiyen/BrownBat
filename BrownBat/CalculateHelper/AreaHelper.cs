@@ -1,11 +1,20 @@
 ﻿using BrownBat.Components;
+using Ed.Eto;
+using Eto.Forms;
+using Rhino.Collections;
+using Rhino.Commands;
 using Rhino.Geometry;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.NetworkInformation;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices.WindowsRuntime;
 using System.Text;
 using System.Threading.Tasks;
+using static Rhino.UI.Internal.OptionsPages.AppearanceViewModel;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.ProgressBar;
 
 namespace BrownBat.CalculateHelper
 {
@@ -208,6 +217,101 @@ namespace BrownBat.CalculateHelper
                 return xys;
             });
             return result;
+        }
+       
+        public static IEnumerable<DbscanPoint> ReduceDbscanGrid(List<DbscanPoint> points, int npartitions)
+        {
+            double max_x = 0, max_y = 0;
+            double min_x = double.MaxValue, min_y = double.MaxValue;
+
+            // Find the bounding box of the points
+            foreach (var point in points)
+            {
+                if (point.Point.X > max_x)
+                    max_x = point.Point.X;
+                if (point.Point.Y < min_x)
+                    min_x = point.Point.X;
+                if (point.Point.Y > max_y)
+                    max_y = point.Point.Y;
+                if (point.Point.Y < min_y)
+                    min_y = point.Point.Y;
+            }
+
+            // Get the X and Y axis lengths of the paritions
+            double partition_length_x = (max_x - min_x) / npartitions;
+            double partition_length_y = (max_y - min_y) / npartitions;
+
+            List<DbscanPoint> result = new List<DbscanPoint>();
+            // Reduce the points to one in each grid partition
+            for (int n = 0; n < npartitions; n++)
+            {
+                // Get the boundary of this grid paritition
+                double min_X = min_x + (n * partition_length_x);
+                double min_Y = min_y + (n * partition_length_y);
+                double max_X = min_x + ((n + 1) * partition_length_x);
+                double max_Y = min_y + ((n + 1) * partition_length_y);
+
+                bool reduce = false; // set to true after finding the first point in the partition
+                foreach (var point in points)
+                {
+                    // the point is in the grid parition
+                    if (point.Point.X >= min_X && point.Point.X < max_X &&
+                            point.Point.Y >= min_Y && point.Point.Y < max_Y)
+                    {
+                        // first point found
+                        if (reduce is false)
+                        {
+                            reduce = true;
+                            result.Add(point);
+                            continue;
+                        }
+                         // remove the point from the list
+                    }
+                }
+            }
+            return result;
+        }
+        public static IEnumerable<DbscanPoint> DouglasPeucker(List<DbscanPoint> points, double epsilon)
+        {
+            // Find the point with the maximum distance
+            int dmax = 0;
+            int index = 0;
+            int end = points.Count;
+            Line straightLine = new Line(new Point3d(points[0].Point.X, points[0].Point.Y, 0), new Point3d(points[end-1].Point.Y, points[end-1].Point.Y, 0));
+
+            for ( int i = 2; i < end; i++)
+            {
+                double d = straightLine.DistanceTo(new Point3d(points[1].Point.X, points[1].Point.Y, 0), true);
+                if (d > dmax)
+                {
+                    index = i;
+                    dmax = (int)d;
+                }
+            }
+
+            List<DbscanPoint> resultList = new List<DbscanPoint>();
+
+            // If max distance is greater than epsilon, recursively simplify
+            if (dmax > epsilon)
+            {
+
+                // Recursive call
+                var recResults1 = DouglasPeucker(points.Take(index).ToList(), epsilon);
+                var recResults2 = DouglasPeucker(points.Skip(index).Take(end - index).ToList(), epsilon);
+                //DbscanPoint[] recResults1 = DouglasPeucker(points[1...index], epsilon);
+                //DbscanPoint[] recResults2 = DouglasPeucker(points[index...end], epsilon);
+
+                // Build the result list
+                resultList.AddRange(recResults1.Take(recResults1.Count() - 1).ToList());
+                resultList.AddRange(recResults2.Take(recResults2.Count() - 1).ToList());
+            }
+            else
+            {
+                resultList.Add(points[0]);
+                resultList.Add(points[end-1]);
+            }
+            // Return the result
+            return resultList;
         }
     }
 }

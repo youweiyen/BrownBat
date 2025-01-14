@@ -34,11 +34,11 @@ namespace BrownBat.Arrange
             pManager.AddNumberParameter("Value", "V", "Value to draw out area", GH_ParamAccess.item);
             pManager.AddIntegerParameter("MinPoints",
                                         "Min", 
-                                        "Minimum points for DBSCAN calculation. Default set to 5", 
+                                        "Minimum points for DBSCAN calculation. Default set to 15", 
                                         GH_ParamAccess.item);
             pManager.AddIntegerParameter("Epsilon", 
                                         "E", 
-                                        "Distance to determine same area points. Default set to 5",
+                                        "Distance to determine same area points. Default set to 15",
                                         GH_ParamAccess.item);
             pManager[2].Optional = true;
             pManager[3].Optional = true;
@@ -68,9 +68,9 @@ namespace BrownBat.Arrange
             DA.GetDataList(0, inData);
             double inValue = default;
             DA.GetData(1, ref inValue);
-            int inMinPoints = 5;
+            int inMinPoints = 15;
             DA.GetData(2, ref inMinPoints);
-            int inEpsilon = 5;
+            int inEpsilon = 15;
             DA.GetData(2, ref inEpsilon);
 
 
@@ -91,9 +91,10 @@ namespace BrownBat.Arrange
                 List<DbscanPoint> fitID = new List<DbscanPoint>();
 
                 var data = element.PixelConductivity;
-                for (int row = 0; row < data.Count; row++)
+                int increment = 5;
+                for (int row = 0; row < data.Count; row += increment)
                 {
-                    for (int col = 0; col < data[row].Count(); col++)
+                    for (int col = 0; col < data[row].Count(); col += increment)
                     {
                         if (data[row][col] > inValue)
                         {
@@ -102,6 +103,9 @@ namespace BrownBat.Arrange
                         }
                     }
                 }
+
+                //IEnumerable<DbscanPoint> reduceDbscanPoints = AreaHelper.ReduceDbscanGrid(fitID, fitID.Count()/10); //doesn't get hull result
+                //IEnumerable<DbscanPoint> reduceDbscanPoints = AreaHelper.DouglasPeucker(fitID,1); //stackoverflow
 
                 //double pixelCount = inMinArea / (element.PixelSize.Item1 * element.PixelSize.Item2);
                 //int minPoints = (int)Math.Round(pixelCount);
@@ -132,7 +136,9 @@ namespace BrownBat.Arrange
                     var points = clusters.Clusters[c].Objects;
                     var vpoint = points.Select(p => new ConvexVertex(p.Point.X, p.Point.Y)).ToArray();
                     //var vpoint = new ConvexVertex[] { new ConvexVertex(point.Point.X, point.Point.Y) };
-                    var hullResult = ConvexHull.Create2D(vpoint, 1e-10).Result.ToArray();
+
+                    ConvexVertex[] hullResult = ConvexHull.Create2D(vpoint, 1e-10).Result.ToArray();
+                        
 
                     convexGroups.Add(hullResult);
 

@@ -6,6 +6,9 @@ using Rhino.Geometry;
 using BrownBat.CalculateHelper;
 using BrownBat.Components;
 using System.Linq;
+using Grasshopper;
+using Grasshopper.Kernel.Data;
+using Grasshopper.Kernel.Types;
 
 namespace BrownBat.Arrange
 {
@@ -27,12 +30,11 @@ namespace BrownBat.Arrange
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
             pManager.AddGenericParameter("Element", "E", "Element with selected range of heat value", GH_ParamAccess.list);
-            pManager.AddGenericParameter("Structure", "S", "Structure to build", GH_ParamAccess.item);
-            pManager.AddPointParameter("BoundaryPoint", "B", "Boundary point area to assign high conductivity values", GH_ParamAccess.list);
+            pManager.AddPointParameter("BoundaryPoint", "B", "Boundary point area to assign high conductivity values", GH_ParamAccess.tree);
             pManager.AddNumberParameter("Difference", "D",
                 "Heat area axis size difference. Default set to 10",
                 GH_ParamAccess.item);
-            pManager[3].Optional = true;
+            pManager[2].Optional = true;
         }
 
         /// <summary>
@@ -42,7 +44,7 @@ namespace BrownBat.Arrange
         {
             pManager.AddBrepParameter("Geometry", "G", "Transformed element geometry", GH_ParamAccess.tree);
             pManager.AddTextParameter("Name", "N", "Element Name", GH_ParamAccess.tree);
-            pManager.AddTransformParameter("T", "T", "T", GH_ParamAccess.tree);
+            pManager.AddTransformParameter("Transform", "T", "Rotation transformation of grid element", GH_ParamAccess.tree);
         }
 
         /// <summary>
@@ -53,24 +55,37 @@ namespace BrownBat.Arrange
         {
             List<Element> inElement = new List<Element>();
             Structure inStructure = new Structure();
-            List<Point3d> inRegion = new List<Point3d>();
+            GH_Structure<IGH_Goo> inRegion = new GH_Structure<IGH_Goo>();
             double inDifference = 10;
 
             DA.GetDataList(0, inElement);
             DA.GetData(1, ref inStructure);
-            DA.GetDataList(2, inRegion);
+            DA.GetDataTree(2, out inRegion);
             DA.GetData(3, ref inDifference);
 
-            Plane boundingPlane = AreaHelper.BoundingPlane(inRegion, Plane.WorldXY);
-            Point3d averagePoint = new Point3d(inRegion.Select(pt => pt.X).Average(),
-                                   inRegion.Select(pt => pt.Y).Average(),
-                                   inRegion.Select(pt => pt.Z).Average());
+            for (int i = 0; i < inRegion.Branches.Count(); i++)
+            {
+                if (inRegion[i].Count < 0)
+                {
+                    continue;
+                }
+                List<Point3d> regionPoints = new List<Point3d>();
+                foreach (var r in inRegion[i])
+                {
+                    r.CastTo<Point3d>(out Point3d pt);
+                    regionPoints.Add(pt);
+                }
 
-            var closePolyPoints = inRegion.Concat(new[] { inRegion.First() });
-            Polyline convexBoundary = new Polyline(closePolyPoints);
-            Curve boundaryCurve = convexBoundary.ToNurbsCurve();
-            Line xAxis = AreaHelper.AxisLineFromCenter(averagePoint, boundingPlane.XAxis, boundaryCurve);
-            Line yAxis = AreaHelper.AxisLineFromCenter(averagePoint, boundingPlane.YAxis, boundaryCurve);
+                Rectangle3d boundingBox = AreaHelper.MinBoundingBox(regionPoints, inElement[i].Origin);
+
+                if (boundingBox.Height - boundingBox.Width > 0)
+                {
+                    
+                }
+            }
+
+
+            
 
         }
 

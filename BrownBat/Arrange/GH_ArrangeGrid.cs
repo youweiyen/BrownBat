@@ -80,8 +80,8 @@ namespace BrownBat.Arrange
 
                 if (boundingBox.Height > boundingBox.Width)
                 {
-                    inElement[i]
-                    inElement[i].Origin.YAxis;
+                    //inElement[i]
+                    //inElement[i].Origin.YAxis;
                 }
             }
 

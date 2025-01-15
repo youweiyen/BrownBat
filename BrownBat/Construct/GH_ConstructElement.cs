@@ -65,7 +65,10 @@ namespace BrownBat.Construct
                 {
                     Transform matrix = combinedPanels[p].InverseMatrix;
                     Brep dupPanel = combinedPanels[p].Model.DuplicateBrep();
-                    dupPanel.Transform(matrix);
+                    if(matrix.IsZeroTransformation != true)
+                    {
+                        dupPanel.Transform(matrix);
+                    }
                     BrepVertexList profileVertexList = dupPanel.Vertices;
 
                     List<Point3d> profileVertices = new List<Point3d>();

@@ -12,14 +12,14 @@ using Rhino.Geometry;
 
 namespace BrownBat.Construct
 {
-    public class GH_MatchElement_Remote : GH_Component
+    public class GH_TransformElement_Remote : GH_Component
     {
         /// <summary>
         /// Initializes a new instance of the GH_Param class.
         /// </summary>
-        public GH_MatchElement_Remote()
-          : base("MatchElement", "MR",
-              "Match design elements to origin",
+        public GH_TransformElement_Remote()
+          : base("TransformElement", "TE",
+              "Transform model block and convert it to element block",
               "BrownBat", "Construct")
         {
         }
@@ -30,8 +30,9 @@ namespace BrownBat.Construct
         protected override void RegisterInputParams(GH_InputParamManager pManager)
         {
             pManager.AddGenericParameter("ModelBlockInstance", "MI", "Block Instance of design model", GH_ParamAccess.list);
-            pManager.AddTransformParameter("Transform", "T", "Block Transform", GH_ParamAccess.list);
-
+            pManager.AddTransformParameter("Transform", "T", 
+                "If you gave the block any transformation you can apply it here", GH_ParamAccess.list);
+            pManager[1].Optional = true;
         }
 
         /// <summary>
@@ -70,11 +71,21 @@ namespace BrownBat.Construct
 
             List<Element> panelList = new List<Element>();
             Mesh meshes = new Mesh();
+
             for (int i = 0; i < inputBlock.Count; i++)
             {
                 string panelName = inputBlock[i].InstanceDefinition.Name;
 
-                Transform panelTransform = inputTransform[i];
+                Transform panelTransform = new Transform();
+                if (inputTransform.Count == 0)
+                {
+                    panelTransform = Transform.ZeroTransformation;
+
+                }
+                else
+                {
+                    panelTransform = inputTransform[i];
+                }
                 Transform nonTransform = new Transform(1);
 
 
@@ -91,17 +102,17 @@ namespace BrownBat.Construct
                 //Brep panelBrep = inputBrep[i];
 
                 Element panel = new Element(panelName, panelTransform, panelBrep);
-
                 Element.TryGetInverseMatrix(panel, panelTransform);
                 Element.BaseCurve(panel);
-
                 panelList.Add(panel);
             }
+
             previewMesh = meshes;
 
             DA.SetDataList(0, panelList);
             //DA.SetDataList(1, brepList);
 
+                
         }
 
 

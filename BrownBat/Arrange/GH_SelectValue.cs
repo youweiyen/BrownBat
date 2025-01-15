@@ -107,10 +107,6 @@ namespace BrownBat.Arrange
                 //IEnumerable<DbscanPoint> reduceDbscanPoints = AreaHelper.ReduceDbscanGrid(fitID, fitID.Count()/10); //doesn't get hull result
                 //IEnumerable<DbscanPoint> reduceDbscanPoints = AreaHelper.DouglasPeucker(fitID,1); //stackoverflow
 
-                //double pixelCount = inMinArea / (element.PixelSize.Item1 * element.PixelSize.Item2);
-                //int minPoints = (int)Math.Round(pixelCount);
-                //double epsilon = 10;
-
                 //stopwatch
                 Stopwatch stopWatch = new Stopwatch();
                 stopWatch.Start();
@@ -176,10 +172,6 @@ namespace BrownBat.Arrange
 
                     Plane boundingPlane = AreaHelper.BoundingPlane(rhinoPointGroup, element.Origin);
 
-                    //Line xAxis = AxisLine(rhinoPointGroup, boundingPlane.XAxis, element.GeometryShape.Item1, convexBoundary, tol);
-                    //Line yAxis = AxisLine(rhinoPointGroup, boundingPlane.YAxis, element.GeometryShape.Item2, convexBoundary, tol);
-                    //Rhino.Geometry.Intersect.Intersection.LineLine(xAxis, yAxis, out double xParameter, out double yParameter);
-                    //Point3d center = xAxis.PointAt(xParameter);
                     Curve boundaryCurve = convexBoundary.ToNurbsCurve();
                     Line xAxis = AreaHelper.AxisLineFromCenter(averagePoint, boundingPlane.XAxis, boundaryCurve);
                     Line yAxis = AreaHelper.AxisLineFromCenter(averagePoint, boundingPlane.YAxis, boundaryCurve);

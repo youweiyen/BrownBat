@@ -160,9 +160,16 @@ namespace BrownBat.Components
         }
         public static void TryGetInverseMatrix(Element panel, Transform matrix) 
         {
-            bool m = matrix.TryGetInverse(out Transform inverseMatrix);
-            if (m == false) { throw new Exception(); }
-            panel.InverseMatrix = inverseMatrix;
+            if (matrix.IsZeroTransformation)
+            {
+                panel.InverseMatrix = matrix;
+            }
+            else 
+            {
+                bool m = matrix.TryGetInverse(out Transform inverseMatrix);
+                if (m == false) { throw new Exception(); }
+                panel.InverseMatrix = inverseMatrix;
+            }
         }
 
         public IGH_GeometricGoo DuplicateGeometry()

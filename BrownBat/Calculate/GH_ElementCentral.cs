@@ -27,7 +27,7 @@ namespace BrownBat.Calculate
         /// </summary>
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
-            pManager.AddGenericParameter("Element", "E", "Bat Element", GH_ParamAccess.list);
+            pManager.AddGenericParameter("ElementData", "E", "Bat Element", GH_ParamAccess.list);
             pManager.AddTextParameter("SelectName", "N", "Bat Element Name", GH_ParamAccess.list);
             pManager.AddIntegerParameter("CentralType", "C", "Central Tendency", GH_ParamAccess.item);
         }

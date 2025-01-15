@@ -69,39 +69,106 @@ namespace BrownBat.Arrange
 
             double tolerance = Rhino.RhinoDoc.ActiveDoc.ModelAbsoluteTolerance;
 
+            List<Transform> transformList = new List<Transform>();
+
+            List<Element> transformElement = new List<Element>();
+
             for (int i = 0; i < inPlaceRegion.Branches.Count(); i++)
             {
-                if (inPlaceRegion[i].Count == 0)
+                Transform normalTransform = Transform.PlaneToPlane(inElement[i].Origin, PlacePlane(inPlacePosition[i]));
+
+                var largestCluster = inElement[i]
+                                        .HeatClusterGroup
+                                        .OrderByDescending(hcg => 
+                                        hcg.Value.XAxis.Length * hcg.Value.YAxis.Length)
+                                        .First()
+                                        .Value;
+                
+                if (inPlaceRegion[i].Count == 0 || inElement[i].HeatClusterGroup.Count == 0)
                 {
+                    //transform as orientation now
+                    transformList.Add(normalTransform);
+
+                    Element.TryGetInverseMatrix(inElement[i], normalTransform);
+                    transformElement.Add(inElement[i]);
+
                     continue;
                 }
+
                 IEnumerable<Point3d> regionPoints = inPlaceRegion[i].Select(pt => pt.Value);
-                
+                Point3d centerPoint = AreaMassProperties.Compute(inPlacePosition[i]).Centroid;
                 Rectangle3d placeBoundBox = AreaHelper.MinBoundingBox(regionPoints, PlacePlane(inPlacePosition[i]));
-                Line mainAxis = new Line();
+                
+                //choose placement boundingbox long axis
+                Line placeLongAxis = new Line();
+                Vector3d placeLongVector = new Vector3d(placeLongAxis.To - placeLongAxis.From);
                 if (placeBoundBox.Height > placeBoundBox.Width)
                 {
-                    mainAxis = AreaHelper.AxisLine(regionPoints,
+                    placeLongAxis = AreaHelper.AxisLine(regionPoints,
                                                     placeBoundBox.Plane.YAxis,
                                                     placeBoundBox.Height,
                                                     placeBoundBox.ToPolyline(),
                                                     tolerance);
-
+                    
                 }
-                else 
+                else
                 {
-                    mainAxis= AreaHelper.AxisLine(regionPoints,
+                    placeLongAxis = AreaHelper.AxisLine(regionPoints,
                                                     placeBoundBox.Plane.XAxis,
                                                     placeBoundBox.Width,
                                                     placeBoundBox.ToPolyline(),
                                                     tolerance);
-
                 }
+
+                //choose element long axis
+                Line elementLongAxis = new Line();
+                if (largestCluster.XAxis.Length > largestCluster.YAxis.Length)
+                {
+                    elementLongAxis = largestCluster.XAxis;
+                }
+                else
+                { 
+                    elementLongAxis = largestCluster.YAxis; 
+                }
+
+                double angleDifference = double.MaxValue;
+                double centerDistance = double.MaxValue;
+
+                Point3d transformClusterCenter = new Point3d(largestCluster.Center);
+                transformClusterCenter.Transform(normalTransform);
+                Transform multipleTransform = new Transform();
+                for (int a = 0; i < 4; i++)
+                {
+                    double angle = Math.PI * a;
+                    Vector3d transformAxis = new Vector3d(elementLongAxis.To - elementLongAxis.From);
+                    transformAxis.Transform(normalTransform);
+
+                    Transform orientTransform = Transform.Rotation(angle, centerPoint);
+                    transformAxis.Transform(orientTransform);
+                    double newAngle = Vector3d.VectorAngle(transformAxis, placeLongVector);
+                    if (newAngle > Math.PI)
+                    {
+                        newAngle = Math.PI - newAngle;
+                    }
+                    if (newAngle < angleDifference)
+                    {
+                        Point3d orientClusterCenter = new Point3d(transformClusterCenter);
+                        orientClusterCenter.Transform(orientTransform);
+                        double dist = placeLongAxis.DistanceTo(orientClusterCenter, true);
+                        if (dist < centerDistance)
+                        {
+                            centerDistance = dist;
+                            angleDifference = newAngle;
+                            multipleTransform = normalTransform * orientTransform;
+                        }
+                    }
+                }
+
+                transformList.Add(multipleTransform);
+
             }
-
-
-            
-
+            DA.SetDataList(0, transformElement);
+            DA.SetDataList(3, transformList);
         }
 
         /// <summary>

@@ -39,7 +39,7 @@ namespace BrownBat.Construct
         /// </summary>
         protected override void RegisterOutputParams(GH_OutputParamManager pManager)
         {
-            pManager.AddGenericParameter("BatBlock", "B", "Element with block properties", GH_ParamAccess.list);
+            pManager.AddGenericParameter("ElementBlock", "EB", "Element with block properties", GH_ParamAccess.list);
             //pManager.AddGenericParameter("brep", "B", "b", GH_ParamAccess.list);
 
         }

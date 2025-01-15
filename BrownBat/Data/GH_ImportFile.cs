@@ -36,7 +36,7 @@ namespace BrownBat.Data
 
         protected override void RegisterOutputParams(GH_OutputParamManager pManager)
         {
-            pManager.AddGenericParameter("BatData", "P", "Panel", GH_ParamAccess.list);
+            pManager.AddGenericParameter("ElementData", "ED", "Element with only data", GH_ParamAccess.list);
         }
 
         /// <summary>

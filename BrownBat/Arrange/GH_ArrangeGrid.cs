@@ -42,6 +42,7 @@ namespace BrownBat.Arrange
         /// </summary>
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
+            pManager.AddGenericParameter("Element", "E", "Transform element inside the grid structure", GH_ParamAccess.list);
             pManager.AddBrepParameter("Geometry", "G", "Transformed element geometry", GH_ParamAccess.tree);
             pManager.AddTextParameter("Name", "N", "Element Name", GH_ParamAccess.tree);
             pManager.AddTransformParameter("Transform", "T", "Rotation transformation of grid element", GH_ParamAccess.tree);
@@ -64,7 +65,7 @@ namespace BrownBat.Arrange
 
             for (int i = 0; i < inRegion.Branches.Count(); i++)
             {
-                if (inRegion[i].Count < 0)
+                if (inRegion[i].Count == 0)
                 {
                     continue;
                 }
@@ -77,9 +78,10 @@ namespace BrownBat.Arrange
 
                 Rectangle3d boundingBox = AreaHelper.MinBoundingBox(regionPoints, inElement[i].Origin);
 
-                if (boundingBox.Height - boundingBox.Width > 0)
+                if (boundingBox.Height > boundingBox.Width)
                 {
-                    
+                    inElement[i]
+                    inElement[i].Origin.YAxis;
                 }
             }
 

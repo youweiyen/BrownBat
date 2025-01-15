@@ -13,6 +13,7 @@ using MIConvexHull;
 using BrownBat.Components;
 using Dbscan;
 using System.IO;
+using Rhino.Collections;
 
 namespace BrownBat.Arrange
 {
@@ -46,7 +47,7 @@ namespace BrownBat.Arrange
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
             pManager.AddPointParameter("BoundaryPoint", "B", "Boundary point of area that is over the selected value", GH_ParamAccess.list);
-            pManager.AddNumberParameter("t", "t", "temperature", GH_ParamAccess.list);
+            pManager.AddPointParameter("OverPoints", "P", "Points over temperature", GH_ParamAccess.list);
 
         }
 
@@ -91,9 +92,25 @@ namespace BrownBat.Arrange
                 .Select(pair => pair.p);
 
             //Remove outlier
-            PointCloud pointCloud = new PointCloud(selectPoints);
-            var cleanPoints = selectPoints.Where(point => point
-                                .DistanceTo(pointCloud.PointAt(pointCloud.ClosestPoint(point))) < (inDistance + 1));
+            List<Point3d> cleanPoints = new List<Point3d>();
+            if (selectPoints.Count() > 1)
+            { 
+                for (int i = 0; i < selectPoints.Count(); i++)
+                {
+                    List<Point3d> cloudList = selectPoints.ToList();
+                    cloudList.RemoveAt(i);
+                    PointCloud pointCloud = new PointCloud(cloudList);
+                    Point3d currentPoint = selectPoints.ElementAt(i);
+                    if (currentPoint
+                        .DistanceTo(pointCloud
+                        .PointAt(pointCloud.ClosestPoint(currentPoint))) < (inDistance + 1))
+                    {
+                        cleanPoints.Add(currentPoint);
+                    }
+                }
+            }
+            //var cleanPoints = selectPoints.Where(point => point
+            //                    .DistanceTo(pointCloud.PointAt(pointCloud.ClosestPoint(point))) < (inDistance + 1));
 
             List<Point3d> convexPoints = new List<Point3d>();
 
@@ -110,7 +127,7 @@ namespace BrownBat.Arrange
             }
 
             DA.SetDataList(0, convexPoints);
-            DA.SetDataList(1, pixelTemperature);
+            DA.SetDataList(1, selectPoints);
         }
 
         /// <summary>

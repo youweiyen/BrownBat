@@ -9,6 +9,8 @@ using System.Linq;
 using Grasshopper;
 using Grasshopper.Kernel.Data;
 using Grasshopper.Kernel.Types;
+using Rhino.Geometry.Collections;
+using System.Xml.Linq;
 
 namespace BrownBat.Arrange
 {
@@ -31,10 +33,11 @@ namespace BrownBat.Arrange
         {
             pManager.AddGenericParameter("Element", "E", "Element with selected range of heat value", GH_ParamAccess.list);
             pManager.AddPointParameter("BoundaryPoint", "B", "Boundary point area to assign high conductivity values", GH_ParamAccess.tree);
+            pManager.AddBrepParameter("PlacePosition", "P", "Outline to place the element", GH_ParamAccess.list);
             pManager.AddNumberParameter("Difference", "D",
                 "Heat area axis size difference. Default set to 10",
                 GH_ParamAccess.item);
-            pManager[2].Optional = true;
+            pManager[3].Optional = true;
         }
 
         /// <summary>
@@ -55,33 +58,44 @@ namespace BrownBat.Arrange
         protected override void SolveInstance(IGH_DataAccess DA)
         {
             List<Element> inElement = new List<Element>();
-            Structure inStructure = new Structure();
-            GH_Structure<GH_Point> inRegion = new GH_Structure<GH_Point>();
+            List<Brep> inPlacePosition = new List<Brep>();
+            GH_Structure<GH_Point> inPlaceRegion = new GH_Structure<GH_Point>();
             double inDifference = 10;
 
             DA.GetDataList(0, inElement);
-            DA.GetDataTree(1, out inRegion);
-            DA.GetData(2, ref inDifference);
+            DA.GetDataTree(1, out inPlaceRegion);
+            DA.GetDataList(2, inPlacePosition);
+            DA.GetData(3, ref inDifference);
 
-            for (int i = 0; i < inRegion.Branches.Count(); i++)
+            double tolerance = Rhino.RhinoDoc.ActiveDoc.ModelAbsoluteTolerance;
+
+            for (int i = 0; i < inPlaceRegion.Branches.Count(); i++)
             {
-                if (inRegion[i].Count == 0)
+                if (inPlaceRegion[i].Count == 0)
                 {
                     continue;
                 }
-                List<Point3d> regionPoints = new List<Point3d>();
-                foreach (var r in inRegion[i])
+                IEnumerable<Point3d> regionPoints = inPlaceRegion[i].Select(pt => pt.Value);
+                
+                Rectangle3d placeBoundBox = AreaHelper.MinBoundingBox(regionPoints, PlacePlane(inPlacePosition[i]));
+                Line mainAxis = new Line();
+                if (placeBoundBox.Height > placeBoundBox.Width)
                 {
-                    r.CastTo<Point3d>(out Point3d pt);
-                    regionPoints.Add(pt);
+                    mainAxis = AreaHelper.AxisLine(regionPoints,
+                                                    placeBoundBox.Plane.YAxis,
+                                                    placeBoundBox.Height,
+                                                    placeBoundBox.ToPolyline(),
+                                                    tolerance);
+
                 }
-
-                Rectangle3d boundingBox = AreaHelper.MinBoundingBox(regionPoints, inElement[i].Origin);
-
-                if (boundingBox.Height > boundingBox.Width)
+                else 
                 {
-                    //inElement[i]
-                    //inElement[i].Origin.YAxis;
+                    mainAxis= AreaHelper.AxisLine(regionPoints,
+                                                    placeBoundBox.Plane.XAxis,
+                                                    placeBoundBox.Width,
+                                                    placeBoundBox.ToPolyline(),
+                                                    tolerance);
+
                 }
             }
 
@@ -109,6 +123,28 @@ namespace BrownBat.Arrange
         public override Guid ComponentGuid
         {
             get { return new Guid("020DB6E6-B69A-42B2-919C-BC2D25854014"); }
+        }
+        public static Plane PlacePlane(Brep placeBound)
+        {
+            BrepVertexList profileVertexList = placeBound.Vertices;
+
+            List<Point3d> profileVertices = new List<Point3d>();
+            for (int i = 0; i < profileVertexList.Count; i++)
+            {
+                Point3d vertex = profileVertexList[i].Location;
+                profileVertices.Add(vertex);
+            }
+            double xStartProfile = profileVertices.OrderBy(v => v.X).Select(v => v.X).First();
+            double yStartProfile = profileVertices.OrderByDescending(v => v.Y).Select(v => v.Y).First();
+            double ySmallest = profileVertices.OrderBy(v => v.Y).Select(v => v.Y).First();
+            double xLargest = profileVertices.OrderByDescending(v => v.X).Select(v => v.X).First();
+
+            Vector3d xDirection = new Vector3d(xLargest - xStartProfile, 0, 0);
+            Vector3d yDirection = new Vector3d(0, yStartProfile - ySmallest, 0);
+
+            Point3d profileStart = new Point3d(xStartProfile, yStartProfile, 0);
+            Plane originPlane = new Plane(profileStart, xDirection, yDirection);
+            return originPlane;
         }
     }
 }

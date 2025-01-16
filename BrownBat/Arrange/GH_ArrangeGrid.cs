@@ -94,7 +94,8 @@ namespace BrownBat.Arrange
                     transformList.Add(normalTransform);
 
                     Element.TryGetInverseMatrix(inElement[i], normalTransform);
-                    Element.BaseCurve(inElement[i]);
+                    Element.TransformBaseCurve(inElement[i], normalTransform);
+
 
                     transformElement.Add(inElement[i]);
                     continue;
@@ -144,18 +145,17 @@ namespace BrownBat.Arrange
 
                 for (int a = 0; a < 4; a++)
                 {
-                    double angle = Math.PI * a;
-                    Vector3d transformAxis = new Vector3d(elementLongAxis.To - elementLongAxis.From);
-                    transformAxis.Transform(normalTransform);
-
+                    double angle = (Math.PI/2) * a;
+                    Vector3d axisVector = new Vector3d(elementLongAxis.To - elementLongAxis.From);
+                    
                     Transform orientTransform = Transform.Rotation(angle, centerPoint);
-                    transformAxis.Transform(orientTransform);
-                    double newAngle = Vector3d.VectorAngle(transformAxis, placeLongVector);
-                    if (newAngle > Math.PI)
+                    axisVector.Transform(orientTransform);
+                    double newAngle = Vector3d.VectorAngle(axisVector, placeLongVector);
+                    if (newAngle >= Math.PI)
                     {
-                        newAngle = Math.PI - newAngle;
+                        newAngle = newAngle - Math.PI;
                     }
-                    if (newAngle < angleDifference)
+                    if (newAngle <= angleDifference)
                     {
                         Point3d orientClusterCenter = new Point3d(transformClusterCenter);
                         orientClusterCenter.Transform(orientTransform);
@@ -169,7 +169,7 @@ namespace BrownBat.Arrange
                     }
                 }
                 Element.TryGetInverseMatrix(inElement[i], multipleTransform);
-                Element.TransformBaseCurve(inElement[i], normalTransform);
+                Element.TransformBaseCurve(inElement[i], multipleTransform);
 
 
                 transformElement.Add(inElement[i]);

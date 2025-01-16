@@ -116,7 +116,13 @@ namespace BrownBat.Components
         }
         public static void TransformBaseCurve(Element panel, Transform transform)
         {
-             panel.GeometryBaseCurve.Transform(transform);
+            IEnumerable<BrepFace> bottomFace = BaseFace(panel);
+
+            Curve[] edgeCurves = bottomFace.First().ToBrep().DuplicateEdgeCurves();
+            Curve joinedEdge = Curve.JoinCurves(edgeCurves)[0];
+            joinedEdge.Transform(transform);
+
+            panel.GeometryBaseCurve = joinedEdge;
         }
         public static IEnumerable<BrepFace> BaseFace(Element element) 
         {

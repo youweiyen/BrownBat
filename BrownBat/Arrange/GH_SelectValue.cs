@@ -86,11 +86,11 @@ namespace BrownBat.Arrange
 
             List<Element> elements = new List<Element>();
 
-            foreach (Element element in inData)
+            for (int e = 0; e <inData.Count; e++)
             {
                 List<DbscanPoint> fitID = new List<DbscanPoint>();
 
-                var data = element.PixelConductivity;
+                var data = inData[e].PixelConductivity;
                 int increment = 5;
                 for (int row = 0; row < data.Count; row += increment)
                 {
@@ -121,10 +121,9 @@ namespace BrownBat.Arrange
                 ts.Milliseconds / 10);
                 times.Add(elapsedTime);
 
-                double pixelXSize = element.GeometryShape.Item1 / element.PixelShape.Item1;
-                double pixelYSize = element.GeometryShape.Item2 / element.PixelShape.Item2;
+                double pixelXSize = inData[e].GeometryShape.Item1 / inData[e].PixelShape.Item1;
+                double pixelYSize = inData[e].GeometryShape.Item2 / inData[e].PixelShape.Item2;
 
-                List<ConvexVertex[]> convexGroups = new List<ConvexVertex[]>();
                 Dictionary<int, HeatCluster> heatClusterGroup = new Dictionary<int, HeatCluster>();
 
                 for (int c = 0; c < clusters.Clusters.Count; c++)
@@ -134,51 +133,49 @@ namespace BrownBat.Arrange
                     //var vpoint = new ConvexVertex[] { new ConvexVertex(point.Point.X, point.Point.Y) };
 
                     ConvexVertex[] hullResult = ConvexHull.Create2D(vpoint, 1e-10).Result.ToArray();
-                        
 
-                    convexGroups.Add(hullResult);
-
+                    path = new GH_Path(e, c);
                     foreach (var point in points)//visualize
                     {
                         //convert to rhino points
-                        Point3d rhinoPoint = new Point3d(element.Origin.OriginX + (point.Point.Y * pixelXSize), 
-                                                            element.Origin.OriginY - (point.Point.X * pixelYSize), 0);
-                        path = new GH_Path(c);
-                        ClusteredPts.Add(rhinoPoint, path);
+                        Point3d rhinoPointCluster = new Point3d(inData[e].Origin.OriginX + (point.Point.Y * pixelXSize),
+                                                            inData[e].Origin.OriginY - (point.Point.X * pixelYSize), 0);
+                        ClusteredPts.Add(rhinoPointCluster, path);
 
                     }
                     foreach (var hull in hullResult)//visualize
                     {
                         //convert to rhino points
-                        Point3d rhinoPoint = new Point3d(element.Origin.OriginX + (hull.Y * pixelXSize),
-                                                            element.Origin.OriginY - (hull.X * pixelYSize), 0);
-                        
-                        boundaryPoints.Add(rhinoPoint, path);
+                        Point3d rhinoPointHull = new Point3d(inData[e].Origin.OriginX + (hull.Y * pixelXSize),
+                                                            inData[e].Origin.OriginY - (hull.X * pixelYSize), 0);
+                        boundaryPoints.Add(rhinoPointHull, path);
 
                     }
-                }
 
-                for (int g = 0; g < convexGroups.Count; g++)
-                {
-                    var rhinoPointGroup = convexGroups[g].Select(ver => new Point3d(element.Origin.OriginX + (ver.Y * pixelXSize),
-                                                                        element.Origin.OriginY - (ver.X * pixelYSize),
+                    var rhinoConvex = hullResult.Select(ver => new Point3d(inData[e].Origin.OriginX + (ver.Y * pixelXSize),
+                                                                        inData[e].Origin.OriginY - (ver.X * pixelYSize),
                                                                         0));
-                    var closePolyPoints = rhinoPointGroup.Concat(new[] { rhinoPointGroup.First()});
+                    var rhinoCluster = points.Select(ver => new Point3d(inData[e].Origin.OriginX + (ver.Point.Y * pixelXSize),
+                                                    inData[e].Origin.OriginY - (ver.Point.X * pixelYSize),
+                                                    0));
+
+                    var closePolyPoints = rhinoConvex.Concat(new[] { rhinoConvex.First()});
                     Polyline convexBoundary = new Polyline(closePolyPoints);
 
-                    Point3d averagePoint = new Point3d(ClusteredPts.Branch(g).Select(pt => pt.X).Average(),
-                                                       ClusteredPts.Branch(g).Select(pt => pt.Y).Average(),
-                                                       ClusteredPts.Branch(g).Select(pt => pt.Z).Average());
+                    Point3d averagePoint = new Point3d(rhinoCluster.Select(pt => pt.X).Average(),
+                                                        rhinoCluster.Select(pt => pt.Y).Average(),
+                                                        rhinoCluster.Select(pt => pt.Z).Average());
 
-                    Plane boundingPlane = AreaHelper.BoundingPlane(rhinoPointGroup, element.Origin);
+                    Plane boundingPlane = AreaHelper.BoundingPlane(rhinoConvex, inData[e].Origin);
 
-                    Curve boundaryCurve = convexBoundary.ToNurbsCurve();
+                    Curve boundaryCurve = convexBoundary.ToPolylineCurve();
+
                     Line xAxis = AreaHelper.AxisLineFromCenter(averagePoint, boundingPlane.XAxis, boundaryCurve);
                     Line yAxis = AreaHelper.AxisLineFromCenter(averagePoint, boundingPlane.YAxis, boundaryCurve);
 
-                    HeatCluster heatCluster = new HeatCluster(element.Name, g, averagePoint, xAxis, yAxis);
-                    heatClusterGroup.Add(g, heatCluster);
-                    Element.SetHeatCluster(element, heatClusterGroup);
+                    HeatCluster heatCluster = new HeatCluster(inData[e].Name, c, averagePoint, xAxis, yAxis);
+                    heatClusterGroup.Add(c, heatCluster);
+                    inData[e].SetHeatCluster(heatClusterGroup);
                     
 
                     //what happens if I change the value of heat? will the old cluster still be there? 
@@ -186,8 +183,9 @@ namespace BrownBat.Arrange
 
                     axisListView.Add(xAxis);//visualize
                     axisListView.Add(yAxis);//visualize
+                    
                 }
-                elements.Add(element);
+                elements.Add(inData[e]);
             }
 
             DA.SetDataList(0, elements);

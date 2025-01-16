@@ -72,26 +72,31 @@ namespace BrownBat.Arrange
             List<Transform> transformList = new List<Transform>();
 
             List<Element> transformElement = new List<Element>();
+            HeatCluster largestCluster = new HeatCluster();
 
             for (int i = 0; i < inPlaceRegion.Branches.Count(); i++)
             {
                 Transform normalTransform = Transform.PlaneToPlane(inElement[i].Origin, PlacePlane(inPlacePosition[i]));
-
-                var largestCluster = inElement[i]
+                
+                if (inPlaceRegion[i].Count != 0 && inElement[i].HeatClusterGroup != null)
+                {
+                    largestCluster = inElement[i]
                                         .HeatClusterGroup
-                                        .OrderByDescending(hcg => 
+                                        .OrderByDescending(hcg =>
                                         hcg.Value.XAxis.Length * hcg.Value.YAxis.Length)
                                         .First()
                                         .Value;
-                
-                if (inPlaceRegion[i].Count == 0 || inElement[i].HeatClusterGroup.Count == 0)
+
+                }
+                else
                 {
                     //transform as orientation now
                     transformList.Add(normalTransform);
 
                     Element.TryGetInverseMatrix(inElement[i], normalTransform);
-                    transformElement.Add(inElement[i]);
+                    Element.BaseCurve(inElement[i]);
 
+                    transformElement.Add(inElement[i]);
                     continue;
                 }
 
@@ -101,7 +106,6 @@ namespace BrownBat.Arrange
                 
                 //choose placement boundingbox long axis
                 Line placeLongAxis = new Line();
-                Vector3d placeLongVector = new Vector3d(placeLongAxis.To - placeLongAxis.From);
                 if (placeBoundBox.Height > placeBoundBox.Width)
                 {
                     placeLongAxis = AreaHelper.AxisLine(regionPoints,
@@ -119,6 +123,7 @@ namespace BrownBat.Arrange
                                                     placeBoundBox.ToPolyline(),
                                                     tolerance);
                 }
+                Vector3d placeLongVector = new Vector3d(placeLongAxis.To - placeLongAxis.From);
 
                 //choose element long axis
                 Line elementLongAxis = new Line();
@@ -130,14 +135,14 @@ namespace BrownBat.Arrange
                 { 
                     elementLongAxis = largestCluster.YAxis; 
                 }
-
                 double angleDifference = double.MaxValue;
                 double centerDistance = double.MaxValue;
 
                 Point3d transformClusterCenter = new Point3d(largestCluster.Center);
                 transformClusterCenter.Transform(normalTransform);
                 Transform multipleTransform = new Transform();
-                for (int a = 0; i < 4; i++)
+
+                for (int a = 0; a < 4; a++)
                 {
                     double angle = Math.PI * a;
                     Vector3d transformAxis = new Vector3d(elementLongAxis.To - elementLongAxis.From);
@@ -159,10 +164,15 @@ namespace BrownBat.Arrange
                         {
                             centerDistance = dist;
                             angleDifference = newAngle;
-                            multipleTransform = normalTransform * orientTransform;
+                            multipleTransform = orientTransform * normalTransform;
                         }
                     }
                 }
+                Element.TryGetInverseMatrix(inElement[i], multipleTransform);
+                Element.TransformBaseCurve(inElement[i], normalTransform);
+
+
+                transformElement.Add(inElement[i]);
 
                 transformList.Add(multipleTransform);
 

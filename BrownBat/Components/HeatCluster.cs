@@ -15,7 +15,7 @@ namespace BrownBat.Components
         public Point3d Center { get; private set; }
         public Line XAxis { get; private set; }
         public Line YAxis { get; private set; }
-
+        public HeatCluster() { }
         public HeatCluster(string elementName, int clusterID, Point3d center, Line xAxis, Line yAxis) 
         {
             ElementName = elementName;

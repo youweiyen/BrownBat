@@ -37,7 +37,10 @@ namespace BrownBat.Components
         public static void SetPanelTemperature(Element panel, List<double[]> pixelTemperature) => panel.PixelTemperature = pixelTemperature;
         public static void SetPanelConductivity(Element panel, List<double[]> pixelConductivity) => panel.PixelConductivity = pixelConductivity;
         public static void SetOrigin(Element panel, Plane origin) => panel.Origin = origin;
-        public static void SetHeatCluster(Element panel, Dictionary<int, HeatCluster> heatCluster) => panel.HeatClusterGroup = heatCluster;
+        public void SetHeatCluster(Dictionary<int, HeatCluster> heatCluster)
+        {
+            HeatClusterGroup = heatCluster;
+        } 
 
 
         public BoundingBox Boundingbox => throw new NotImplementedException();
@@ -110,6 +113,10 @@ namespace BrownBat.Components
             Curve joinedEdge = Curve.JoinCurves(edgeCurves)[0];
 
             panel.GeometryBaseCurve = joinedEdge;
+        }
+        public static void TransformBaseCurve(Element panel, Transform transform)
+        {
+             panel.GeometryBaseCurve.Transform(transform);
         }
         public static IEnumerable<BrepFace> BaseFace(Element element) 
         {

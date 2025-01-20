@@ -72,6 +72,7 @@ namespace BrownBat.Arrange
             List<Transform> transformList = new List<Transform>();
 
             List<Element> transformElement = new List<Element>();
+            List<string> transformName = new List<string>();
             HeatCluster largestCluster = new HeatCluster();
 
             for (int i = 0; i < inPlaceRegion.Branches.Count(); i++)
@@ -96,8 +97,8 @@ namespace BrownBat.Arrange
                     Element.TryGetInverseMatrix(inElement[i], normalTransform);
                     Element.TransformBaseCurve(inElement[i], normalTransform);
 
-
                     transformElement.Add(inElement[i]);
+                    transformName.Add(inElement[i].Name);
                     continue;
                 }
 
@@ -173,11 +174,12 @@ namespace BrownBat.Arrange
 
 
                 transformElement.Add(inElement[i]);
-
+                transformName.Add(inElement[i].Name);
                 transformList.Add(multipleTransform);
 
             }
             DA.SetDataList(0, transformElement);
+            DA.SetDataList(2, transformName);
             DA.SetDataList(3, transformList);
         }
 

@@ -48,7 +48,7 @@ namespace BrownBat.Arrange
         {
             pManager.AddPointParameter("BoundaryPoint", "B", "Boundary point of area that is over the selected value", GH_ParamAccess.list);
             pManager.AddPointParameter("OverPoints", "P", "Points over temperature", GH_ParamAccess.list);
-
+            pManager.AddNumberParameter("OverArea", "OA", "Area that is over temperature", GH_ParamAccess.list);
         }
 
         /// <summary>
@@ -125,9 +125,12 @@ namespace BrownBat.Arrange
                     convexPoints = hullResult.Select(h => new Point3d(h.X, h.Y, 0)).ToList();
                 }
             }
+            double overArea = inDistance * inDistance * selectPoints.Count();
 
             DA.SetDataList(0, convexPoints);
             DA.SetDataList(1, selectPoints);
+            DA.SetData(2, overArea);
+
         }
 
         /// <summary>

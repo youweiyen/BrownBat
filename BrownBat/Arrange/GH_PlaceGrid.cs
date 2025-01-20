@@ -66,19 +66,27 @@ namespace BrownBat.Arrange
 
             var elementHasCluster = inElement.Where(e => e.HeatClusterGroup != null);
 
-            var sortClusterElement = elementHasCluster.OrderByDescending(e => e.HeatClusterGroup
-                                                    .Sum(hcg => hcg.Value.XAxis.Length * hcg.Value.YAxis.Length));
+            //sort by how many points are over temperature(area)
+            //or sort by how high the tempwerature is
+
+            var sortPosition = inPlacePosition.Join(inOverArea, place => place, over => over, (place, over) => new { geo = place, area = over });
+                
 
             for (int i = 0; i < inPlacePosition.Count; i++)
             {
+                IEnumerable<Element> similiarClusterElement;
                 if (inPlaceRegion[i].Count != 0)
                 {
-                    var similiarClusterElement = 
-                    elementHasCluster.Where(e => 
-                    Math.Abs(e.HeatClusterGroup.Sum(hcg => 
+                    similiarClusterElement =
+                    elementHasCluster.Where(e =>
+                    Math.Abs(e.HeatClusterGroup.Sum(hcg =>
                     hcg.Value.XAxis.Length * hcg.Value.YAxis.Length) - inOverArea[i]) < inDifference);
                 }
-
+                else 
+                { 
+                    //any
+                }
+                Dictionary<int, string> placeElementPair = new Dictionary<int, string>();
             }
                 
 

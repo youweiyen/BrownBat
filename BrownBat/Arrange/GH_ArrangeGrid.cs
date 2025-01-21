@@ -77,7 +77,7 @@ namespace BrownBat.Arrange
 
             for (int i = 0; i < inPlaceRegion.Branches.Count(); i++)
             {
-                Transform normalTransform = Transform.PlaneToPlane(inElement[i].Origin, PlacePlane(inPlacePosition[i]));
+                Transform normalTransform = Transform.PlaneToPlane(inElement[i].Origin, AreaHelper.PlacePlane(inPlacePosition[i]));
                 
                 if (inPlaceRegion[i].Count != 0 && inElement[i].HeatClusterGroup != null)
                 {
@@ -104,7 +104,7 @@ namespace BrownBat.Arrange
 
                 IEnumerable<Point3d> regionPoints = inPlaceRegion[i].Select(pt => pt.Value);
                 Point3d centerPoint = AreaMassProperties.Compute(inPlacePosition[i]).Centroid;
-                Rectangle3d placeBoundBox = AreaHelper.MinBoundingBox(regionPoints, PlacePlane(inPlacePosition[i]));
+                Rectangle3d placeBoundBox = AreaHelper.MinBoundingBox(regionPoints, AreaHelper.PlacePlane(inPlacePosition[i]));
                 
                 //choose placement boundingbox long axis
                 Line placeLongAxis = new Line();
@@ -203,27 +203,6 @@ namespace BrownBat.Arrange
         {
             get { return new Guid("020DB6E6-B69A-42B2-919C-BC2D25854014"); }
         }
-        public static Plane PlacePlane(Brep placeBound)
-        {
-            BrepVertexList profileVertexList = placeBound.Vertices;
 
-            List<Point3d> profileVertices = new List<Point3d>();
-            for (int i = 0; i < profileVertexList.Count; i++)
-            {
-                Point3d vertex = profileVertexList[i].Location;
-                profileVertices.Add(vertex);
-            }
-            double xStartProfile = profileVertices.OrderBy(v => v.X).Select(v => v.X).First();
-            double yStartProfile = profileVertices.OrderByDescending(v => v.Y).Select(v => v.Y).First();
-            double ySmallest = profileVertices.OrderBy(v => v.Y).Select(v => v.Y).First();
-            double xLargest = profileVertices.OrderByDescending(v => v.X).Select(v => v.X).First();
-
-            Vector3d xDirection = new Vector3d(xLargest - xStartProfile, 0, 0);
-            Vector3d yDirection = new Vector3d(0, yStartProfile - ySmallest, 0);
-
-            Point3d profileStart = new Point3d(xStartProfile, yStartProfile, 0);
-            Plane originPlane = new Plane(profileStart, xDirection, yDirection);
-            return originPlane;
-        }
     }
 }

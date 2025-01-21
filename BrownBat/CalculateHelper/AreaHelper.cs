@@ -4,6 +4,7 @@ using Eto.Forms;
 using Rhino.Collections;
 using Rhino.Commands;
 using Rhino.Geometry;
+using Rhino.Geometry.Collections;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -312,6 +313,28 @@ namespace BrownBat.CalculateHelper
             }
             // Return the result
             return resultList;
+        }
+        public static Plane PlacePlane(Brep placeBound)
+        {
+            BrepVertexList profileVertexList = placeBound.Vertices;
+
+            List<Point3d> profileVertices = new List<Point3d>();
+            for (int i = 0; i < profileVertexList.Count; i++)
+            {
+                Point3d vertex = profileVertexList[i].Location;
+                profileVertices.Add(vertex);
+            }
+            double xStartProfile = profileVertices.OrderBy(v => v.X).Select(v => v.X).First();
+            double yStartProfile = profileVertices.OrderByDescending(v => v.Y).Select(v => v.Y).First();
+            double ySmallest = profileVertices.OrderBy(v => v.Y).Select(v => v.Y).First();
+            double xLargest = profileVertices.OrderByDescending(v => v.X).Select(v => v.X).First();
+
+            Vector3d xDirection = new Vector3d(xLargest - xStartProfile, 0, 0);
+            Vector3d yDirection = new Vector3d(0, yStartProfile - ySmallest, 0);
+
+            Point3d profileStart = new Point3d(xStartProfile, yStartProfile, 0);
+            Plane originPlane = new Plane(profileStart, xDirection, yDirection);
+            return originPlane;
         }
     }
 }

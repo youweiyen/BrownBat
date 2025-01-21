@@ -32,7 +32,7 @@ namespace BrownBat.Arrange
             pManager.AddPointParameter("BoundaryPoint", "BP", "Background selected value boundary point", GH_ParamAccess.tree);
             pManager.AddBrepParameter("PlacePosition", "PP", "Element place position", GH_ParamAccess.list);
             pManager.AddNumberParameter("OverArea", "OA", "Area that is over selected value", GH_ParamAccess.list);
-            pManager.AddNumberParameter("Difference", "D", "Seed number to change options. Default set to 10", GH_ParamAccess.item);
+            pManager.AddNumberParameter("Difference", "D", "Area difference. Default set to 100", GH_ParamAccess.item);
             pManager.AddNumberParameter("Seed", "S", 
                                         "Seed number to set to see different options. The options are ranked by highest coverage of high temperature areas. " +
                                         "Default set to see top 10",
@@ -61,13 +61,16 @@ namespace BrownBat.Arrange
             GH_Structure<GH_Point> inPlaceRegion = new GH_Structure<GH_Point>();
             List<Brep> inPlacePosition = new List<Brep>();
             List<double> inOverArea = new List<double>();
-            double inDifference = 10;
-            int inSeed = 0;
+            double inDifference = 100;
+            int inSeed = 10;
 
 
             DA.GetDataList(0, inElement);
             DA.GetDataTree(1, out inPlaceRegion);
             DA.GetDataList(2, inPlacePosition);
+            DA.GetDataList(3, inOverArea);
+            DA.GetData(4, ref inDifference);
+            DA.GetData(5, ref inSeed);
 
             var elementHasCluster = inElement.Where(e => e.HeatClusterGroup != null);
 

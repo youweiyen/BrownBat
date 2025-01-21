@@ -34,8 +34,8 @@ namespace BrownBat.Arrange
             pManager.AddNumberParameter("OverArea", "OA", "Area that is over selected value", GH_ParamAccess.list);
             pManager.AddNumberParameter("Difference", "D", "Seed number to change options. Default set to 10", GH_ParamAccess.item);
             pManager.AddNumberParameter("Seed", "S", 
-                                        "Seed number to see different options. The options are ranked by highest coverage of high temperature areas. " +
-                                        "Default set to 0", 
+                                        "Seed number to set to see different options. The options are ranked by highest coverage of high temperature areas. " +
+                                        "Default set to see top 10",
                                         GH_ParamAccess.item);
             pManager[4].Optional = true;
             pManager[5].Optional = true;
@@ -48,6 +48,7 @@ namespace BrownBat.Arrange
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
             pManager.AddGenericParameter("Element", "E", "Sorted Element", GH_ParamAccess.list);
+            pManager.AddTextParameter("ElementNames", "EN", "Sorted Element Names", GH_ParamAccess.list);
         }
 
         /// <summary>
@@ -61,7 +62,7 @@ namespace BrownBat.Arrange
             List<Brep> inPlacePosition = new List<Brep>();
             List<double> inOverArea = new List<double>();
             double inDifference = 10;
-            double inSeed = 0;
+            int inSeed = 0;
 
 
             DA.GetDataList(0, inElement);
@@ -137,13 +138,11 @@ namespace BrownBat.Arrange
                 orderShapePair.Add(pairs.Key, similiarShape);
             }
 
-            //show all possibilities and reorder back to original position
-            for (int i = 0; i < sortPlacePosition.Count; i++)
-            {
-                int positionID = sortPlaceRegionBranch[i];
-            }
+            //show the top possibilities and reorder back to original position
+            List<string> elementNames = new List<string>();
+            BuildPossibleCombination(0, orderShapePair, new List<string>(), ref elementNames, inSeed);
 
-
+            DA.SetDataList(1, elementNames);
             //if (inSeed > optionCount)
             //{ throw new Exception("ran out of optimized options"); }
 
@@ -168,6 +167,26 @@ namespace BrownBat.Arrange
         public override Guid ComponentGuid
         {
             get { return new Guid("BB136D72-FF45-41DB-AAD5-5CDE6E2FC9BD"); }
+        }
+        public static void BuildPossibleCombination(int level, Dictionary<int, IEnumerable<Element>> elementPlacePair, List<string> output, ref List<string> elementNames, int queryNum)
+        {
+            //if (level < elementPlacePair.Count)
+            string a = default;
+            if (level < elementPlacePair.Count)
+            {
+                foreach (var value in elementPlacePair[level])
+                {
+                    List<string> resultList = new List<string>();
+                    resultList.AddRange(output);
+                    resultList.Add(value.Name);
+                    if (resultList.Count == elementPlacePair.Count)
+                    {
+                        a = string.Join(", ", resultList);
+                    }
+                    BuildPossibleCombination(level + 1, elementPlacePair, resultList, ref elementNames, queryNum);
+                }
+            }
+            elementNames.Add(a);
         }
     }
 }

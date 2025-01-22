@@ -8,6 +8,7 @@ using Rhino.Geometry;
 using BrownBat.Components;
 using System.Linq;
 using BrownBat.CalculateHelper;
+using Rhino.UI;
 
 namespace BrownBat.Arrange
 {
@@ -61,7 +62,7 @@ namespace BrownBat.Arrange
             GH_Structure<GH_Point> inPlaceRegion = new GH_Structure<GH_Point>();
             List<Brep> inPlacePosition = new List<Brep>();
             List<double> inOverArea = new List<double>();
-            double inDifference = 100;
+            double inDifference = 500;
             int inSeed = 10;
 
 
@@ -72,6 +73,7 @@ namespace BrownBat.Arrange
             DA.GetData(4, ref inDifference);
             DA.GetData(5, ref inSeed);
 
+            //element with heat cluster to calculate
             var elementHasCluster = inElement.Where(e => e.HeatClusterGroup != null);
 
             //sort by how many points are over temperature(area) *Place Position Sort
@@ -106,44 +108,87 @@ namespace BrownBat.Arrange
                     Math.Abs(e.HeatClusterGroup.Sum(hcg =>
                     hcg.Value.XAxis.Length * hcg.Value.YAxis.Length) - sortOverArea[i]) < inDifference)
                     .ToList();
+
+                    //large heat area that doesnt have any element that fits, find the closest area possible
+                    if (similiarClusterElement.Count == 0)
+                    {
+                        Element closestClusterElement = elementHasCluster.OrderBy(e =>
+                            Math.Abs(e.HeatClusterGroup.Sum(hcg =>
+                            hcg.Value.XAxis.Length * hcg.Value.YAxis.Length) - sortOverArea[i])).First();
+
+                        similiarClusterElement.Add(closestClusterElement);
+                    }
                 }
 
                 firAreaPair.Add(i, similiarClusterElement);
             }
 
             //order by shape difference *Element Sort
-            Dictionary<int, IEnumerable<Element>> orderShapePair = new Dictionary<int, IEnumerable<Element>>();
+            Dictionary<int, Element[]> orderShapePair = new Dictionary<int, Element[]>();
             foreach (var pairs in firAreaPair)
             {
-                int branchID = sortPlaceRegionBranch[pairs.Key];
-                Rectangle3d placeBoundBox = AreaHelper.MinBoundingBox(regionPoint[branchID], AreaHelper.PlacePlane(sortPlacePosition[pairs.Key]));
-                double height = placeBoundBox.Height;
-                double width = placeBoundBox.Width;
-
-                List<double> axisDifference = new List<double>();
-                foreach (var elements in pairs.Value)
+                if (pairs.Value.Count() > 1)
                 {
-                    var largestCluster = elements.HeatClusterGroup.OrderByDescending(hcg => hcg.Value.XAxis.Length * hcg.Value.YAxis.Length).First();
+                    int branchID = sortPlaceRegionBranch[pairs.Key];
+                    Rectangle3d placeBoundBox = AreaHelper.MinBoundingBox(regionPoint[branchID], AreaHelper.PlacePlane(sortPlacePosition[pairs.Key]));
+                    double height = placeBoundBox.Height;
+                    double width = placeBoundBox.Width;
 
-                    double heightAsX = Math.Abs(largestCluster.Value.XAxis.Length - height) + Math.Abs(largestCluster.Value.YAxis.Length - width);
-                    double widthAsX = Math.Abs(largestCluster.Value.XAxis.Length - width) + Math.Abs(largestCluster.Value.YAxis.Length - height);
+                    List<double> axisDifference = new List<double>();
+                    foreach (var elements in pairs.Value)
+                    {
+                        var largestCluster = elements.HeatClusterGroup.OrderByDescending(hcg => hcg.Value.XAxis.Length * hcg.Value.YAxis.Length).First();
 
-                    if (heightAsX < widthAsX) 
-                    {
-                        axisDifference.Add(heightAsX);
+                        double heightAsX = Math.Abs(largestCluster.Value.XAxis.Length - height) + Math.Abs(largestCluster.Value.YAxis.Length - width);
+                        double widthAsX = Math.Abs(largestCluster.Value.XAxis.Length - width) + Math.Abs(largestCluster.Value.YAxis.Length - height);
+
+                        if (heightAsX < widthAsX)
+                        {
+                            axisDifference.Add(heightAsX);
+                        }
+                        else
+                        {
+                            axisDifference.Add(widthAsX);
+                        }
                     }
-                    else
-                    {
-                        axisDifference.Add(widthAsX);
-                    }
+                    var similiarShape = pairs.Value.Zip(axisDifference, (e, diff) => new { element = e, difference = diff }).OrderByDescending(pair => pair.difference).Select(pair => pair.element).ToArray();
+                    orderShapePair.Add(pairs.Key, similiarShape);
                 }
-                var similiarShape = pairs.Value.Zip(axisDifference, (e, diff) => new { element = e, difference = diff}).OrderByDescending(pair => pair.difference).Select(pair => pair.element).ToList();
-                orderShapePair.Add(pairs.Key, similiarShape);
+                else 
+                {
+                    Element[] oneShape = pairs.Value.ToArray();
+                    orderShapePair.Add(pairs.Key, oneShape);
+                }
             }
 
             //show the top possibilities and reorder back to original position
             List<string> elementNames = new List<string>();
-            BuildPossibleCombination(0, orderShapePair, new List<string>(), ref elementNames, inSeed);
+            //BuildPossibleCombination(0, orderShapePair, new List<string>(), ref elementNames, inSeed);
+
+            List<Element[]> values = orderShapePair.Values.ToList();
+            List<string[]> valuesAsName = new List<string[]>();
+            foreach (var elementArray in values)
+            {
+                List<string> nameList = new List<string>();
+                if (elementArray.Length > 0)
+                {
+                    foreach (var element in elementArray)
+                    {
+                        string name = element.Name;
+                        nameList.Add(name);
+                    }
+                }
+                else 
+                {
+                    string name = "Any";
+                    nameList.Add(name);
+                }
+                string[] nameArray = nameList.ToArray();
+                valuesAsName.Add(nameArray);
+            }
+
+            // Generate combinations for the first array
+            //GenerateCombinations(0, new string[values.Count], valuesAsName);
 
             DA.SetDataList(1, elementNames);
             //if (inSeed > optionCount)
@@ -177,11 +222,20 @@ namespace BrownBat.Arrange
             string a = default;
             if (level < elementPlacePair.Count)
             {
-                foreach (var value in elementPlacePair[level])
+                var elementList = elementPlacePair.Values.ToList()[level].ToList();
+
+                for (int value = 0; value < elementList.Count+1; value++)
                 {
                     List<string> resultList = new List<string>();
-                    resultList.AddRange(output);
-                    resultList.Add(value.Name);
+                    if (elementList.Count == 0)
+                    {
+                        resultList.Add("Any");
+                    }
+                    else
+                    { 
+                        resultList.AddRange(output);
+                        resultList.Add(elementList[value].Name);
+                    }
                     if (resultList.Count == elementPlacePair.Count)
                     {
                         a = string.Join(", ", resultList);
@@ -190,6 +244,24 @@ namespace BrownBat.Arrange
                 }
             }
             elementNames.Add(a);
+        }
+        public void GenerateCombinations(int index, string[] currentCombination, List<string[]> myArray)
+        {
+            if (index == myArray.Count)
+            {
+                // We have reached the end of the array, so print the current combination
+                string result = string.Join(" ", currentCombination);
+                return;
+            }
+            // Generate combinations for the current array
+            for (int i = 0; i < myArray[index].Length; i++)
+            {
+                // Add the current element to the combination
+                currentCombination[index] = myArray[index][i];
+
+                // Generate combinations for the remaining arrays
+                GenerateCombinations(index + 1, currentCombination, myArray);
+            }
         }
     }
 }

@@ -188,7 +188,7 @@ namespace BrownBat.Arrange
             }
 
             // Generate combinations for the first array
-            //GenerateCombinations(0, new string[values.Count], valuesAsName);
+            GenerateCombinations(0, new string[values.Count], valuesAsName, 10, ref elementNames);
 
             DA.SetDataList(1, elementNames);
             //if (inSeed > optionCount)
@@ -245,12 +245,18 @@ namespace BrownBat.Arrange
             }
             elementNames.Add(a);
         }
-        public void GenerateCombinations(int index, string[] currentCombination, List<string[]> myArray)
+        public void GenerateCombinations(int index, string[] currentCombination, List<string[]> myArray, int findRange, ref List<string>resultList)
         {
+            
             if (index == myArray.Count)
             {
                 // We have reached the end of the array, so print the current combination
                 string result = string.Join(" ", currentCombination);
+                resultList.Add(result);
+                return;
+            }
+            if (resultList.Count == findRange)
+            {
                 return;
             }
             // Generate combinations for the current array
@@ -260,7 +266,7 @@ namespace BrownBat.Arrange
                 currentCombination[index] = myArray[index][i];
 
                 // Generate combinations for the remaining arrays
-                GenerateCombinations(index + 1, currentCombination, myArray);
+                GenerateCombinations(index + 1, currentCombination, myArray, findRange, ref resultList);
             }
         }
     }

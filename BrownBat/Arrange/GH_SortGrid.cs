@@ -9,6 +9,8 @@ using BrownBat.Components;
 using System.Linq;
 using BrownBat.CalculateHelper;
 using Rhino.UI;
+using static System.Net.Mime.MediaTypeNames;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.Window;
 
 namespace BrownBat.Arrange
 {
@@ -163,7 +165,6 @@ namespace BrownBat.Arrange
 
             //show the top possibilities and reorder back to original position
             List<string> elementNames = new List<string>();
-            //BuildPossibleCombination(0, orderShapePair, new List<string>(), ref elementNames, inSeed);
 
             List<Element[]> values = orderShapePair.Values.ToList();
             List<string[]> valuesAsName = new List<string[]>();
@@ -216,35 +217,6 @@ namespace BrownBat.Arrange
         {
             get { return new Guid("BB136D72-FF45-41DB-AAD5-5CDE6E2FC9BD"); }
         }
-        public static void BuildPossibleCombination(int level, Dictionary<int, IEnumerable<Element>> elementPlacePair, List<string> output, ref List<string> elementNames, int queryNum)
-        {
-            //if (level < elementPlacePair.Count)
-            string a = default;
-            if (level < elementPlacePair.Count)
-            {
-                var elementList = elementPlacePair.Values.ToList()[level].ToList();
-
-                for (int value = 0; value < elementList.Count+1; value++)
-                {
-                    List<string> resultList = new List<string>();
-                    if (elementList.Count == 0)
-                    {
-                        resultList.Add("Any");
-                    }
-                    else
-                    { 
-                        resultList.AddRange(output);
-                        resultList.Add(elementList[value].Name);
-                    }
-                    if (resultList.Count == elementPlacePair.Count)
-                    {
-                        a = string.Join(", ", resultList);
-                    }
-                    BuildPossibleCombination(level + 1, elementPlacePair, resultList, ref elementNames, queryNum);
-                }
-            }
-            elementNames.Add(a);
-        }
         public void GenerateCombinations(int index, string[] currentCombination, List<string[]> myArray, int findRange, ref List<string>resultList)
         {
             
@@ -260,13 +232,37 @@ namespace BrownBat.Arrange
                 return;
             }
             // Generate combinations for the current array
+            int next = 0;
             for (int i = 0; i < myArray[index].Length; i++)
             {
-                // Add the current element to the combination
-                currentCombination[index] = myArray[index][i];
+                //check if the element waiting in line is already inside combination
+                // Add the element to the combination
+                int option = 0;
+                RecursionCheckContain(currentCombination, myArray, index, ref option);
 
                 // Generate combinations for the remaining arrays
                 GenerateCombinations(index + 1, currentCombination, myArray, findRange, ref resultList);
+            }
+        }
+        public void RecursionCheckContain(string[] currentCombination, List<string[]> myArray, int index, ref int option)
+        {
+            if (option < myArray[index].Length)
+            {
+                if (currentCombination.Contains(myArray[index][option]))
+                {
+                    option++;
+                    RecursionCheckContain(currentCombination, myArray, index, ref option);
+                }
+                else 
+                {
+                    currentCombination[index] = myArray[index][option];
+                    return;
+                }
+            }
+            else 
+            {
+                currentCombination[index] = "Any";
+                return; 
             }
         }
     }

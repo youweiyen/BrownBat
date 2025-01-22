@@ -11,6 +11,7 @@ using BrownBat.CalculateHelper;
 using Rhino.UI;
 using static System.Net.Mime.MediaTypeNames;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement.Window;
+using Rhino.Commands;
 
 namespace BrownBat.Arrange
 {
@@ -36,7 +37,7 @@ namespace BrownBat.Arrange
             pManager.AddBrepParameter("PlacePosition", "PP", "Element place position", GH_ParamAccess.list);
             pManager.AddNumberParameter("OverArea", "OA", "Area that is over selected value", GH_ParamAccess.list);
             pManager.AddNumberParameter("Difference", "D", "Area difference. Default set to 100", GH_ParamAccess.item);
-            pManager.AddNumberParameter("Seed", "S", 
+            pManager.AddIntegerParameter("Seed", "S", 
                                         "Seed number to set to see different options. The options are ranked by highest coverage of high temperature areas. " +
                                         "Default set to see top 10",
                                         GH_ParamAccess.item);
@@ -117,7 +118,6 @@ namespace BrownBat.Arrange
                         Element closestClusterElement = elementHasCluster.OrderBy(e =>
                             Math.Abs(e.HeatClusterGroup.Sum(hcg =>
                             hcg.Value.XAxis.Length * hcg.Value.YAxis.Length) - sortOverArea[i])).First();
-
                         similiarClusterElement.Add(closestClusterElement);
                     }
                 }
@@ -188,8 +188,9 @@ namespace BrownBat.Arrange
                 valuesAsName.Add(nameArray);
             }
 
-            // Generate combinations for the first array
-            GenerateCombinations(0, new string[values.Count], valuesAsName, 10, ref elementNames);
+            // Generate combinations
+            GenerateCombinations(0, new string[values.Count], valuesAsName, inSeed, ref elementNames);
+
 
             DA.SetDataList(1, elementNames);
             //if (inSeed > optionCount)
@@ -224,7 +225,10 @@ namespace BrownBat.Arrange
             {
                 // We have reached the end of the array, so print the current combination
                 string result = string.Join(" ", currentCombination);
-                resultList.Add(result);
+                if (!resultList.Any(r => String.Equals(r, result)))
+                {
+                    resultList.Add(result);
+                }
                 return;
             }
             if (resultList.Count == findRange)
@@ -232,7 +236,6 @@ namespace BrownBat.Arrange
                 return;
             }
             // Generate combinations for the current array
-            int next = 0;
             for (int i = 0; i < myArray[index].Length; i++)
             {
                 //check if the element waiting in line is already inside combination
@@ -248,12 +251,16 @@ namespace BrownBat.Arrange
         {
             if (option < myArray[index].Length)
             {
-                if (currentCombination.Contains(myArray[index][option]))
+                if (myArray[index][option] == "Any")
+                {
+                    currentCombination[index] = myArray[index][option];
+                }
+                else if (currentCombination.Contains(myArray[index][option]))
                 {
                     option++;
                     RecursionCheckContain(currentCombination, myArray, index, ref option);
                 }
-                else 
+                else
                 {
                     currentCombination[index] = myArray[index][option];
                     return;
@@ -261,7 +268,7 @@ namespace BrownBat.Arrange
             }
             else 
             {
-                currentCombination[index] = "Any";
+                currentCombination[index] = "Other";
                 return; 
             }
         }

@@ -13,6 +13,7 @@ using static System.Net.Mime.MediaTypeNames;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement.Window;
 using Rhino.Commands;
 using Grasshopper;
+using System.Configuration;
 
 namespace BrownBat.Arrange
 {
@@ -53,7 +54,7 @@ namespace BrownBat.Arrange
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
             pManager.AddGenericParameter("Element", "E", "Sorted Element", GH_ParamAccess.tree);
-            pManager.AddTextParameter("ElementNames", "EN", "Sorted Element Names", GH_ParamAccess.list);
+            pManager.AddTextParameter("ElementNames", "EN", "Sorted Element Names", GH_ParamAccess.tree);
         }
 
         /// <summary>
@@ -193,33 +194,44 @@ namespace BrownBat.Arrange
             GenerateCombinations(0, new string[values.Count], valuesAsName, inSeed, ref elementNames);
 
             //revert element to original order
+            //Any and Other chooses other ones that are not used
             DataTree<Element> elementSets = new DataTree<Element>();
+            DataTree<string> setName = new DataTree<string>();
+
             for (int opt = 0; opt < elementNames.Count; opt++)
             {
                 string[] subs = elementNames[opt].Split(' ');
                 var revertSub = subs.Zip(sortPlaceRegionBranch, (sub, branch) => new { elementId = sub, key = branch })
                     .OrderBy(pair => pair.key)
                     .Select(pair => pair.elementId).ToArray();
+                var elementsNotUsed = inElement.Where(e => !subs.Contains(e.Name));
 
                 List<Element> revertElement = new List<Element>();
+                List<string> revertName = new List<string>();
+
+                int useOther = 0; 
                 foreach (string name in revertSub)
                 {
                     if (name == "Any" || name == "Other")
                     {
-                        Element element = default;
+                        Element element = elementsNotUsed.ElementAt(useOther);
+                        revertName.Add(element.Name);
                         revertElement.Add(element);
+                        useOther++;
                     }
                     else 
                     {
                         var element = elementHasCluster.Where(e => e.Name == name).Single();
+                        revertName.Add(element.Name);
                         revertElement.Add(element);
                     }
                 }
                 GH_Path path = new GH_Path(opt);
                 elementSets.AddRange(revertElement, path);
+                setName.AddRange(revertName, path);
             }
             DA.SetDataTree(0, elementSets);
-            DA.SetDataList(1, elementNames);
+            DA.SetDataTree(1, setName);
             //if (inSeed > optionCount)
             //{ throw new Exception("ran out of optimized options"); }
 

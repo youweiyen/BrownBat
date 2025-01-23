@@ -67,7 +67,7 @@ namespace BrownBat.Calculate
 
             for (int rowPoint = 0; rowPoint < wallPixels.Count; rowPoint++)
             {
-                foreach(Pixel pixel in wallPixels[rowPoint])
+                foreach (Pixel pixel in wallPixels[rowPoint])
                 {
                     List<string> intersectPanelNames = new List<string>();
                     Dictionary<string, (double, double)> panelToPosition = new Dictionary<string, (double, double)>();
@@ -118,103 +118,104 @@ namespace BrownBat.Calculate
                             (int, int) intersectPanelDomain = (xDomain, yDomain);
 
                             //panelToPosition.Add(intersectPanelName, intersectPanelPosition);
-                            panelToDomain.Add(intersectPanelName, intersectPanelDomain);
+                            try { panelToDomain.Add(intersectPanelName, intersectPanelDomain); }
+                            catch (Exception ex) { throw new Exception("Repeated Elements"); }
+                            #region intersectCalculation
+                            ////intersect calculation
+                            //Line positionLine = new Line(pixel.PixelGeometry, Vector3d.ZAxis, projectLength + 10);
+                            //twallpoints.Add(pixel.PixelGeometry);
+                            //Curve positionCurve = positionLine.ToNurbsCurve();
+                            //tcurves.Add(positionCurve);
+                            //bool projectedPoint = Intersection.CurveBrepFace
+                            //                                    (positionCurve,
+                            //                                    topSurfaces[i],
+                            //                                    0.01,
+                            //                                    out Curve[] overlapCurves,
+                            //                                    out Point3d[] intersectionPoints);
+
+                            //if (projectedPoint == true && intersectionPoints.Count() != 0)
+                            //{
+                            //    Point3d intersectPoint = intersectionPoints[0];
+                            //    string intersectPanelName = inputModelPanel[i].Name;
+                            //    intersectPanelNames.Add(intersectPanelName);
+
+                            //    Panel intersectModel = inputModelPanel.Where(panel => panel.Name == intersectPanelName).First();
+                            //    Panel intersectPanel = inputModelPanel.Where(panel => panel.Name == intersectPanelName).First();
+                            //    Transform matrix = Transform.PlaneToPlane(intersectModel.Origin, intersectPanel.Origin);
+                            //    Point3d orientPoint = new Point3d(pixel.PixelGeometry);
+                            //    orientPoint.Transform(matrix);
+                            //    Point3d origin = intersectPanel.Origin.Origin;
+                            //    double xPosition = Math.Abs(origin.X - orientPoint.X);
+                            //    double yPosition = Math.Abs(origin.Y - orientPoint.Y);
+                            //    (double, double) intersectPanelPosition = (xPosition, yPosition);
+
+                            //    int xDomain = (int)Math.Round(xPosition * (inputWall.PixelShape / inputWall.GeometryShape.Item1));
+                            //    int yDomain = (int)Math.Round(yPosition * (inputWall.PixelShape / inputWall.GeometryShape.Item2));
+
+                            //    (int, int) intersectPanelDomain = (xDomain, yDomain);
+
+                            //    panelToPosition.Add(intersectPanelName, intersectPanelPosition);
+                            //    panelToDomain.Add(intersectPanelName, intersectPanelDomain);
+                            //}
+                            #endregion
+
                         }
-                        #region intersectCalculation
-                        ////intersect calculation
-                        //Line positionLine = new Line(pixel.PixelGeometry, Vector3d.ZAxis, projectLength + 10);
-                        //twallpoints.Add(pixel.PixelGeometry);
-                        //Curve positionCurve = positionLine.ToNurbsCurve();
-                        //tcurves.Add(positionCurve);
-                        //bool projectedPoint = Intersection.CurveBrepFace
-                        //                                    (positionCurve,
-                        //                                    topSurfaces[i],
-                        //                                    0.01,
-                        //                                    out Curve[] overlapCurves,
-                        //                                    out Point3d[] intersectionPoints);
+                        Pixel.SetOverlapPanels(pixel, intersectPanelNames);
+                        Pixel.SetPixelDomain(pixel, panelToDomain);
 
-                        //if (projectedPoint == true && intersectionPoints.Count() != 0)
-                        //{
-                        //    Point3d intersectPoint = intersectionPoints[0];
-                        //    string intersectPanelName = inputModelPanel[i].Name;
-                        //    intersectPanelNames.Add(intersectPanelName);
-
-                        //    Panel intersectModel = inputModelPanel.Where(panel => panel.Name == intersectPanelName).First();
-                        //    Panel intersectPanel = inputModelPanel.Where(panel => panel.Name == intersectPanelName).First();
-                        //    Transform matrix = Transform.PlaneToPlane(intersectModel.Origin, intersectPanel.Origin);
-                        //    Point3d orientPoint = new Point3d(pixel.PixelGeometry);
-                        //    orientPoint.Transform(matrix);
-                        //    Point3d origin = intersectPanel.Origin.Origin;
-                        //    double xPosition = Math.Abs(origin.X - orientPoint.X);
-                        //    double yPosition = Math.Abs(origin.Y - orientPoint.Y);
-                        //    (double, double) intersectPanelPosition = (xPosition, yPosition);
-
-                        //    int xDomain = (int)Math.Round(xPosition * (inputWall.PixelShape / inputWall.GeometryShape.Item1));
-                        //    int yDomain = (int)Math.Round(yPosition * (inputWall.PixelShape / inputWall.GeometryShape.Item2));
-
-                        //    (int, int) intersectPanelDomain = (xDomain, yDomain);
-
-                        //    panelToPosition.Add(intersectPanelName, intersectPanelPosition);
-                        //    panelToDomain.Add(intersectPanelName, intersectPanelDomain);
-                        //}
-                        #endregion
-
-                    }
-                    Pixel.SetOverlapPanels(pixel, intersectPanelNames);
-                    Pixel.SetPixelDomain(pixel, panelToDomain);
-
-                    if (airgap && pixel.OverlapPanels.Count() != 0)
-                    {
-                        List<string> overlapNames = pixel.OverlapPanels;
-                        IEnumerable<Element> overlapElement = inputModelPanel.Where(p => overlapNames.Contains(p.Name));
-                        List<Element> orderedOverlap = overlapElement.OrderBy(e => Element.BaseFace(e)
-                                                                                            .First()
-                                                                                            .PointAt(0.5,0.5).Z)
-                                                                                            .ToList();
-                        IEnumerable<Point3d> structurePoint = new List<Point3d> { pixel.PixelGeometry};
-
-                        int gapCount = default;
-                        for (int e = 0; e < orderedOverlap.Count(); e++)
+                        if (airgap && pixel.OverlapPanels.Count() != 0)
                         {
-                            if(e == 0)
-                            {
-                                IEnumerable<Brep> firstPiece = Element.BaseFace(orderedOverlap[e]).Select(f => f.ToBrep());
-                                double firstHeight = Intersection.ProjectPointsToBreps(firstPiece, structurePoint, Vector3d.ZAxis, 0.002).First().Z;
-                                double distance = firstHeight - pixel.PixelGeometry.Z;
-                                if(distance > 0.02)
-                                {
-                                    gapCount += 1;
-                                }
-                            }
-                            if(e < orderedOverlap.Count()-1)
-                            {
-                                IEnumerable<Brep> bottomPiece = Element.TopFace(orderedOverlap[e]).Select(f => f.ToBrep());
-                                IEnumerable<Brep> topPiece = Element.BaseFace(orderedOverlap[e+1]).Select(f => f.ToBrep());
-                                double bottom = Intersection.ProjectPointsToBreps(bottomPiece, structurePoint, Vector3d.ZAxis, 0.002).First().Z;
-                                double top = Intersection.ProjectPointsToBreps(topPiece, structurePoint, Vector3d.ZAxis, 0.002).First().Z;
-                                double gapDistance = top - bottom;
-                                if (gapDistance > 0.02)
-                                {
-                                    gapCount += 1;
-                                }
-                            }
-                        }
+                            List<string> overlapNames = pixel.OverlapPanels;
+                            IEnumerable<Element> overlapElement = inputModelPanel.Where(p => overlapNames.Contains(p.Name));
+                            List<Element> orderedOverlap = overlapElement.OrderBy(e => Element.BaseFace(e)
+                                                                                                .First()
+                                                                                                .PointAt(0.5, 0.5).Z)
+                                                                                                .ToList();
+                            IEnumerable<Point3d> structurePoint = new List<Point3d> { pixel.PixelGeometry };
 
-                        Pixel.SetAirGap(pixel, gapCount);
+                            int gapCount = default;
+                            for (int e = 0; e < orderedOverlap.Count(); e++)
+                            {
+                                if (e == 0)
+                                {
+                                    IEnumerable<Brep> firstPiece = Element.BaseFace(orderedOverlap[e]).Select(f => f.ToBrep());
+                                    double firstHeight = Intersection.ProjectPointsToBreps(firstPiece, structurePoint, Vector3d.ZAxis, 0.002).First().Z;
+                                    double distance = firstHeight - pixel.PixelGeometry.Z;
+                                    if (distance > 0.02)
+                                    {
+                                        gapCount += 1;
+                                    }
+                                }
+                                if (e < orderedOverlap.Count() - 1)
+                                {
+                                    IEnumerable<Brep> bottomPiece = Element.TopFace(orderedOverlap[e]).Select(f => f.ToBrep());
+                                    IEnumerable<Brep> topPiece = Element.BaseFace(orderedOverlap[e + 1]).Select(f => f.ToBrep());
+                                    double bottom = Intersection.ProjectPointsToBreps(bottomPiece, structurePoint, Vector3d.ZAxis, 0.002).First().Z;
+                                    double top = Intersection.ProjectPointsToBreps(topPiece, structurePoint, Vector3d.ZAxis, 0.002).First().Z;
+                                    double gapDistance = top - bottom;
+                                    if (gapDistance > 0.02)
+                                    {
+                                        gapCount += 1;
+                                    }
+                                }
+                            }
+
+                            Pixel.SetAirGap(pixel, gapCount);
+                        }
                     }
+
                 }
+                stopWatch.Stop();
+                TimeSpan ts = stopWatch.Elapsed;
+                string elapsedTime = String.Format("{0:00}:{1:00}:{2:00}.{3:00}",
+                ts.Hours, ts.Minutes, ts.Seconds,
+                ts.Milliseconds / 10);
+
+                DA.SetData(0, inputWall);
+                DA.SetData(1, elapsedTime);
+
 
             }
-            stopWatch.Stop();
-            TimeSpan ts = stopWatch.Elapsed;
-            string elapsedTime = String.Format("{0:00}:{1:00}:{2:00}.{3:00}",
-            ts.Hours, ts.Minutes, ts.Seconds,
-            ts.Milliseconds / 10);
-
-            DA.SetData(0, inputWall);
-            DA.SetData(1, elapsedTime);
-
-
         }
 
         /// <summary>

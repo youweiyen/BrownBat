@@ -31,12 +31,16 @@ namespace BrownBat.Components
         public List<double[]> PixelTemperature { get; private set; }
         public List<double[]> PixelConductivity { get; private set; }
 
+        public double Central { get; private set; }
+
         public (int, int) PixelShape { get; private set; }
         public (double, double) PixelSize { get; private set; }
 
         public static void SetPanelTemperature(Element panel, List<double[]> pixelTemperature) => panel.PixelTemperature = pixelTemperature;
         public static void SetPanelConductivity(Element panel, List<double[]> pixelConductivity) => panel.PixelConductivity = pixelConductivity;
         public static void SetOrigin(Element panel, Plane origin) => panel.Origin = origin;
+        public static void SetCentral(Element panel, double central) => panel.Central = central;
+
         public void SetHeatCluster(Dictionary<int, HeatCluster> heatCluster)
         {
             HeatClusterGroup = heatCluster;

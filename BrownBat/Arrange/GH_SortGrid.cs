@@ -91,13 +91,13 @@ namespace BrownBat.Arrange
                 branchNumber.Add(pts);
             }
 
-            var sortPositionRegion = inPlacePosition.Zip(inOverArea, (place, over) => new { geo = place, area = over })
+            var sortPositionByRegion = inPlacePosition.Zip(inOverArea, (place, over) => new { geo = place, area = over })
                                                     .Zip(branchNumber, (x, y) => new { position = x, branch = y })
-                                                    .OrderByDescending(pair => pair.position.area);
+                                                    .OrderBy(pair => pair.position.area);
 
-            List<Brep> sortPlacePosition = sortPositionRegion.Select(pair => pair.position.geo).ToList();
-            List<int> sortPlaceRegionBranch = sortPositionRegion.Select(pair => pair.branch).ToList();
-            List<double> sortOverArea = sortPositionRegion.Select(pair => pair.position.area).ToList();
+            List<Brep> sortPlacePosition = sortPositionByRegion.Select(pair => pair.position.geo).ToList();
+            List<int> sortPlaceRegionBranch = sortPositionByRegion.Select(pair => pair.branch).ToList();
+            List<double> sortOverArea = sortPositionByRegion.Select(pair => pair.position.area).ToList();
 
             //find fitting area
             Dictionary<int, IEnumerable<Element>> firAreaPair = new Dictionary<int, IEnumerable<Element>>();
@@ -183,7 +183,7 @@ namespace BrownBat.Arrange
                 }
                 else 
                 {
-                    string name = "Any";
+                    string name = CombinationType.DontCare.ToString();
                     nameList.Add(name);
                 }
                 string[] nameArray = nameList.ToArray();
@@ -193,7 +193,7 @@ namespace BrownBat.Arrange
             // Generate combinations
             GenerateCombinations(0, new string[values.Count], valuesAsName, inSeed, ref elementNames);
 
-            //revert element to original order
+            //revert element to original order place position
             //Any and Other chooses other ones that are not used
             DataTree<Element> elementSets = new DataTree<Element>();
             DataTree<string> setName = new DataTree<string>();
@@ -204,28 +204,28 @@ namespace BrownBat.Arrange
                 var revertSub = subs.Zip(sortPlaceRegionBranch, (sub, branch) => new { elementId = sub, key = branch })
                     .OrderBy(pair => pair.key)
                     .Select(pair => pair.elementId).ToArray();
-                var elementsNotUsed = inElement.Where(e => !subs.Contains(e.Name));
+                var elementsNotUsed = inElement.Where(e => !subs.Contains(e.Name))
+                                                .OrderBy(leftover => leftover.Central);
 
                 List<Element> revertElement = new List<Element>();
-                List<string> revertName = new List<string>();
 
                 int useOther = 0; 
-                foreach (string name in revertSub)
+                foreach (string name in subs)
                 {
-                    if (name == "Any" || name == "Other")
+                    if (name == CombinationType.FindOther.ToString() || 
+                        name == CombinationType.DontCare.ToString())
                     {
                         Element element = elementsNotUsed.ElementAt(useOther);
-                        revertName.Add(element.Name);
                         revertElement.Add(element);
                         useOther++;
                     }
-                    else 
+                    else
                     {
                         var element = elementHasCluster.Where(e => e.Name == name).Single();
-                        revertName.Add(element.Name);
                         revertElement.Add(element);
                     }
                 }
+                List<string> revertName = revertElement.Select(e => e.Name).ToList();
                 GH_Path path = new GH_Path(opt);
                 elementSets.AddRange(revertElement, path);
                 setName.AddRange(revertName, path);
@@ -290,7 +290,7 @@ namespace BrownBat.Arrange
         {
             if (option < myArray[index].Length)
             {
-                if (myArray[index][option] == "Any")
+                if (myArray[index][option] == CombinationType.DontCare.ToString())
                 {
                     currentCombination[index] = myArray[index][option];
                 }
@@ -307,9 +307,15 @@ namespace BrownBat.Arrange
             }
             else 
             {
-                currentCombination[index] = "Other";
+                currentCombination[index] = CombinationType.FindOther.ToString();
                 return; 
             }
+        }
+        enum CombinationType 
+        {
+            DontCare,
+            FindOther,
+            HasOptions
         }
     }
 }

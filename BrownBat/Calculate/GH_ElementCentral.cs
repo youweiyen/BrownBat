@@ -39,6 +39,7 @@ namespace BrownBat.Calculate
         {
             pManager.AddNumberParameter("Result", "R", "Result Conductivity", GH_ParamAccess.list);
             pManager.AddTextParameter("Name", "N", "Element Name", GH_ParamAccess.list);
+            pManager.AddGenericParameter("ElementData", "ED", "Element data with Central calculated", GH_ParamAccess.list);
 
         }
 
@@ -61,18 +62,9 @@ namespace BrownBat.Calculate
             AddedToDocument(doc);
 
             List<double> centrals = new List<double>();
-            var selectedSets = inElement.Select(i => new SelectedElements{ Elements = i, Name = i.Name })
-                                        .Where(p => inName.Contains(p.Name))
-                                        .ToList();
-            
-            List<Element> selectElement = new List<Element>();
-            List<string> selectName = new List<string>();
 
-            foreach (SelectedElements e in selectedSets)
-            {
-                selectElement.Add(e.Elements);
-                selectName.Add(e.Name);
-            }
+            IEnumerable<Element> selectElement = inElement.Where(e => inName.Contains(e.Name));
+
             foreach (Element element in selectElement)
             {
                 IEnumerable<double> conductivity = element.PixelConductivity.SelectMany(c => c);
@@ -91,11 +83,13 @@ namespace BrownBat.Calculate
                         break;
                 }
                 centrals.Add(central);
+                Element.SetCentral(element, central);
             }
+            IEnumerable<string> selectName = selectElement.Select(i => i.Name);
 
             DA.SetDataList(0, centrals);
             DA.SetDataList(1, selectName);
-
+            DA.SetDataList(2, selectElement);
 
 
         }

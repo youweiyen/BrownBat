@@ -12,6 +12,7 @@ using Rhino.UI;
 using static System.Net.Mime.MediaTypeNames;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement.Window;
 using Rhino.Commands;
+using Grasshopper;
 
 namespace BrownBat.Arrange
 {
@@ -51,7 +52,7 @@ namespace BrownBat.Arrange
         /// </summary>
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
-            pManager.AddGenericParameter("Element", "E", "Sorted Element", GH_ParamAccess.list);
+            pManager.AddGenericParameter("Element", "E", "Sorted Element", GH_ParamAccess.tree);
             pManager.AddTextParameter("ElementNames", "EN", "Sorted Element Names", GH_ParamAccess.list);
         }
 
@@ -191,7 +192,33 @@ namespace BrownBat.Arrange
             // Generate combinations
             GenerateCombinations(0, new string[values.Count], valuesAsName, inSeed, ref elementNames);
 
+            //revert element to original order
+            DataTree<Element> elementSets = new DataTree<Element>();
+            for (int opt = 0; opt < elementNames.Count; opt++)
+            {
+                string[] subs = elementNames[opt].Split(' ');
+                var revertSub = subs.Zip(sortPlaceRegionBranch, (sub, branch) => new { elementId = sub, key = branch })
+                    .OrderBy(pair => pair.key)
+                    .Select(pair => pair.elementId).ToArray();
 
+                List<Element> revertElement = new List<Element>();
+                foreach (string name in revertSub)
+                {
+                    if (name == "Any" || name == "Other")
+                    {
+                        Element element = default;
+                        revertElement.Add(element);
+                    }
+                    else 
+                    {
+                        var element = elementHasCluster.Where(e => e.Name == name).Single();
+                        revertElement.Add(element);
+                    }
+                }
+                GH_Path path = new GH_Path(opt);
+                elementSets.AddRange(revertElement, path);
+            }
+            DA.SetDataTree(0, elementSets);
             DA.SetDataList(1, elementNames);
             //if (inSeed > optionCount)
             //{ throw new Exception("ran out of optimized options"); }

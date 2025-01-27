@@ -38,7 +38,7 @@ namespace BrownBat.Arrange
             pManager.AddPointParameter("BoundaryPoint", "BP", "Background selected value boundary point", GH_ParamAccess.tree);
             pManager.AddBrepParameter("PlacePosition", "PP", "Element place position", GH_ParamAccess.list);
             pManager.AddNumberParameter("OverArea", "OA", "Area that is over selected value", GH_ParamAccess.list);
-            pManager.AddNumberParameter("Difference", "D", "Area difference. Default set to 100", GH_ParamAccess.item);
+            pManager.AddNumberParameter("Difference", "D", "Area difference. Default set to 500", GH_ParamAccess.item);
             pManager.AddIntegerParameter("Seed", "S", 
                                         "Seed number to set to see different options. The options are ranked by highest coverage of high temperature areas. " +
                                         "Default set to see top 10",
@@ -91,21 +91,21 @@ namespace BrownBat.Arrange
                 branchNumber.Add(pts);
             }
 
-            var sortPositionByRegion = inPlacePosition.Zip(inOverArea, (place, over) => new { geo = place, area = over })
+            var sortPositionByOverArea = inPlacePosition.Zip(inOverArea, (place, over) => new { geo = place, area = over })
                                                     .Zip(branchNumber, (x, y) => new { position = x, branch = y })
                                                     .OrderBy(pair => pair.position.area);
 
-            List<Brep> sortPlacePosition = sortPositionByRegion.Select(pair => pair.position.geo).ToList();
-            List<int> sortPlaceRegionBranch = sortPositionByRegion.Select(pair => pair.branch).ToList();
-            List<double> sortOverArea = sortPositionByRegion.Select(pair => pair.position.area).ToList();
+            List<Brep> sortPlacePosition = sortPositionByOverArea.Select(pair => pair.position.geo).ToList();
+            List<int> sortPlaceBranch = sortPositionByOverArea.Select(pair => pair.branch).ToList();
+            List<double> sortOverArea = sortPositionByOverArea.Select(pair => pair.position.area).ToList();
 
-            //find fitting area
+            //find element with fitting area
             Dictionary<int, IEnumerable<Element>> firAreaPair = new Dictionary<int, IEnumerable<Element>>();
             for (int i = 0; i < sortPlacePosition.Count; i++)
             {
 
                 List<Element> similiarClusterElement = new List<Element>();
-                int branchID = sortPlaceRegionBranch[i];
+                int branchID = sortPlaceBranch[i];
                 if (inPlaceRegion[branchID].Count != 0)
                 {
                     similiarClusterElement =
@@ -127,13 +127,13 @@ namespace BrownBat.Arrange
                 firAreaPair.Add(i, similiarClusterElement);
             }
 
-            //order by shape difference *Element Sort
+            //order by shape difference *order element inside each placement list
             Dictionary<int, Element[]> orderShapePair = new Dictionary<int, Element[]>();
             foreach (var pairs in firAreaPair)
             {
                 if (pairs.Value.Count() > 1)
                 {
-                    int branchID = sortPlaceRegionBranch[pairs.Key];
+                    int branchID = sortPlaceBranch[pairs.Key];
                     Rectangle3d placeBoundBox = AreaHelper.MinBoundingBox(regionPoint[branchID], AreaHelper.PlacePlane(sortPlacePosition[pairs.Key]));
                     double height = placeBoundBox.Height;
                     double width = placeBoundBox.Width;
@@ -155,7 +155,7 @@ namespace BrownBat.Arrange
                             axisDifference.Add(widthAsX);
                         }
                     }
-                    var similiarShape = pairs.Value.Zip(axisDifference, (e, diff) => new { element = e, difference = diff }).OrderByDescending(pair => pair.difference).Select(pair => pair.element).ToArray();
+                    var similiarShape = pairs.Value.Zip(axisDifference, (e, diff) => new { element = e, difference = diff }).OrderBy(pair => pair.difference).Select(pair => pair.element).ToArray();
                     orderShapePair.Add(pairs.Key, similiarShape);
                 }
                 else 
@@ -164,10 +164,8 @@ namespace BrownBat.Arrange
                     orderShapePair.Add(pairs.Key, oneShape);
                 }
             }
-
-            //show the top possibilities and reorder back to original position
-            List<string> elementNames = new List<string>();
-
+            
+            //get element names from dictionary
             List<Element[]> values = orderShapePair.Values.ToList();
             List<string[]> valuesAsName = new List<string[]>();
             foreach (var elementArray in values)
@@ -191,6 +189,7 @@ namespace BrownBat.Arrange
             }
 
             // Generate combinations
+            List<string> elementNames = new List<string>();
             GenerateCombinations(0, new string[values.Count], valuesAsName, inSeed, ref elementNames);
 
             //revert element to original order place position
@@ -201,16 +200,17 @@ namespace BrownBat.Arrange
             for (int opt = 0; opt < elementNames.Count; opt++)
             {
                 string[] subs = elementNames[opt].Split(' ');
-                var revertSub = subs.Zip(sortPlaceRegionBranch, (sub, branch) => new { elementId = sub, key = branch })
+                var revertSub = subs.Zip(sortPlaceBranch, (sub, branch) => new { elementId = sub, key = branch })
                     .OrderBy(pair => pair.key)
                     .Select(pair => pair.elementId).ToArray();
+                
                 var elementsNotUsed = inElement.Where(e => !subs.Contains(e.Name))
-                                                .OrderBy(leftover => leftover.Central);
+                                                .OrderByDescending(leftover => leftover.Central);
 
                 List<Element> revertElement = new List<Element>();
 
                 int useOther = 0; 
-                foreach (string name in subs)
+                foreach (string name in revertSub)
                 {
                     if (name == CombinationType.FindOther.ToString() || 
                         name == CombinationType.DontCare.ToString())

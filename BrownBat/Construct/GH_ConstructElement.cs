@@ -57,7 +57,8 @@ namespace BrownBat.Construct
                                                         geometry.Model,
                                                         geometry.GeometryBaseCurve,
                                                         data.PixelShape,
-                                                        data.PixelConductivity)).ToList();
+                                                        data.PixelConductivity,
+                                                        data.Central)).ToList();
             
             for (int p = 0; p < combinedPanels.Count(); p++)
             { 

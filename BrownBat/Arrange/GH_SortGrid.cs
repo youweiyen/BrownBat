@@ -205,7 +205,7 @@ namespace BrownBat.Arrange
                     .Select(pair => pair.elementId).ToArray();
                 
                 var elementsNotUsed = inElement.Where(e => !subs.Contains(e.Name))
-                                                .OrderByDescending(leftover => leftover.Central);
+                                                .OrderBy(leftover => leftover.Central);
 
                 List<Element> revertElement = new List<Element>();
 

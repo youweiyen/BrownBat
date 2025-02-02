@@ -260,6 +260,10 @@ namespace BrownBat.Arrange
         public void GenerateCombinations(int index, string[] currentCombination, List<string[]> myArray, int findRange, ref List<string>resultList)
         {
             
+            if (resultList.Count == findRange)
+            {
+                return;
+            }
             if (index == myArray.Count)
             {
                 // We have reached the end of the array, so print the current combination
@@ -268,10 +272,6 @@ namespace BrownBat.Arrange
                 {
                     resultList.Add(result);
                 }
-                return;
-            }
-            if (resultList.Count == findRange)
-            {
                 return;
             }
             // Generate combinations for the current array

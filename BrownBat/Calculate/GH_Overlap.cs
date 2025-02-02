@@ -119,7 +119,7 @@ namespace BrownBat.Calculate
 
                             //panelToPosition.Add(intersectPanelName, intersectPanelPosition);
                             try { panelToDomain.Add(intersectPanelName, intersectPanelDomain); }
-                            catch (Exception ex) { throw new Exception("Repeated Elements"); }
+                            catch (Exception ex) { throw new Exception("Repeated Elements", ex); }
                             #region intersectCalculation
                             ////intersect calculation
                             //Line positionLine = new Line(pixel.PixelGeometry, Vector3d.ZAxis, projectLength + 10);

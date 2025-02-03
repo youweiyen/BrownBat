@@ -10,6 +10,7 @@ namespace BrownBat.CalculateHelper
 {
     public static class BmpHelper
     {
+
         public static bool GetBitmapFromFile(this string FilePath, out Bitmap bitmap)
         {
             bitmap = (Bitmap)null;

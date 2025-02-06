@@ -8,6 +8,7 @@ using BrownBat.Components;
 using BrownBat.CalculateHelper;
 using System.Linq;
 using Grasshopper;
+using Rhino;
 
 namespace BrownBat.Calculate
 {
@@ -56,13 +57,28 @@ namespace BrownBat.Calculate
             DataTree<double> pixelFlux = new DataTree<double>();
             Grasshopper.Kernel.Data.GH_Path path = new Grasshopper.Kernel.Data.GH_Path();
 
+            UnitSystem unitSystem = RhinoDoc.ActiveDoc.ModelUnitSystem;
+            double unitToMeter = 1;
+            switch (unitSystem)
+            {
+                case UnitSystem.Meters:
+                    unitToMeter = 1;
+                    break;
+                case UnitSystem.Centimeters:
+                    unitToMeter = 0.01;
+                    break;
+                case UnitSystem.Millimeters:
+                    unitToMeter = 0.001;
+                    break;
+            }
+
             for (int row = 0; row < pixels.Count; row++)
             {
                 for (int col = 0; col < pixels[row].Count(); col++)
                 {
                     if (pixels[row][col].OverlapPanels.Count != 0)
                     {
-                        double resistance = HeatTransfer.ConductiveResistanceFromFile(pixels[row][col], inputPanel);
+                        double resistance = HeatTransfer.ConductiveResistanceFromFile(pixels[row][col], inputPanel) * unitToMeter;
                         double backgroundTemperature = inputWall.Temperature[row][col];
                         double dT = backgroundTemperature - inputComfy;
                         //add direction

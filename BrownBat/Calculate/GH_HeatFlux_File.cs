@@ -26,6 +26,8 @@ namespace BrownBat.Calculate
             pManager.AddGenericParameter("Element", "E", "Element", GH_ParamAccess.list);
             pManager.AddGenericParameter("Structure", "S", "Structure", GH_ParamAccess.item);
             pManager.AddNumberParameter("ComfyTemp", "T", "Temperature Difference", GH_ParamAccess.item);
+            pManager.AddBooleanParameter("HeatDirection", "D", "Reverse heat travel direction, default is outdoor to indoor", GH_ParamAccess.item);
+            pManager[3].Optional = true;
         }
 
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
@@ -40,11 +42,14 @@ namespace BrownBat.Calculate
             List<Element> inputPanel = new List<Element>();
             double inputComfy = default;
             Structure inputWall = new Structure();
+            bool reverseDirection = false;
 
             DA.GetDataList(0, inputPanel);
             DA.GetData(1, ref inputWall);
             DA.GetData(2, ref inputComfy);
-            
+            DA.GetData(3, ref reverseDirection);
+
+
             List<Pixel[]> pixels = inputWall.Pixel;
             double nonOverlapData = -1;
 
@@ -59,7 +64,13 @@ namespace BrownBat.Calculate
                     {
                         double resistance = HeatTransfer.ConductiveResistanceFromFile(pixels[row][col], inputPanel);
                         double backgroundTemperature = inputWall.Temperature[row][col];
-                        double flux = (inputComfy - backgroundTemperature) / resistance;
+                        double dT = backgroundTemperature - inputComfy;
+                        //add direction
+                        if (reverseDirection)
+                        {
+                            dT = -dT;
+                        }
+                        double flux = dT / resistance;
                         Pixel.SetHeatFlux(pixels[row][col], flux);
                         path = new Grasshopper.Kernel.Data.GH_Path(row);
                         pixelFlux.Add(flux, path);

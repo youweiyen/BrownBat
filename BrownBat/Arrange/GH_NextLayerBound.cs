@@ -10,7 +10,6 @@ using MIConvexHull;
 using BrownBat.Components;
 using Grasshopper;
 using Grasshopper.Kernel.Data;
-using 
 
 namespace BrownBat.Arrange
 {
@@ -74,9 +73,11 @@ namespace BrownBat.Arrange
             DA.GetData(3, ref inEpsilon);
             DA.GetData(4, ref inMinPoints);
 
-            IEnumerable<Point3d> lowerPoints = inPointValue.Zip(inPoint, (pv, pt) => new { value = pv, point = pt })
-                                                        .Where(pair => pair.value < inValue)
-                                                        .Select(pair => pair.point);
+            var lowerPointValueSet = inPointValue.Zip(inPoint, (pv, pt) => new { value = pv, point = pt })
+                                                        .Where(pair => pair.value < inValue);
+                                                        
+            IEnumerable<Point3d> lowerPoints = lowerPointValueSet.Select(pair => pair.point);
+            IEnumerable<double> lowerValues = lowerPointValueSet.Select(pair => pair.value);
 
             IEnumerable<DbscanPoint> pointsToCluster = lowerPoints.Select(p => new DbscanPoint(p.X, p.Y));
             
@@ -84,6 +85,9 @@ namespace BrownBat.Arrange
 
             List<Polyline> polylines = new List<Polyline>();
             DataTree<Line> boundaryAxis = new DataTree<Line>();
+            List<double> clusterAverage = new List<double>();
+            List<(Line, Line)> axisGroup = new List<(Line, Line)>();
+
             for (int c = 0; c < clusters.Clusters.Count; c++)
             {
                 var points = clusters.Clusters[c].Objects;
@@ -106,11 +110,23 @@ namespace BrownBat.Arrange
                 Line xAxis = AreaHelper.AxisLineFromCenter(averagePoint, boundingPlane.XAxis, boundaryCurve);
                 Line yAxis = AreaHelper.AxisLineFromCenter(averagePoint, boundingPlane.YAxis, boundaryCurve);
 
-                GH_Path path = new GH_Path(c);
-                boundaryAxis.Add(xAxis, path);
-                boundaryAxis.Add(yAxis, path);
-            }
+                (Line, Line) axisPair = (xAxis, yAxis);
+                axisGroup.Add(axisPair);
 
+                List<double> pointValues = new List<double>();
+                foreach(var p in points)
+                {
+                    double value = lowerPointValueSet.FirstOrDefault(pair => pair.point.X == p.Point.X && pair.point.Y == p.Point.Y).value;
+                    pointValues.Add(value);                
+                }
+                double averageValue = pointValues.Sum() / points.Count();
+                clusterAverage.Add(averageValue);
+            }
+            var orderedAxis = clusterAverage.Zip(axisGroup, (av, ax) => new {average = av, axis = ax}).OrderBy(pair => pair.average).Select(pair => pair.axis);
+            
+            GH_Path path = new GH_Path(c);
+            boundaryAxis.Add(xAxis, path);
+            boundaryAxis.Add(yAxis, path);
 
             DA.SetDataList(0, polylines);
             DA.SetDataTree(1, boundaryAxis);

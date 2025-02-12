@@ -8,6 +8,9 @@ using BrownBat.CalculateHelper;
 using System.Linq;
 using MIConvexHull;
 using BrownBat.Components;
+using Grasshopper;
+using Grasshopper.Kernel.Data;
+using 
 
 namespace BrownBat.Arrange
 {
@@ -31,16 +34,15 @@ namespace BrownBat.Arrange
             pManager.AddPointParameter("LowPoint", "LP", "Low temperature points to draw placement boundary", GH_ParamAccess.list);
             pManager.AddNumberParameter("PointValue", "PV", "Low temperature points value", GH_ParamAccess.list);            
             pManager.AddNumberParameter("Value", "V", "Value to cluster points for placing with higher heiarchy", GH_ParamAccess.item);
+            pManager.AddNumberParameter("Epsilon",
+                                        "E",
+                                        "Distance to determine same area points. " +
+                                        "Enter pixel divide distance",
+                                        GH_ParamAccess.item);
             pManager.AddIntegerParameter("MinPoints",
                             "Min",
-                            "Minimum points for DBSCAN calculation. Default set to 15",
+                            "Minimum points for DBSCAN calculation. Default set to 4",
                             GH_ParamAccess.item);
-            pManager.AddIntegerParameter("Epsilon",
-                                        "E",
-                                        "Distance to determine same area points. Default set to 15",
-                                        GH_ParamAccess.item);
-            pManager.AddGenericParameter("Element", "E", "Elements to place on the next layer", GH_ParamAccess.list);
-            pManager[3].Optional = true;
             pManager[4].Optional = true;
         }
 
@@ -49,8 +51,8 @@ namespace BrownBat.Arrange
         /// </summary>
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
-            pManager.AddCurveParameter("PassiveCurve", "PC", "Curve to stay in place", GH_ParamAccess.list);
-            pManager.AddCurveParameter("Boundary", "B", "Boundary to place next layer Elements", GH_ParamAccess.list);
+            pManager.AddCurveParameter("PassiveBoundary", "PB", "Boundary to place first for next layer Elements", GH_ParamAccess.list);
+            pManager.AddLineParameter("BoundaryAxis", "BA", "Boundary axis for placement rotation", GH_ParamAccess.tree);
         }
 
         /// <summary>
@@ -62,16 +64,15 @@ namespace BrownBat.Arrange
             List<Point3d> inPoint = new List<Point3d>();
             List<double>inPointValue = new List<double>();
             double inValue = default;
-            int inMinPoints = 15;
-            int inEpsilon = 15;
+            int inMinPoints = 5;
+            double inEpsilon = default;
             List<Element> inElement = new List<Element>();
 
-            DA.SetDataList(0, inPoint);
-            DA.SetDataList(1, inPointValue);
-            DA.SetData(2, inValue);
-            DA.SetData(3, inMinPoints);
-            DA.SetData(4, inEpsilon);
-            DA.SetDataList(5, inElement);
+            DA.GetDataList(0, inPoint);
+            DA.GetDataList(1, inPointValue);
+            DA.GetData(2, ref inValue);
+            DA.GetData(3, ref inEpsilon);
+            DA.GetData(4, ref inMinPoints);
 
             IEnumerable<Point3d> lowerPoints = inPointValue.Zip(inPoint, (pv, pt) => new { value = pv, point = pt })
                                                         .Where(pair => pair.value < inValue)
@@ -79,9 +80,10 @@ namespace BrownBat.Arrange
 
             IEnumerable<DbscanPoint> pointsToCluster = lowerPoints.Select(p => new DbscanPoint(p.X, p.Y));
             
-            var clusters = DbscanRBush.CalculateClusters(pointsToCluster, inEpsilon, inMinPoints);
+            var clusters = DbscanRBush.CalculateClusters(pointsToCluster, inEpsilon*2.2, inMinPoints);
 
             List<Polyline> polylines = new List<Polyline>();
+            DataTree<Line> boundaryAxis = new DataTree<Line>();
             for (int c = 0; c < clusters.Clusters.Count; c++)
             {
                 var points = clusters.Clusters[c].Objects;
@@ -102,11 +104,17 @@ namespace BrownBat.Arrange
                 Plane boundingPlane = AreaHelper.BoundingPlane(rhinoConvex, new Plane(averagePoint, Vector3d.XAxis, Vector3d.YAxis));
 
                 Line xAxis = AreaHelper.AxisLineFromCenter(averagePoint, boundingPlane.XAxis, boundaryCurve);
-                Line yAxis = AreaHelper.AxisLineFromCenter(averagePoint, boundingPlane.XAxis, boundaryCurve);
+                Line yAxis = AreaHelper.AxisLineFromCenter(averagePoint, boundingPlane.YAxis, boundaryCurve);
+
+                GH_Path path = new GH_Path(c);
+                boundaryAxis.Add(xAxis, path);
+                boundaryAxis.Add(yAxis, path);
             }
 
 
             DA.SetDataList(0, polylines);
+            DA.SetDataTree(1, boundaryAxis);
+
         }
 
         /// <summary>

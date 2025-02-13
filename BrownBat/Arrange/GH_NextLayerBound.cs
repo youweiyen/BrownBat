@@ -40,7 +40,7 @@ namespace BrownBat.Arrange
                                         GH_ParamAccess.item);
             pManager.AddIntegerParameter("MinPoints",
                             "Min",
-                            "Minimum points for DBSCAN calculation. Default set to 4",
+                            "Minimum points for DBSCAN calculation. Default set to 5",
                             GH_ParamAccess.item);
             pManager[4].Optional = true;
         }

@@ -6,6 +6,11 @@ using Grasshopper.Kernel.Data;
 using Grasshopper.Kernel.Types;
 using Rhino.Geometry;
 using BrownBat.Components;
+using System.Xml.Linq;
+using Rhino.Geometry.Intersect;
+using System.Diagnostics.Eventing.Reader;
+using System.Linq;
+using BrownBat.CalculateHelper;
 
 namespace BrownBat.Arrange
 {
@@ -50,10 +55,84 @@ namespace BrownBat.Arrange
 
             DA.GetDataList(0, inElement);
             DA.GetDataTree(1, out inAxis);
-            for (int i = 0; i < inAxis.Branches.Count; i++)
+
+            double tolerance = 10;
+            
+            double longestClusterLength = inElement.Max(e=> e.HeatClusterGroup
+                                                    .Select(hc => new[] { hc.Value.XAxis.Length, hc.Value.YAxis.Length }
+                                                            .ToList()
+                                                            .Max())
+                                                    .Max());
+            Dictionary<int, List<Pair<string, List<Transform>>>> fitAreaPair = new Dictionary<int, List<Pair<string, List<Transform>>>>();
+
+            for (int branch = 0; branch < inAxis.Branches.Count; branch++)
             {
+                //place along long axis, get boundary long axis first
+                Line xAxis = inAxis[branch][0].Value;
+                Line yAxis = inAxis[branch][1].Value;
+                Vector3d direction = default;
+                Line mainAxis = default;
+
+                Intersection.LineLine(xAxis, yAxis, out double a, out double b, 0.001, true);
+                Transform transformPlane = new Transform();
+                Plane axisPlane = new Plane();
                 
+                if (xAxis.Length > yAxis.Length)
+                {
+                    direction = xAxis.Direction;
+                    mainAxis = xAxis;
+                    axisPlane = new Plane(xAxis.PointAt(a), xAxis.Direction, yAxis.Direction);
+                }
+                else 
+                {
+                    direction = yAxis.Direction;
+                    mainAxis = yAxis;
+                    axisPlane = new Plane(xAxis.PointAt(a), yAxis.Direction, xAxis.Direction);
+                }
+                List<Pair<string, List<Transform>>> pairList = new List<Pair<string, List<Transform>>>();
+                //if the boundary is small enough to use one element to fit
+                if (Math.Abs(mainAxis.Length - longestClusterLength) < tolerance)
+                {
+                    for (int e = 0; e < inElement.Count; e++)
+                    {
+                        List<Transform>transformations = new List<Transform>();
+                        for (int i = 0; i < inElement[e].HeatClusterGroup.Count; i++)
+                        {
+                            HeatCluster cluster = inElement[e].HeatClusterGroup[i];
+                            Plane clusterPlane = new Plane();
+                            if (Math.Abs(cluster.XAxis.Length - mainAxis.Length) < tolerance)
+                            {
+                                clusterPlane = new Plane(cluster.Center, cluster.XAxis.To, cluster.YAxis.To);
+                                transformPlane = Transform.PlaneToPlane(clusterPlane, axisPlane);
+                                transformations.Add(transformPlane);
+                            }
+                            else if (Math.Abs(cluster.YAxis.Length - mainAxis.Length) < tolerance)
+                            {
+                                clusterPlane = new Plane(cluster.Center, cluster.YAxis.To, cluster.XAxis.To);
+                                transformPlane = Transform.PlaneToPlane(clusterPlane, axisPlane);
+                                transformations.Add(transformPlane);
+                            }
+                            else
+                            {
+                                continue;
+                            }
+                        }
+                        if (transformations.Count != 0)
+                        {
+                            Pair<string, List<Transform>> clusterTransformPair = new Pair<string, List<Transform>>(inElement[e].Name, transformations);
+                            pairList.Add(clusterTransformPair);
+                        }
+                    }
+                }
+                //boundary too large, use multiple pieces
+                else 
+                {   
+                    //TODO
+                    continue;
+                }
+                fitAreaPair.Add(branch, pairList);
             }
+            //DA.SetData(1, );
         }
 
         /// <summary>

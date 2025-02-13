@@ -122,11 +122,13 @@ namespace BrownBat.Arrange
                 double averageValue = pointValues.Sum() / points.Count();
                 clusterAverage.Add(averageValue);
             }
-            var orderedAxis = clusterAverage.Zip(axisGroup, (av, ax) => new {average = av, axis = ax}).OrderBy(pair => pair.average).Select(pair => pair.axis);
-            
-            GH_Path path = new GH_Path(c);
-            boundaryAxis.Add(xAxis, path);
-            boundaryAxis.Add(yAxis, path);
+            var orderedAxis = clusterAverage.Zip(axisGroup, (av, ax) => new {average = av, axis = ax}).OrderBy(pair => pair.average).Select(pair => pair.axis).ToList();
+            for (int i = 0; i < orderedAxis.Count; i++)
+            { 
+                GH_Path path = new GH_Path(i);
+                boundaryAxis.Add(orderedAxis[i].Item1, path);
+                boundaryAxis.Add(orderedAxis[i].Item2, path);
+            }
 
             DA.SetDataList(0, polylines);
             DA.SetDataTree(1, boundaryAxis);

@@ -57,8 +57,9 @@ namespace BrownBat.Arrange
             DA.GetDataTree(1, out inAxis);
 
             double tolerance = 10;
-            
-            double longestClusterLength = inElement.Max(e=> e.HeatClusterGroup
+            var elementHasCluster = inElement.Where(e => e.HeatClusterGroup != null);
+
+            double longestClusterLength = elementHasCluster.Max(e=> e.HeatClusterGroup
                                                     .Select(hc => new[] { hc.Value.XAxis.Length, hc.Value.YAxis.Length }
                                                             .ToList()
                                                             .Max())
@@ -91,7 +92,7 @@ namespace BrownBat.Arrange
                 }
                 List<Pair<string, List<Transform>>> pairList = new List<Pair<string, List<Transform>>>();
                 //if the boundary is small enough to use one element to fit
-                if (Math.Abs(mainAxis.Length - longestClusterLength) < tolerance)
+                if (mainAxis.Length < longestClusterLength + tolerance)
                 {
                     for (int e = 0; e < inElement.Count; e++)
                     {
@@ -132,7 +133,14 @@ namespace BrownBat.Arrange
                 }
                 fitAreaPair.Add(branch, pairList);
             }
-            //DA.SetData(1, );
+            var testviewList = new List<Transform>();
+            for (int key = 0; key < fitAreaPair.Count; key++)
+            { 
+                //TODO: not all branches have matches, keys missing
+                var transform = fitAreaPair[key].First().Second.First();
+                testviewList.Add(transform);
+            }
+            DA.SetDataList(1, testviewList);
         }
 
         /// <summary>

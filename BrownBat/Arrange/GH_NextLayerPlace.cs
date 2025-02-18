@@ -134,11 +134,18 @@ namespace BrownBat.Arrange
                 fitAreaPair.Add(branch, pairList);
             }
             var testviewList = new List<Transform>();
-            for (int key = 0; key < fitAreaPair.Count; key++)
-            { 
-                //TODO: not all branches have matches, keys missing
-                var transform = fitAreaPair[key].First().Second.First();
-                testviewList.Add(transform);
+            if (fitAreaPair.Count > 0)
+            {
+                for (int key = 0; key < fitAreaPair.Count; key++)
+                {
+                    //TODO: not all branches have matches, keys missing
+                    var transform = fitAreaPair[key].First().Second.First();
+                    testviewList.Add(transform);
+                }
+            }
+            else 
+            {
+                testviewList.Add(new Transform());
             }
             DA.SetDataList(1, testviewList);
         }

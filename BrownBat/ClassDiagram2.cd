@@ -1,131 +1,147 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <ClassDiagram MajorVersion="1" MinorVersion="1">
   <Class Name="BrownBat.Construct.GH_BakeOriginGeometry" Collapsed="true">
-    <Position X="6.5" Y="4.25" Width="1.5" />
+    <Position X="6.5" Y="4.25" Width="2" />
+    <InheritanceLine Type="Grasshopper.Kernel.GH_Component" FixedToPoint="true">
+      <Path>
+        <Point X="13.25" Y="3.691" />
+        <Point X="13.25" Y="3.814" />
+        <Point X="7.562" Y="3.814" />
+        <Point X="7.562" Y="4.25" />
+      </Path>
+    </InheritanceLine>
     <TypeIdentifier>
       <HashCode>AAIABAAAAAAAAAAAAAAAAAEAABAAAAAAAAAAAAEAAAA=</HashCode>
       <FileName>Construct\GH_BakeOriginGeometry.cs</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="BrownBat.Data.GH_QueryElementName" Collapsed="true">
-    <Position X="6.5" Y="5.5" Width="1.5" />
+    <Position X="6.5" Y="5.5" Width="2" />
+    <InheritanceLine Type="Grasshopper.Kernel.GH_Component" FixedToPoint="true">
+      <Path>
+        <Point X="13.25" Y="3.691" />
+        <Point X="13.25" Y="5.2" />
+        <Point X="7.583" Y="5.2" />
+        <Point X="7.583" Y="5.5" />
+      </Path>
+    </InheritanceLine>
     <TypeIdentifier>
       <HashCode>AAIABAAAAAAAAAAAAAAAAAEAABAABAAAAAAAAAEAAAA=</HashCode>
       <FileName>Data\GH_QueryElementName.cs</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="BrownBat.Data.GH_ImportFile" Collapsed="true">
-    <Position X="8.75" Y="5.5" Width="1.5" />
+    <Position X="16" Y="4.25" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAIABAAAAAAAAAAAAAAAAAEAABAAAAAAAAAAAAEAAAA=</HashCode>
       <FileName>Data\GH_ImportFile.cs</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="Grasshopper.Kernel.GH_Component" Collapsed="true">
-    <Position X="12.25" Y="5" Width="1.5" />
+    <Position X="12.5" Y="3" Width="1.5" />
     <TypeIdentifier />
     <Lollipop Position="0.2" />
   </Class>
   <Class Name="BrownBat.Construct.GH_TransformElement_Remote" Collapsed="true">
-    <Position X="6.5" Y="7.25" Width="1.5" />
+    <Position X="8.75" Y="4.25" Width="2.5" />
     <TypeIdentifier>
       <HashCode>AAIAFAAABAAAAAAAAAAAAAEAABAAAAIAAAAAAAEAAAA=</HashCode>
       <FileName>Construct\GH_TransformElement_Remote.cs</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="BrownBat.Calculate.GH_ElementCentral" Collapsed="true">
-    <Position X="8.75" Y="7.25" Width="1.5" />
+    <Position X="16" Y="5.5" Width="1.75" />
     <TypeIdentifier>
       <HashCode>AAIABAAAAAAAAAAAAAAAAAEAABAABAAAAAAAAAEAAAA=</HashCode>
       <FileName>Calculate\GH_ElementCentral.cs</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="BrownBat.Calculate.GH_ColorToTemperature" Collapsed="true">
-    <Position X="17.25" Y="3.5" Width="1.5" />
+    <Position X="15.75" Y="11" Width="2" />
     <TypeIdentifier>
       <HashCode>AAIABAAAAAAAAAAAAAAAAAEAABAAAAAAAAAAAAEAAAA=</HashCode>
       <FileName>Calculate\GH_ColorToTemperature.cs</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="BrownBat.Construct.GH_ConstructStructure" Collapsed="true">
-    <Position X="17.25" Y="6.25" Width="1.5" />
+    <Position X="6.5" Y="11" Width="2" />
     <TypeIdentifier>
       <HashCode>AAIABAAAAAAAAAAAAAAAAAEAABAAAAAAAAAAAAEAAAA=</HashCode>
       <FileName>Construct\GH_ConstructStructure.cs</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="BrownBat.Construct.GH_StructureTemperature" Collapsed="true">
-    <Position X="17.25" Y="4.75" Width="1.5" />
+    <Position X="18" Y="11" Width="2" />
     <TypeIdentifier>
       <HashCode>AAIABAAAAAAAAAAAAAAAAAEAABAAAAAAAAAAAAEAAAA=</HashCode>
       <FileName>Construct\GH_StructureTemperature.cs</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="BrownBat.Construct.GH_ConstructElement" Collapsed="true">
-    <Position X="7" Y="8.5" Width="1.5" />
+    <Position X="8.75" Y="5.5" Width="1.75" />
     <TypeIdentifier>
       <HashCode>AAIABAAAAAAAAAAAAAAAAAEAABAAAAAAAAAAAAEAAAA=</HashCode>
       <FileName>Construct\GH_ConstructElement.cs</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="BrownBat.Arrange.GH_SelectWallValue" Collapsed="true">
-    <Position X="17" Y="7.25" Width="1.5" />
+    <Position X="8.75" Y="11" Width="1.75" />
     <TypeIdentifier>
       <HashCode>AAIABAAAAAAAAAAAAAAAAAEAABAAAIAEAAAAAAEAAAQ=</HashCode>
       <FileName>Arrange\GH_SelectWallValue.cs</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="BrownBat.View.GH_OpenBitmap" Collapsed="true">
-    <Position X="22.5" Y="3.5" Width="1.5" />
+    <Position X="18.25" Y="4.25" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAIABAAAAAAAAAAAAAAAAAEAABAAAAAAAAAAAAEAAAA=</HashCode>
       <FileName>View\GH_OpenBitmap.cs</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="BrownBat.View.GH_MapMaterial" Collapsed="true">
-    <Position X="22.25" Y="4.5" Width="1.5" />
+    <Position X="18.25" Y="5.5" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAIABAAAAAAAAAAAAAAAAAEAABAAAAAAAAAAAAEAAAA=</HashCode>
       <FileName>View\GH_MapMaterial.cs</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="BrownBat.View.GH_FlipSideBitmap" Collapsed="true">
-    <Position X="22.25" Y="5.75" Width="1.5" />
+    <Position X="18.25" Y="6.75" Width="1.75" />
     <TypeIdentifier>
       <HashCode>AAIABAAAAAAAAAAAAAAAAAEAABAAAAAAAAAAAAEAAAA=</HashCode>
       <FileName>View\GH_FlipSideBitmap.cs</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="BrownBat.Arrange.GH_SelectValue" Collapsed="true">
-    <Position X="7.5" Y="11" Width="1.5" />
+    <Position X="11.5" Y="6.5" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAIABAAAAAAAAAAAAAAAAAEAABAAAAAAAAAAAAEAAAA=</HashCode>
       <FileName>Arrange\GH_SelectValue.cs</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="BrownBat.Data.GH_OrderElement" Collapsed="true">
-    <Position X="9.25" Y="11" Width="1.5" />
+    <Position X="13.5" Y="6.5" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAIABAAAAAAAAAAAAAAAAAEAABAAAAAAAAAAAAEAAAA=</HashCode>
       <FileName>Data\GH_OrderElement.cs</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="BrownBat.Arrange.GH_SortGrid" Collapsed="true">
-    <Position X="7.25" Y="12.25" Width="1.5" />
+    <Position X="11.5" Y="7.75" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAIABAAAIEAAAAAAAAAAAAEAABAAAAAAAAAAAAEAAAA=</HashCode>
       <FileName>Arrange\GH_SortGrid.cs</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="BrownBat.Arrange.GH_ArrangeGrid" Collapsed="true">
-    <Position X="9.25" Y="12.25" Width="1.5" />
+    <Position X="13.5" Y="7.75" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAIABAAAAAAAAAAAAAAAAAEAABAAAAAAAAAAAAEAAAA=</HashCode>
       <FileName>Arrange\GH_ArrangeGrid.cs</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="BrownBat.Components.BitmapImage">
-    <Position X="31" Y="11.75" Width="1.5" />
+    <Position X="29" Y="4.25" Width="1.5" />
     <Compartments>
       <Compartment Name="Properties" Collapsed="true" />
       <Compartment Name="Methods" Collapsed="true" />
@@ -137,7 +153,7 @@
     <Lollipop Position="0.2" />
   </Class>
   <Class Name="BrownBat.Components.Element">
-    <Position X="26.75" Y="11.75" Width="2.25" />
+    <Position X="24.75" Y="4.25" Width="2.25" />
     <Compartments>
       <Compartment Name="Methods" Collapsed="true" />
     </Compartments>
@@ -148,11 +164,11 @@
     <Lollipop Position="0.2" />
   </Class>
   <Class Name="System.Object" Collapsed="true">
-    <Position X="27" Y="10.25" Width="1.5" />
+    <Position X="25" Y="2.75" Width="1.5" />
     <TypeIdentifier />
   </Class>
   <Class Name="BrownBat.Components.HeatCluster">
-    <Position X="29.25" Y="11.75" Width="1.5" />
+    <Position X="27.25" Y="4.25" Width="1.5" />
     <Compartments>
       <Compartment Name="Methods" Collapsed="true" />
     </Compartments>
@@ -162,7 +178,7 @@
     </TypeIdentifier>
   </Class>
   <Class Name="BrownBat.Components.Pixel">
-    <Position X="23.25" Y="11.75" Width="1.5" />
+    <Position X="21.25" Y="4.25" Width="1.5" />
     <Compartments>
       <Compartment Name="Methods" Collapsed="true" />
     </Compartments>
@@ -172,7 +188,7 @@
     </TypeIdentifier>
   </Class>
   <Class Name="BrownBat.Components.Structure">
-    <Position X="25" Y="11.75" Width="1.5" />
+    <Position X="23" Y="4.25" Width="1.5" />
     <Compartments>
       <Compartment Name="Methods" Collapsed="true" />
     </Compartments>
@@ -182,79 +198,85 @@
     </TypeIdentifier>
   </Class>
   <Class Name="BrownBat.Calculate.GH_Overlap" Collapsed="true">
-    <Position X="14" Y="14" Width="1.5" />
+    <Position X="12.5" Y="11" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAIABAAAAAAAAAAAAAAAAAEAABAAAAAAAAAAAAEAAAA=</HashCode>
       <FileName>Calculate\GH_Overlap.cs</FileName>
     </TypeIdentifier>
   </Class>
-  <Class Name="BrownBat.Calculate.GH_Conductivity" Collapsed="true">
-    <Position X="11.5" Y="15.25" Width="1.5" />
+  <Class Name="BrownBat.Calculate.GH_Conductivity" Collapsed="true" HideInheritanceLine="true">
+    <Position X="10.75" Y="12.25" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAIABAAAAAAAAAAAAAAAAAEAABAAAAAAAAAAAAEAAAA=</HashCode>
       <FileName>Calculate\GH_Conductivity.cs</FileName>
     </TypeIdentifier>
   </Class>
-  <Class Name="BrownBat.Calculate.GH_HeatFlux_File" Collapsed="true">
-    <Position X="13.5" Y="15.25" Width="1.5" />
+  <Class Name="BrownBat.Calculate.GH_HeatFlux_File" Collapsed="true" HideInheritanceLine="true">
+    <Position X="12.5" Y="12.25" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAIABAAAAAAAAAAAAAAAAAEAABAAAAAAAAAAAAEAAAA=</HashCode>
       <FileName>Calculate\GH_HeatFlux_File.cs</FileName>
     </TypeIdentifier>
   </Class>
-  <Class Name="BrownBat.Calculate.GH_Resistance" Collapsed="true">
-    <Position X="15.75" Y="15.25" Width="1.5" />
+  <Class Name="BrownBat.Calculate.GH_Resistance" Collapsed="true" HideInheritanceLine="true">
+    <Position X="14.25" Y="12.25" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAIABAAAAAAAAAAAAAAAAAEAABAAAAAAAAAAAAEAAAA=</HashCode>
       <FileName>Calculate\GH_Resistance.cs</FileName>
     </TypeIdentifier>
   </Class>
-  <Class Name="BrownBat.Data.GH_ExportFile" Collapsed="true">
-    <Position X="13.75" Y="17" Width="1.5" />
+  <Class Name="BrownBat.Data.GH_ExportFile" Collapsed="true" HideInheritanceLine="true">
+    <Position X="12.5" Y="13.5" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAIABAAAAAAAAAAAAAAAAAEAABAAAAAAAAAAAAEAAAA=</HashCode>
       <FileName>Data\GH_ExportFile.cs</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="BrownBat.CalculateHelper.AreaHelper" HideInheritanceLine="true">
-    <Position X="13.5" Y="9.75" Width="2" />
+    <Position X="8.75" Y="6.75" Width="2" />
     <TypeIdentifier>
       <HashCode>CAAAIAAAAAAAAQAEAQAAIAEAAAAIBAAAAAAAAQEAAAA=</HashCode>
       <FileName>CalculateHelper\AreaHelper.cs</FileName>
     </TypeIdentifier>
   </Class>
-  <Class Name="BrownBat.CalculateHelper.BmpHelper" Collapsed="true" HideInheritanceLine="true">
-    <Position X="25.25" Y="4.75" Width="1.5" />
+  <Class Name="BrownBat.CalculateHelper.BmpHelper" HideInheritanceLine="true">
+    <Position X="18.25" Y="7.75" Width="1.75" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAAAAgAAAAAAAAAAAAAAAAAAAAA=</HashCode>
       <FileName>CalculateHelper\BmpHelper.cs</FileName>
     </TypeIdentifier>
   </Class>
-  <Class Name="BrownBat.CalculateHelper.DbscanPoint" Collapsed="true" HideInheritanceLine="true">
-    <Position X="9" Y="13.5" Width="1.5" />
+  <Class Name="BrownBat.CalculateHelper.DbscanPoint" HideInheritanceLine="true">
+    <Position X="13.5" Y="8.75" Width="1.5" />
+    <Compartments>
+      <Compartment Name="Methods" Collapsed="true" />
+    </Compartments>
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
       <FileName>CalculateHelper\DbscanPoint.cs</FileName>
     </TypeIdentifier>
     <Lollipop Position="0.2" />
   </Class>
-  <Class Name="BrownBat.CalculateHelper.ElementCentral" Collapsed="true" HideInheritanceLine="true">
-    <Position X="11.25" Y="6.75" Width="1.5" />
+  <Class Name="BrownBat.CalculateHelper.ElementCentral" HideInheritanceLine="true">
+    <Position X="16" Y="6.75" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAIAAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAQ=</HashCode>
       <FileName>CalculateHelper\ElementCentral.cs</FileName>
     </TypeIdentifier>
   </Class>
-  <Struct Name="BrownBat.CalculateHelper.ConvexVertex" Collapsed="true">
-    <Position X="7.25" Y="13.5" Width="1.5" />
+  <Struct Name="BrownBat.CalculateHelper.ConvexVertex">
+    <Position X="11.5" Y="8.75" Width="1.5" />
+    <Compartments>
+      <Compartment Name="Methods" Collapsed="true" />
+    </Compartments>
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYAA=</HashCode>
       <FileName>CalculateHelper\ConvexVertex.cs</FileName>
     </TypeIdentifier>
     <Lollipop Position="0.2" />
   </Struct>
-  <Struct Name="BrownBat.CalculateHelper.HeatTransfer" Collapsed="true">
-    <Position X="18.25" Y="14.25" Width="1.5" />
+  <Struct Name="BrownBat.CalculateHelper.HeatTransfer">
+    <Position X="16.25" Y="12.25" Width="2.25" />
     <TypeIdentifier>
       <HashCode>ABACAAAAAAAAAAAAAACAAAAAAAAAAAAAAAAAAABAAAA=</HashCode>
       <FileName>CalculateHelper\HeatTransfer.cs</FileName>

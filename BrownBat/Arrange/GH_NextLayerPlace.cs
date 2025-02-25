@@ -136,9 +136,9 @@ namespace BrownBat.Arrange
             var testviewList = new List<Transform>();
             if (fitAreaPair.Count > 0)
             {
-                for (int key = 0; key < fitAreaPair.Count; key++)
+                List<int> keys = fitAreaPair.Keys.ToList();
+                foreach (int key in keys)
                 {
-                    //TODO: not all branches have matches, keys missing
                     var transform = fitAreaPair[key].First().Second.First();
                     testviewList.Add(transform);
                 }

@@ -58,6 +58,9 @@ namespace BrownBat.Arrange
 
             double tolerance = 10;
             var elementHasCluster = inElement.Where(e => e.HeatClusterGroup != null);
+            var elementOrderClusterArea = elementHasCluster.OrderByDescending(e => e.HeatClusterGroup
+                                                                        .Sum(hc => hc.Value.XAxis.Length * hc.Value.YAxis.Length))
+                                                        .ToList();
 
             double longestClusterLength = elementHasCluster.Max(e=> e.HeatClusterGroup
                                                     .Select(hc => new[] { hc.Value.XAxis.Length, hc.Value.YAxis.Length }
@@ -66,6 +69,7 @@ namespace BrownBat.Arrange
                                                     .Max());
             Dictionary<int, List<Pair<string, List<Transform>>>> fitAreaPair = new Dictionary<int, List<Pair<string, List<Transform>>>>();
 
+            List<PlaceAxis> axisList = new List<PlaceAxis>();
             for (int branch = 0; branch < inAxis.Branches.Count; branch++)
             {
                 //place along long axis, get boundary long axis first
@@ -74,33 +78,118 @@ namespace BrownBat.Arrange
                 Vector3d direction = default;
                 Line mainAxis = default;
 
+                PlaceAxis boundAxis = new PlaceAxis();
+
                 Intersection.LineLine(xAxis, yAxis, out double a, out double b, 0.001, true);
-                Transform transformPlane = new Transform();
                 Plane axisPlane = new Plane();
-                
+
                 if (xAxis.Length > yAxis.Length)
                 {
                     direction = xAxis.Direction;
                     mainAxis = xAxis;
                     axisPlane = new Plane(xAxis.PointAt(a), xAxis.Direction, yAxis.Direction);
+                    boundAxis.Direction = direction;
+                    boundAxis.MainAxis = mainAxis;
+                    boundAxis.AxisPlane = axisPlane;
                 }
-                else 
+                else
                 {
                     direction = yAxis.Direction;
                     mainAxis = yAxis;
                     axisPlane = new Plane(xAxis.PointAt(a), yAxis.Direction, xAxis.Direction);
+                    boundAxis.Direction = direction;
+                    boundAxis.MainAxis = mainAxis;
+                    boundAxis.AxisPlane = axisPlane;
                 }
-                List<Pair<string, List<Transform>>> pairList = new List<Pair<string, List<Transform>>>();
+                axisList.Add(boundAxis);
+            }
+            //place larger boundary axis first, it matters more, order boundary by axis length
+            List<PlaceAxis> orderAxisList = axisList.OrderByDescending(ax => ax.MainAxis.Length).ToList();
+
+            List<Pair<string, List<Transform>>> pairList = new List<Pair<string, List<Transform>>>();
+            List<string> usedNames = new List<string>();
+            for (int ax = 0; ax < orderAxisList.Count; ax++)
+            {
+                Line mainAxis = orderAxisList[ax].MainAxis;
+                Plane axisPlane = orderAxisList[ax].AxisPlane;
+
+                //if boundary too large, use multiple pieces
+                if (mainAxis.Length > longestClusterLength + tolerance)
+                {
+                    Element firstElement;
+                    //place center
+                    for (int e = 0; e < elementOrderClusterArea.Count; e++)
+                    {
+
+                        if (usedNames.Contains(elementOrderClusterArea[e].Name))
+                        {
+                            continue;
+                        }
+                        else
+                        {
+                            firstElement = elementOrderClusterArea[e];
+                            usedNames.Add(firstElement.Name);
+
+                            Point3d elementBaseCenter = AreaMassProperties.Compute(firstElement.GeometryBaseCurve).Centroid;
+
+                            Plane centerPlane = new Plane();
+                            //long cluster axis closer to X or Y axis on this element
+                            if (x)
+                            { 
+                                centerPlane = new Plane(elementBaseCenter, firstElement.Origin.XAxis, firstElement.Origin.YAxis);
+                            }
+                            if (y)
+                            {
+                                centerPlane = new Plane(elementBaseCenter, firstElement.Origin.YAxis, firstElement.Origin.XAxis);
+
+                            }
+                            Transform transformPlane = Transform.PlaneToPlane(centerPlane, axisPlane);
+                            break;
+                        }
+                    }
+                    //check to add left
+                    // if remaining length is smaller than half length of the largest cluster, continue
+                    double axisLeftLength;
+                    double elementLeftLength;
+                    double remainLeftLength = axisLeftLength - elementLeftLength;
+
+                    if (remainLeftLength > longestClusterLength)
+                    { 
+                        for (int e = 0; e < elementOrderClusterArea.Count; e++)
+                        {
+                            Element element = elementOrderClusterArea[e];
+
+                            if (usedNames.Contains(element.Name))
+                            {
+                                continue;
+                            }
+                        
+                            {
+                                usedNames.Add(element.Name);
+
+                                Point3d elementBaseCenter = AreaMassProperties.Compute(element.GeometryBaseCurve).Centroid;
+                                Plane centerPlane = new Plane(elementBaseCenter, element.Origin.XAxis, element.Origin.YAxis);
+                                Transform transformPlane = Transform.PlaneToPlane(centerPlane, axisPlane);
+                                break;
+                            }
+                        }
+                    }
+
+                    //check to add right
+                    // if remaining length is smaller than half length of the largest cluster, continue
+
+                }
                 //if the boundary is small enough to use one element to fit
-                if (mainAxis.Length < longestClusterLength + tolerance)
+                else 
                 {
                     for (int e = 0; e < inElement.Count; e++)
                     {
-                        List<Transform>transformations = new List<Transform>();
+                        List<Transform> transformations = new List<Transform>();
                         for (int i = 0; i < inElement[e].HeatClusterGroup.Count; i++)
                         {
                             HeatCluster cluster = inElement[e].HeatClusterGroup[i];
                             Plane clusterPlane = new Plane();
+                            Transform transformPlane = new Transform();
                             if (Math.Abs(cluster.XAxis.Length - mainAxis.Length) < tolerance)
                             {
                                 clusterPlane = new Plane(cluster.Center, cluster.XAxis.To, cluster.YAxis.To);
@@ -125,14 +214,9 @@ namespace BrownBat.Arrange
                         }
                     }
                 }
-                //boundary too large, use multiple pieces
-                else 
-                {   
-                    //TODO
-                    continue;
-                }
-                fitAreaPair.Add(branch, pairList);
+                fitAreaPair.Add(ax, pairList);
             }
+            
             var testviewList = new List<Transform>();
             if (fitAreaPair.Count > 0)
             {
@@ -148,6 +232,13 @@ namespace BrownBat.Arrange
                 testviewList.Add(new Transform());
             }
             DA.SetDataList(1, testviewList);
+        }
+        public struct PlaceAxis
+        {
+            public Line MainAxis { get; set; }
+            public Vector3d Direction { get; set; }
+            public Plane AxisPlane { get; set; }
+
         }
 
         /// <summary>

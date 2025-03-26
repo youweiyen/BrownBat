@@ -88,7 +88,6 @@ namespace BrownBat.Construct
                 }
                 Transform nonTransform = new Transform(1);
 
-
                 BoundingBox panelBox = inputBlock[i].GetBoundingBox(nonTransform);
                 Brep panelBrep = panelBox.ToBrep();
                 Mesh panelMesh = Mesh.CreateFromBox(panelBox, 2, 2, 2);

@@ -272,47 +272,79 @@ namespace BrownBat.CalculateHelper
             }
             return result;
         }
-        public static IEnumerable<DbscanPoint> DouglasPeucker(List<DbscanPoint> points, double epsilon)
+        public static List<Point3d> DouglasPeucker(List<Point3d> points, double tolerance)
         {
-            // Find the point with the maximum distance
-            int dmax = 0;
-            int index = 0;
-            int end = points.Count;
-            Line straightLine = new Line(new Point3d(points[0].Point.X, points[0].Point.Y, 0), new Point3d(points[end-1].Point.Y, points[end-1].Point.Y, 0));
+            if (points == null || points.Count < 3) { return points; }
 
-            for ( int i = 2; i < end; i++)
+            int firstPoint = 0;
+            int lastPoint = points.Count - 1;
+            List<int> pointIndexsToKeep = new List<int>
             {
-                double d = straightLine.DistanceTo(new Point3d(points[1].Point.X, points[1].Point.Y, 0), true);
-                if (d > dmax)
+                //Add the first and last index to the keepers
+                firstPoint,
+                lastPoint
+            };
+
+            //The first and the last point cannot be the same
+            while (points[firstPoint].Equals(points[lastPoint]))
+            {
+                lastPoint--;
+            }
+
+            DouglasPeuckerReduction(points, firstPoint, lastPoint,
+            tolerance, ref pointIndexsToKeep);
+
+            List<Point3d> returnPoints = new List<Point3d>();
+            pointIndexsToKeep.Sort();
+            foreach (int index in pointIndexsToKeep)
+            {
+                returnPoints.Add(points[index]);
+            }
+
+            return returnPoints;
+        }
+        private static void DouglasPeuckerReduction(List<Point3d> points, int firstPoint, int lastPoint, double tolerance, ref List<int> pointIndexsToKeep)
+        {
+            double maxDistance = 0;
+            int indexFarthest = 0;
+
+            for (int index = firstPoint; index < lastPoint; index++)
+            {
+                double distance = PerpendicularDistance
+                    (points[firstPoint], points[lastPoint], points[index]);
+                if (distance > maxDistance)
                 {
-                    index = i;
-                    dmax = (int)d;
+                    maxDistance = distance;
+                    indexFarthest = index;
                 }
             }
 
-            List<DbscanPoint> resultList = new List<DbscanPoint>();
-
-            // If max distance is greater than epsilon, recursively simplify
-            if (dmax > epsilon)
+            if (maxDistance > tolerance && indexFarthest != 0)
             {
+                //Add the largest point that exceeds the tolerance
+                pointIndexsToKeep.Add(indexFarthest);
 
-                // Recursive call
-                var recResults1 = DouglasPeucker(points.Take(index).ToList(), epsilon);
-                var recResults2 = DouglasPeucker(points.Skip(index).Take(end - index).ToList(), epsilon);
-                //DbscanPoint[] recResults1 = DouglasPeucker(points[1...index], epsilon);
-                //DbscanPoint[] recResults2 = DouglasPeucker(points[index...end], epsilon);
+                DouglasPeuckerReduction(points, firstPoint,
+                indexFarthest, tolerance, ref pointIndexsToKeep);
+                DouglasPeuckerReduction(points, indexFarthest,
+                lastPoint, tolerance, ref pointIndexsToKeep);
+            }
+        }
+        public static double PerpendicularDistance(Point3d Point1, Point3d Point2, Point3d Point)
+        {
+            //Area = |(1/2)(x1y2 + x2y3 + x3y1 - x2y1 - x3y2 - x1y3)|   *Area of triangle
+            //Base = v((x1-x2)²+(x1-x2)²)                               *Base of Triangle*
+            //Area = .5*Base*H                                          *Solve for height
+            //Height = Area/.5/Base
 
-                // Build the result list
-                resultList.AddRange(recResults1.Take(recResults1.Count() - 1).ToList());
-                resultList.AddRange(recResults2.Take(recResults2.Count() - 1).ToList());
-            }
-            else
-            {
-                resultList.Add(points[0]);
-                resultList.Add(points[end-1]);
-            }
-            // Return the result
-            return resultList;
+            double area = Math.Abs(.5 * (Point1.X * Point2.Y + Point2.X *
+            Point.Y + Point.X * Point1.Y - Point2.X * Point1.Y - Point.X *
+            Point2.Y - Point1.X * Point.Y));
+            double bottom = Math.Sqrt(Math.Pow(Point1.X - Point2.X, 2) +
+            Math.Pow(Point1.Y - Point2.Y, 2));
+            double height = area / bottom * 2;
+
+            return height;
         }
         public static Plane PlacePlane(Brep placeBound)
         {

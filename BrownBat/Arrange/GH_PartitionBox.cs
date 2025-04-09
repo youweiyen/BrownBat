@@ -6,14 +6,14 @@ using Rhino.Geometry;
 
 namespace BrownBat.Arrange
 {
-    public class GH_SegmentByBox : GH_Component
+    public class GH_PartitionBox : GH_Component
     {
         /// <summary>
         /// Initializes a new instance of the SegmentByBox class.
         /// </summary>
-        public GH_SegmentByBox()
-          : base("SegmentByBox", "SB",
-              "Segement Pieces by Thermal Value into box shape",
+        public GH_PartitionBox()
+          : base("PartitionBox", "PB",
+              "Partition by Thermal Value into box shape",
               "BrownBat", "Arrange")
         {
         }

@@ -5,6 +5,7 @@ using BrownBat.CalculateHelper;
 using Grasshopper.Kernel;
 using Rhino;
 using Rhino.Collections;
+using Rhino.Commands;
 using Rhino.Geometry;
 
 namespace BrownBat.Arrange
@@ -93,8 +94,43 @@ namespace BrownBat.Arrange
                 }
             }
             List<Curve> patternCurves = new List<Curve>();
+            #region opt1
+            //for (int i = 0; i < roots.Count - 1; i++)
+            //{
+            //    roots[i].Shape.TryGetPolyline(out var root1Polyline);
+            //    Point3d[] points1 = root1Polyline.ToArray();
+            //    for (int j = i + 1; j < roots.Count; j++)
+            //    {
+            //        roots[j].Shape.TryGetPolyline(out var root2Polyline);
+            //        Point3d[] points2 = root2Polyline.ToArray();
 
-            for (int i = 0; i < roots.Count-1; i++)
+            //        List<Point3d> point1Shift = points1.ToList();
+            //        List<Point3d> point2Shift = points2.ToList();
+
+            //        CompareCurve(points1, roots[j], minDistance, ref point1Shift, ref point2Shift);
+            //        CompareCurve(points2, roots[i], minDistance, ref point1Shift, ref point2Shift);
+
+
+            //        int[] points1Seq = SortPtsAlongCurve(point1Shift, roots[i].Shape);
+            //        Point3d[] sort1Points = new Point3d[point1Shift.Count];
+            //        for (int seq = 0; seq < point1Shift.Count; seq++)
+            //        {
+            //            sort1Points[seq] = point1Shift[seq];
+            //        }
+            //        int[] points2Seq = SortPtsAlongCurve(point2Shift, roots[j].Shape);
+            //        Point3d[] sort2Points = new Point3d[point2Shift.Count];
+            //        for (int seq = 0; seq < point2Shift.Count; seq++)
+            //        {
+            //            sort2Points[seq] = point2Shift[seq];
+            //        }
+
+            //        roots[i].ShiftPoints = sort1Points.ToArray();
+            //        roots[j].ShiftPoints = sort2Points.ToArray();
+            //    }
+            //}
+            #endregion
+            #region opt2
+            for (int i = 0; i < roots.Count - 1; i++)
             {
                 roots[i].Shape.TryGetPolyline(out var root1Polyline);
                 Point3d[] points1 = root1Polyline.ToArray();
@@ -107,13 +143,13 @@ namespace BrownBat.Arrange
                     List<Point3d> point2Shift = points2.ToList();
 
                     CompareCurve(points1, roots[j], minDistance, ref point1Shift, ref point2Shift);
-                    CompareCurve(points2, roots[i], minDistance, ref point1Shift, ref point2Shift);
+                    CompareCurve(points2, roots[i], minDistance, ref point2Shift, ref point1Shift);
 
-                    
+
                     int[] points1Seq = SortPtsAlongCurve(point1Shift, roots[i].Shape);
                     Point3d[] sort1Points = new Point3d[point1Shift.Count];
                     for (int seq = 0; seq < point1Shift.Count; seq++)
-                    { 
+                    {
                         sort1Points[seq] = point1Shift[seq];
                     }
                     int[] points2Seq = SortPtsAlongCurve(point2Shift, roots[j].Shape);
@@ -127,6 +163,7 @@ namespace BrownBat.Arrange
                     roots[j].ShiftPoints = point2Shift.ToArray();
                 }
             }
+            #endregion
             Curve pCurve1 = new PolylineCurve(trees[0].ShiftPoints).ToNurbsCurve();
             Curve pCurve2 = new PolylineCurve(trees[1].ShiftPoints).ToNurbsCurve();
 
@@ -223,8 +260,23 @@ namespace BrownBat.Arrange
                                                     (p.Y + closestPoint.Y) / 2,
                                                     (p.Z + closestPoint.Z) / 2);
                     point1Shift.Remove(p);
-                    point1Shift.Add(midPoint);
-                    point2Shift.Add(midPoint);
+                    int index = Array.FindIndex(points, po => po == p);
+                    point1Shift.Insert(index, midPoint);
+                    
+                }
+            }
+        }
+        public void IntersectingSurface(Point3d[] points, CurveTree compareRoot, double minDistance)
+        {
+            foreach (Point3d p in points)
+            {
+                Curve compareCurve = compareRoot.Shape;
+                compareCurve.ClosestPoint(p, out double param);
+                Point3d closestPoint = compareCurve.PointAt(param);
+                if (p.DistanceTo(closestPoint) < minDistance)
+                {
+
+
 
                 }
             }

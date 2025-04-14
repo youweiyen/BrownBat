@@ -1,8 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using BrownBat.CalculateHelper;
+using Grasshopper;
 using Grasshopper.Kernel;
+using Grasshopper.Kernel.Data;
 using Rhino;
 using Rhino.Collections;
 using Rhino.Commands;
@@ -39,6 +42,9 @@ namespace BrownBat.Arrange
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
             pManager.AddCurveParameter("Pattern", "P", "Pattern level", GH_ParamAccess.list);
+            pManager.AddCurveParameter("trees", "t", "t", GH_ParamAccess.tree);
+            pManager.AddCurveParameter("viewOffset", "t", "t", GH_ParamAccess.tree);
+
         }
 
         /// <summary>
@@ -56,11 +62,18 @@ namespace BrownBat.Arrange
 
             var sortedCurves = inCurve.OrderByDescending(crv => AreaMassProperties.Compute(crv).Area);
             double tolerance = RhinoDoc.ActiveDoc.ModelAbsoluteTolerance;
+            foreach (Curve curve in sortedCurves)
+            {
+                CurveOrientation orientation = curve.ClosedCurveOrientation();
+                if (orientation == CurveOrientation.CounterClockwise)
+                {
+                    curve.Reverse();
+                }
 
+            }
 
-           
             var trees = new List<CurveTree>();
-            var roots = new List<CurveTree>();
+            var viewOffset = new List<Curve>();
 
             foreach (Curve crv in sortedCurves)
             {
@@ -72,11 +85,14 @@ namespace BrownBat.Arrange
                 for (int inner = outer + 1; inner < trees.Count; inner++)
                 {
 
-                    Point3d scaleCenter = AreaMassProperties.Compute(trees[inner].Shape).Centroid;
+                    //Point3d scaleCenter = AreaMassProperties.Compute(trees[inner].Shape).Centroid;
 
-                    Curve offsetCurve = trees[inner].Shape.Offset(scaleCenter, Vector3d.ZAxis, 0.1, tolerance, CurveOffsetCornerStyle.Sharp)
-                                                        .OrderByDescending(crv => crv.GetLength())
-                                                        .First();
+                    //Curve offsetCurve = trees[inner].Shape.Offset(scaleCenter, Vector3d.ZAxis, 0.2, tolerance, CurveOffsetCornerStyle.Sharp)
+                    //                                    .OrderByDescending(crv => crv.GetLength())
+                    //                                    .First();
+                    Curve offsetCurve = trees[inner].Shape.Offset(Plane.WorldXY, 0.2, tolerance, CurveOffsetCornerStyle.Sharp)
+                                    .OrderByDescending(crv => crv.GetLength())
+                                    .First();
 
                     RegionContainment contains = Curve.PlanarClosedCurveRelationship(trees[outer].Shape, offsetCurve, Plane.WorldXY, tolerance);
 
@@ -85,17 +101,25 @@ namespace BrownBat.Arrange
                         trees[outer].Children.Add(trees[inner]);
                         trees[inner].Parent.Add(trees[outer]);
                     }
+                    viewOffset.Add(trees[outer].Shape);
+                    viewOffset.Add(offsetCurve);
                 }
-                //Add root curve(curves with no parent)
 
             }
-            foreach(CurveTree root in trees)
+            //layer them out
+            var layers = trees.GroupBy(branch => branch.Parent.Count)
+                                .Select(grp => grp.ToList())
+                                .ToList();
+
+            DataTree<Curve> rhinoTree = new DataTree<Curve>();
+            int p = 0;
+            foreach (var l in layers)
             {
-                if (root.Parent.Count == 0)
-                {
-                    roots.Add(root);
-                }
+                var curvesList = l.Select(lay => lay.Shape).ToList();
+                rhinoTree.AddRange(curvesList, new GH_Path(p));
+                p++;
             }
+
             List<Curve> patternCurves = new List<Curve>();
             #region opt1
             //for (int i = 0; i < roots.Count - 1; i++)
@@ -133,32 +157,53 @@ namespace BrownBat.Arrange
             //}
             #endregion
             #region opt2
-            for (int i = 0; i < roots.Count - 1; i++)
+            foreach (var group in layers)
             {
-                roots[i].Shape.TryGetPolyline(out var root1Polyline);
-                Point3d[] points1 = root1Polyline.ToArray();
-                for (int j = i + 1; j < roots.Count; j++)
+
+                for (int i = 0; i < group.Count - 1; i++)
                 {
-                    roots[j].Shape.TryGetPolyline(out var root2Polyline);
-                    Point3d[] points2 = root2Polyline.ToArray();
+                    group[i].Shape.TryGetPolyline(out var root1Polyline);
+                    Point3d[] points1 = root1Polyline.ToArray();
+                    for (int j = i + 1; j < group.Count; j++)
+                    {
+                        group[j].Shape.TryGetPolyline(out var root2Polyline);
+                        Point3d[] points2 = root2Polyline.ToArray();
 
-                    List<Point3d> point1Shift = points1.ToList();
-                    List<Point3d> point2Shift = points2.ToList();
+                        List<Point3d> point1Shift = points1.ToList();
+                        List<Point3d> point2Shift = points2.ToList();
 
-                    //CompareCurve(points1, roots[j], minDistance, ref point1Shift, ref point2Shift);
-                    CompareCurve(points2, roots[i], minDistance, ref point2Shift, ref point1Shift);
+                        //CompareCurve(points1, roots[j], minDistance, ref point1Shift, ref point2Shift);
+                        CompareCurve(points2, group[i], minDistance, ref point2Shift, ref point1Shift);
 
-                    roots[j].ShiftPoints = point2Shift.ToArray();
+                        group[j].ShiftPoints = point2Shift.ToArray();
+                    }
                 }
             }
+
             #endregion
-            Curve pCurve1 = new PolylineCurve(trees[0].ShiftPoints).ToNurbsCurve();
-            Curve pCurve2 = new PolylineCurve(trees[1].ShiftPoints).ToNurbsCurve();
+            foreach (var tree in trees)
+            {
+                if (tree.ShiftPoints == null)
+                {
+                    patternCurves.Add(tree.Shape);
+                }
+                else
+                { 
+                    patternCurves.Add(new PolylineCurve(tree.ShiftPoints).ToNurbsCurve());
+                }
+                
+            }
 
-
-            patternCurves.Add(pCurve1);
-            patternCurves.Add(pCurve2);
-
+            //foreach (CurveTree tree in trees)
+            //{
+            //    foreach (CurveTree root in roots)
+            //    {
+            //        if (tree.Parent[0] == root)
+            //        {
+                        
+            //        }
+            //    }
+            //}
 
             foreach (CurveTree pattern1 in trees)
             {
@@ -199,6 +244,8 @@ namespace BrownBat.Arrange
                 //}
             }
             DA.SetDataList(0, patternCurves);
+            DA.SetDataTree(1, rhinoTree);
+            DA.SetDataList(2, viewOffset);
 
         }
 

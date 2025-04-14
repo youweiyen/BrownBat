@@ -188,22 +188,12 @@ namespace BrownBat.Arrange
                     patternCurves.Add(tree.Shape);
                 }
                 else
-                { 
+                {
+                    //add starting point to close curve
                     patternCurves.Add(new PolylineCurve(tree.ShiftPoints).ToNurbsCurve());
                 }
                 
             }
-
-            //foreach (CurveTree tree in trees)
-            //{
-            //    foreach (CurveTree root in roots)
-            //    {
-            //        if (tree.Parent[0] == root)
-            //        {
-                        
-            //        }
-            //    }
-            //}
 
             foreach (CurveTree pattern1 in trees)
             {
@@ -219,29 +209,6 @@ namespace BrownBat.Arrange
                         
                     }
                 }
-                //List<CurveTree> parents = pattern.Parent;
-                //for (int p = 0; p < parents.Count; p++)
-                //{
-                //    if (parents[p].NewShape == null)
-                //    {
-                //        parents[p].NewShape = Curve.CreateBooleanDifference(parents[p].Shape, grandchild.Shape, tolerance);
-                //    }
-                //    else
-                //    {
-                        
-                //    }
-                //}
-                //grandchild.Shape.TryGetPolyline(out Polyline rootPolyline);
-                //Point3d[] points = rootPolyline.ToArray();
-                //Rectangle3d minBox = AreaHelper.MinBoundingBox(points, Plane.WorldXY);
-                //if (minBox.X.Length > minLength && minBox.Y.Length > minLength)
-                //{
-                //    Curve[] trimmedCurves = Curve.CreateBooleanDifference(grandchild.Shape, grandchild.Shape, tolerance);
-                //}
-                //else 
-                //{
-
-                //}
             }
             DA.SetDataList(0, patternCurves);
             DA.SetDataTree(1, rhinoTree);

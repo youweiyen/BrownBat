@@ -29,7 +29,8 @@ namespace BrownBat.Arrange
         {
             pManager.AddCurveParameter("Patttern", "P", "All defined pattern as curves", GH_ParamAccess.list);
             pManager.AddNumberParameter("Minimum", "Min", "Smallest dimension of pattern", GH_ParamAccess.item);
-            pManager.AddNumberParameter("BlobDistance", "Dist", "Merge Curve smallest distance", GH_ParamAccess.item);
+            pManager.AddNumberParameter("BlobDistance", "Dist", "Merge Curve smallest distance" +
+                "Default set to 15", GH_ParamAccess.item);
         }
 
         /// <summary>
@@ -48,13 +49,15 @@ namespace BrownBat.Arrange
         {
             List<Curve> inCurve = new List<Curve>();
             double minLength = default;
-            double minDistance = default;
+            double minDistance = 15;
             DA.GetDataList(0, inCurve);
             DA.GetData(1, ref minLength);
             DA.GetData(2, ref minDistance);
 
             var sortedCurves = inCurve.OrderByDescending(crv => AreaMassProperties.Compute(crv).Area);
             double tolerance = RhinoDoc.ActiveDoc.ModelAbsoluteTolerance;
+
+
            
             var trees = new List<CurveTree>();
             var roots = new List<CurveTree>();
@@ -142,24 +145,9 @@ namespace BrownBat.Arrange
                     List<Point3d> point1Shift = points1.ToList();
                     List<Point3d> point2Shift = points2.ToList();
 
-                    CompareCurve(points1, roots[j], minDistance, ref point1Shift, ref point2Shift);
+                    //CompareCurve(points1, roots[j], minDistance, ref point1Shift, ref point2Shift);
                     CompareCurve(points2, roots[i], minDistance, ref point2Shift, ref point1Shift);
 
-
-                    int[] points1Seq = SortPtsAlongCurve(point1Shift, roots[i].Shape);
-                    Point3d[] sort1Points = new Point3d[point1Shift.Count];
-                    for (int seq = 0; seq < point1Shift.Count; seq++)
-                    {
-                        sort1Points[seq] = point1Shift[seq];
-                    }
-                    int[] points2Seq = SortPtsAlongCurve(point2Shift, roots[j].Shape);
-                    Point3d[] sort2Points = new Point3d[point2Shift.Count];
-                    for (int seq = 0; seq < point2Shift.Count; seq++)
-                    {
-                        sort2Points[seq] = point2Shift[seq];
-                    }
-
-                    roots[i].ShiftPoints = point1Shift.ToArray();
                     roots[j].ShiftPoints = point2Shift.ToArray();
                 }
             }
@@ -167,8 +155,10 @@ namespace BrownBat.Arrange
             Curve pCurve1 = new PolylineCurve(trees[0].ShiftPoints).ToNurbsCurve();
             Curve pCurve2 = new PolylineCurve(trees[1].ShiftPoints).ToNurbsCurve();
 
+
             patternCurves.Add(pCurve1);
             patternCurves.Add(pCurve2);
+
 
             foreach (CurveTree pattern1 in trees)
             {
@@ -261,8 +251,7 @@ namespace BrownBat.Arrange
                                                     (p.Z + closestPoint.Z) / 2);
                     point1Shift.Remove(p);
                     int index = Array.FindIndex(points, po => po == p);
-                    point1Shift.Insert(index, midPoint);
-                    
+                    point1Shift.Insert(index, closestPoint);
                 }
             }
         }

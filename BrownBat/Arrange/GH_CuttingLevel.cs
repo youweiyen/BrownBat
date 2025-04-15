@@ -6,6 +6,8 @@ using BrownBat.CalculateHelper;
 using Grasshopper;
 using Grasshopper.Kernel;
 using Grasshopper.Kernel.Data;
+using Grasshopper.Kernel.Geometry.Delaunay;
+using NumSharp.Utilities;
 using Rhino;
 using Rhino.Collections;
 using Rhino.Commands;
@@ -30,7 +32,7 @@ namespace BrownBat.Arrange
         /// </summary>
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
-            pManager.AddCurveParameter("Patttern", "P", "All defined pattern as curves", GH_ParamAccess.list);
+            pManager.AddCurveParameter("Pattern", "P", "All defined pattern as curves", GH_ParamAccess.list);
             pManager.AddNumberParameter("Minimum", "Min", "Smallest dimension of pattern", GH_ParamAccess.item);
             pManager.AddNumberParameter("BlobDistance", "Dist", "Merge Curve smallest distance" +
                 "Default set to 15", GH_ParamAccess.item);
@@ -43,7 +45,6 @@ namespace BrownBat.Arrange
         {
             pManager.AddCurveParameter("Pattern", "P", "Pattern level", GH_ParamAccess.list);
             pManager.AddCurveParameter("trees", "t", "t", GH_ParamAccess.tree);
-            pManager.AddCurveParameter("viewOffset", "t", "t", GH_ParamAccess.tree);
 
         }
 
@@ -60,7 +61,22 @@ namespace BrownBat.Arrange
             DA.GetData(1, ref minLength);
             DA.GetData(2, ref minDistance);
 
-            var sortedCurves = inCurve.OrderByDescending(crv => AreaMassProperties.Compute(crv).Area);
+            //remove small curve
+            List<Curve> validCurves = new List<Curve>();
+            foreach (Curve curve in inCurve)
+            {
+                curve.TryGetPolyline(out var curvePolyline);
+                Point3d[] points = curvePolyline.ToArray();
+                points = points.RemoveAt(0);
+                Point3d centerPoint = new Point3d(points.Average(po => po.X),points.Average(po => po.Y), 0);
+                Plane plane = new Plane(centerPoint, Vector3d.ZAxis);
+                Rectangle3d minBox = AreaHelper.MinBoundingBox(points, plane);
+                if(minBox.X.Length > minLength || minBox.Y.Length > minLength)
+                {
+                    validCurves.Add(curve);
+                }
+            }
+            var sortedCurves = validCurves.OrderByDescending(crv => AreaMassProperties.Compute(crv).Area);
             double tolerance = RhinoDoc.ActiveDoc.ModelAbsoluteTolerance;
             foreach (Curve curve in sortedCurves)
             {
@@ -73,7 +89,6 @@ namespace BrownBat.Arrange
             }
 
             var trees = new List<CurveTree>();
-            var viewOffset = new List<Curve>();
 
             foreach (Curve crv in sortedCurves)
             {
@@ -90,7 +105,7 @@ namespace BrownBat.Arrange
                     //Curve offsetCurve = trees[inner].Shape.Offset(scaleCenter, Vector3d.ZAxis, 0.2, tolerance, CurveOffsetCornerStyle.Sharp)
                     //                                    .OrderByDescending(crv => crv.GetLength())
                     //                                    .First();
-                    Curve offsetCurve = trees[inner].Shape.Offset(Plane.WorldXY, 0.2, tolerance, CurveOffsetCornerStyle.Sharp)
+                    Curve offsetCurve = trees[inner].Shape.Offset(Plane.WorldXY, 2, tolerance, CurveOffsetCornerStyle.Sharp)
                                     .OrderByDescending(crv => crv.GetLength())
                                     .First();
 
@@ -101,8 +116,6 @@ namespace BrownBat.Arrange
                         trees[outer].Children.Add(trees[inner]);
                         trees[inner].Parent.Add(trees[outer]);
                     }
-                    viewOffset.Add(trees[outer].Shape);
-                    viewOffset.Add(offsetCurve);
                 }
 
             }
@@ -174,8 +187,14 @@ namespace BrownBat.Arrange
 
                         //CompareCurve(points1, roots[j], minDistance, ref point1Shift, ref point2Shift);
                         CompareCurve(points2, group[i], minDistance, ref point2Shift, ref point1Shift);
-
-                        group[j].ShiftPoints = point2Shift.ToArray();
+                        int[] pointsSeq = SortPtsAlongCurve(point2Shift, group[j].Shape);
+                        Point3d[] sortPoints = new Point3d[point2Shift.Count];
+                        for (int seq = 0; seq < point2Shift.Count; seq++)
+                        {
+                            sortPoints[seq] = point2Shift[seq];
+                        }
+                        group[j].ShiftPoints = sortPoints.ToArray();
+                        
                     }
                 }
             }
@@ -192,27 +211,10 @@ namespace BrownBat.Arrange
                     //add starting point to close curve
                     patternCurves.Add(new PolylineCurve(tree.ShiftPoints).ToNurbsCurve());
                 }
-                
-            }
 
-            foreach (CurveTree pattern1 in trees)
-            {
-                foreach(CurveTree pattern2 in trees)
-                {
-                    if (pattern1.Shape != pattern2.Shape)
-                    {
-                        //neighbor
-                        //if (pattern1.Parent.First() != pattern2.Parent.First() && pattern1.Parent.First().Shape != pattern2.Shape)
-                        //{
-
-                        //}
-                        
-                    }
-                }
             }
             DA.SetDataList(0, patternCurves);
             DA.SetDataTree(1, rhinoTree);
-            DA.SetDataList(2, viewOffset);
 
         }
 
@@ -296,6 +298,78 @@ namespace BrownBat.Arrange
             }
             Array.Sort(tA, iA);
             return iA;
+        }
+        public class Edge
+        {
+            public Point3d A { get; set; }
+            public Point3d B { get; set; }
+        }
+        public class AlphaShape
+        {
+            public List<Edge> BorderEdges { get; private set; }
+
+            public AlphaShape(List<Point3d> points, double alpha)
+            {
+                // 0. error checking, init
+                if (points == null || points.Count < 2) { throw new ArgumentException("AlphaShape needs at least 2 points"); }
+                BorderEdges = new List<Edge>();
+                var alpha_2 = alpha * alpha;
+
+                // 1. run through all pairs of points
+                for (int i = 0; i < points.Count - 1; i++)
+                {
+                    for (int j = i + 1; j < points.Count; j++)
+                    {
+                        if (points[i] == points[j]) { throw new ArgumentException("AlphaShape needs pairwise distinct points"); } // alternatively, continue
+                        var dist = Dist(points[i], points[j]);
+                        if (dist > 2 * alpha) { continue; } // circle fits between points ==> p_i, p_j can't be alpha-exposed                    
+
+                        double x1 = points[i].X, x2 = points[j].X, y1 = points[i].Y, y2 = points[j].Y; // for clarity & brevity
+
+                        var mid = new Point3d((x1 + x2) / 2, (y1 + y2) / 2, 0);
+
+                        // find two circles that contain p_i and p_j; note that center1 == center2 if dist == 2*alpha
+                        var center1 = new Point3d(
+                            mid.X + (double)Math.Sqrt(alpha_2 - (dist / 2) * (dist / 2)) * (y1 - y2) / dist,
+                            mid.Y + (double)Math.Sqrt(alpha_2 - (dist / 2) * (dist / 2)) * (x2 - x1) / dist,
+                            0);
+
+                        var center2 = new Point3d(
+                            mid.X - (double)Math.Sqrt(alpha_2 - (dist / 2) * (dist / 2)) * (y1 - y2) / dist,
+                            mid.Y - (double)Math.Sqrt(alpha_2 - (dist / 2) * (dist / 2)) * (x2 - x1) / dist,
+                            0);
+
+                        // check if one of the circles is alpha-exposed, i.e. no other point lies in it
+                        bool c1_empty = true, c2_empty = true;
+                        for (int k = 0; k < points.Count && (c1_empty || c2_empty); k++)
+                        {
+                            if (points[k] == points[i] || points[k] == points[j]) { continue; }
+
+                            if ((center1.X - points[k].X) * (center1.X - points[k].X) + (center1.Y - points[k].Y) * (center1.Y - points[k].Y) < alpha_2)
+                            {
+                                c1_empty = false;
+                            }
+
+                            if ((center2.X - points[k].X) * (center2.X - points[k].X) + (center2.Y - points[k].Y) * (center2.Y - points[k].Y) < alpha_2)
+                            {
+                                c2_empty = false;
+                            }
+                        }
+
+                        if (c1_empty || c2_empty)
+                        {
+                            // yup!
+                            BorderEdges.Add(new Edge() { A = points[i], B = points[j] });
+                        }
+                    }
+                }
+            }
+
+            // Euclidian distance between A and B
+            public static double Dist(Point3d A, Point3d B)
+            {
+                return (double)Math.Sqrt((A.X - B.X) * (A.X - B.X) + (A.Y - B.Y) * (A.Y - B.Y));
+            }
         }
     }
 }

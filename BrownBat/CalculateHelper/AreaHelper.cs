@@ -135,7 +135,7 @@ namespace BrownBat.CalculateHelper
 
             // Rotate the rectangle to fit the points
             Transform finalRotation = Transform.Rotation(-minimumAngle, Point3d.Origin);
-            minimumRectangle.Transform(finalRotation);
+             minimumRectangle.Transform(finalRotation);
 
             // Transform the rectangle to it's initial orientation
             minimumRectangle.Transform(toInputPlane);

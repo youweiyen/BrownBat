@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using BrownBat.CalculateHelper;
+using Eto.Forms;
 using Grasshopper;
 using Grasshopper.Kernel;
 using Grasshopper.Kernel.Data;
@@ -45,6 +46,8 @@ namespace BrownBat.Arrange
         {
             pManager.AddCurveParameter("Pattern", "P", "Pattern level", GH_ParamAccess.list);
             pManager.AddCurveParameter("trees", "t", "t", GH_ParamAccess.tree);
+            pManager.AddCurveParameter("splitCurves", "sc", "sc", GH_ParamAccess.list);
+            pManager.AddBrepParameter("pieces", "p", "p", GH_ParamAccess.list);
 
         }
 
@@ -78,7 +81,7 @@ namespace BrownBat.Arrange
                 {
                     validCurves.Add(curve);
                     Plane minPlane = minBox.Plane;
-                    validPlane.Add(plane);
+                    validPlane.Add(minPlane);
                 }
             }
             double tolerance = RhinoDoc.ActiveDoc.ModelAbsoluteTolerance;
@@ -126,6 +129,7 @@ namespace BrownBat.Arrange
             var layers = trees.GroupBy(branch => branch.Parent.Count)
                                 .Select(grp => grp.ToList())
                                 .ToList();
+            layers.Reverse();
 
             DataTree<Curve> rhinoTree = new DataTree<Curve>();
             int p = 0;
@@ -216,11 +220,45 @@ namespace BrownBat.Arrange
                 }
 
             }
-            #region segment box
+            #region basicsegmentation
+            //get one min bounding box
+            Plane selectedPlane = layers[0][0].MinBoundingPlane;
+            //create bounding box
+            BoundingBox childBox = layers[0][0].Shape.GetBoundingBox(selectedPlane);
+            Rectangle3d childRect = new Rectangle3d(Plane.WorldXY, childBox.Max, childBox.Min);
+            Transform backToPosition = Transform.PlaneToPlane(Plane.WorldXY, selectedPlane);
+            childRect.Transform(backToPosition);
+
+            BoundingBox parentBox = layers[0][0].Parent[4].Shape.GetBoundingBox(selectedPlane);
+            Rectangle3d parentRect = new Rectangle3d(Plane.WorldXY, parentBox.Max, parentBox.Min);
+            parentRect.Transform(backToPosition);
+
+            List<Curve> parentGeometry = new List<Curve>
+            {
+                parentRect.ToNurbsCurve()
+            };
+            var cuttingLines = new List<Curve>();
             
+            Line[] boundLines = childRect.ToPolyline().GetSegments();
+            foreach (Line line in boundLines)
+            {
+                cuttingLines.Add(line.ToNurbsCurve().ExtendByLine(CurveEnd.Both, parentGeometry));
+            }
+            Brep parentBrep = Brep.CreateFromCornerPoints(parentRect.Corner(0), 
+                                        parentRect.Corner(1), 
+                                        parentRect.Corner(2), 
+                                        parentRect.Corner(3), tolerance);
+            Brep[] pieces = parentBrep.Split(cuttingLines, tolerance);
+            //translate to origin, align xy
+            //split breps
+            //group parallel cuts
             #endregion
+
             DA.SetDataList(0, patternCurves);
             DA.SetDataTree(1, rhinoTree);
+            DA.SetDataList(2, cuttingLines);
+            DA.SetDataList(3, pieces);
+
 
         }
 

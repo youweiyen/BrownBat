@@ -46,7 +46,7 @@ namespace BrownBat.Arrange
         {
             pManager.AddCurveParameter("Pattern", "P", "Pattern level", GH_ParamAccess.list);
             pManager.AddCurveParameter("trees", "t", "t", GH_ParamAccess.tree);
-            pManager.AddCurveParameter("splitCurves", "sc", "sc", GH_ParamAccess.list);
+            pManager.AddCurveParameter("splitCurves", "sc", "sc", GH_ParamAccess.tree);
             pManager.AddBrepParameter("pieces", "p", "p", GH_ParamAccess.list);
 
         }
@@ -135,7 +135,7 @@ namespace BrownBat.Arrange
             int p = 0;
             foreach (var l in layers)
             {
-                var curvesList = l.Select(lay => lay.Shape).ToList();
+                var curvesList = l.Select(crv => crv.Shape).ToList();
                 rhinoTree.AddRange(curvesList, new GH_Path(p));
                 p++;
             }
@@ -221,34 +221,91 @@ namespace BrownBat.Arrange
 
             }
             #region basicsegmentation
-            //get one min bounding box
-            Plane selectedPlane = layers[0][0].MinBoundingPlane;
-            //create bounding box
-            BoundingBox childBox = layers[0][0].Shape.GetBoundingBox(selectedPlane);
-            Rectangle3d childRect = new Rectangle3d(Plane.WorldXY, childBox.Max, childBox.Min);
-            Transform backToPosition = Transform.PlaneToPlane(Plane.WorldXY, selectedPlane);
-            childRect.Transform(backToPosition);
+            ////get one min bounding box
+            //Plane selectedPlane = layers[0][0].MinBoundingPlane;
+            ////create bounding box
+            //BoundingBox childBox = layers[0][0].Shape.GetBoundingBox(selectedPlane);
+            //Rectangle3d childRect = new Rectangle3d(Plane.WorldXY, childBox.Max, childBox.Min);
+            //Transform backToPosition = Transform.PlaneToPlane(Plane.WorldXY, selectedPlane);
+            //childRect.Transform(backToPosition);
 
-            BoundingBox parentBox = layers[0][0].Parent[4].Shape.GetBoundingBox(selectedPlane);
-            Rectangle3d parentRect = new Rectangle3d(Plane.WorldXY, parentBox.Max, parentBox.Min);
-            parentRect.Transform(backToPosition);
+            //BoundingBox parentBox = layers[0][0].Parent[4].Shape.GetBoundingBox(selectedPlane);
+            //Rectangle3d parentRect = new Rectangle3d(Plane.WorldXY, parentBox.Max, parentBox.Min);
+            //parentRect.Transform(backToPosition);
 
-            List<Curve> parentGeometry = new List<Curve>
-            {
-                parentRect.ToNurbsCurve()
-            };
-            var cuttingLines = new List<Curve>();
+            //List<Curve> parentGeometry = new List<Curve>
+            //{
+            //    parentRect.ToNurbsCurve()
+            //};
+            //var cuttingLines = new List<Curve>();
             
-            Line[] boundLines = childRect.ToPolyline().GetSegments();
-            foreach (Line line in boundLines)
+            //Line[] boundLines = childRect.ToPolyline().GetSegments();
+            //foreach (Line line in boundLines)
+            //{
+            //    cuttingLines.Add(line.ToNurbsCurve().ExtendByLine(CurveEnd.Both, parentGeometry));
+            //}
+            //Brep parentBrep = Brep.CreateFromCornerPoints(parentRect.Corner(0), 
+            //                            parentRect.Corner(1), 
+            //                            parentRect.Corner(2), 
+            //                            parentRect.Corner(3), tolerance);
+            //Brep[] pieces = parentBrep.Split(cuttingLines, tolerance);
+            ////translate to origin, align xy
+            ////split breps
+            ////group parallel cuts
+            #endregion
+
+            #region multiplesegmentation
+            //get one min bounding box
+            Plane useMinPlane = layers[0][0].MinBoundingPlane;
+            //create bounding box
+            DataTree<Curve> splits = new DataTree<Curve>();
+
+            int lay = 0;
+            foreach (var layer in layers)
             {
-                cuttingLines.Add(line.ToNurbsCurve().ExtendByLine(CurveEnd.Both, parentGeometry));
+                List<Rectangle3d> allChildRect = new List<Rectangle3d>();
+                Transform inverseTransform = Transform.PlaneToPlane(Plane.WorldXY, useMinPlane);
+                for (int i = 0; i < layer.Count; i++)
+                {
+                    BoundingBox childBox = layer[i].Shape.GetBoundingBox(useMinPlane);
+                    Rectangle3d childRect = new Rectangle3d(Plane.WorldXY, childBox.Max, childBox.Min);
+                    childRect.Transform(inverseTransform);
+                    allChildRect.Add(childRect);
+                }
+                Rectangle3d parentRect = new Rectangle3d();
+                if (layer[0].Parent.Count != 0)
+                {
+                    layer[0].Parent.Reverse();
+                    BoundingBox parentBox = layer[0].Parent[0].Shape.GetBoundingBox(useMinPlane);
+                    parentRect = new Rectangle3d(Plane.WorldXY, parentBox.Max, parentBox.Min);
+                    parentRect.Transform(inverseTransform);
+                }
+
+                var cuttingLines = new List<Curve>();
+                for (int r = 0; r < allChildRect.Count; r++)
+                {
+                    var parentGeometry = allChildRect.Where((v, i) => i != r).Select(rec => rec.ToNurbsCurve()).ToList();
+                    if (layer[0].Parent.Count != 0)
+                    {
+                        parentGeometry.Add(parentRect.ToNurbsCurve());
+                    }
+                    Line[] boundLines = allChildRect[r].ToPolyline().GetSegments();
+                    foreach (Line line in boundLines)
+                    {
+                        cuttingLines.Add(line.ToNurbsCurve().ExtendByLine(CurveEnd.Both, parentGeometry));
+                    }
+                }
+                splits.AddRange(cuttingLines, new GH_Path(lay));
+                lay++;
             }
-            Brep parentBrep = Brep.CreateFromCornerPoints(parentRect.Corner(0), 
-                                        parentRect.Corner(1), 
-                                        parentRect.Corner(2), 
-                                        parentRect.Corner(3), tolerance);
-            Brep[] pieces = parentBrep.Split(cuttingLines, tolerance);
+
+            //Brep parentBrep = Brep.CreateFromCornerPoints(parentRect.Corner(0),
+            //                            parentRect.Corner(1),
+            //                            parentRect.Corner(2),
+            //                            parentRect.Corner(3), tolerance);
+
+            //Brep[] pieces = parentBrep.Split(cuttingLines, tolerance);
+
             //translate to origin, align xy
             //split breps
             //group parallel cuts
@@ -256,8 +313,8 @@ namespace BrownBat.Arrange
 
             DA.SetDataList(0, patternCurves);
             DA.SetDataTree(1, rhinoTree);
-            DA.SetDataList(2, cuttingLines);
-            DA.SetDataList(3, pieces);
+            DA.SetDataTree(2, splits);
+            //DA.SetDataList(3, pieces);
 
 
         }

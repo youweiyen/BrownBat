@@ -61,9 +61,12 @@ namespace BrownBat.Arrange
             DA.GetData(1, ref minLength);
             DA.GetData(2, ref minDistance);
 
-            //remove small curve
+            var sortedCurves = inCurve.OrderByDescending(crv => AreaMassProperties.Compute(crv).Area);
+
+            //remove small curve, get min bounding box
             List<Curve> validCurves = new List<Curve>();
-            foreach (Curve curve in inCurve)
+            List<Plane> validPlane = new List<Plane>();
+            foreach (Curve curve in sortedCurves)
             {
                 curve.TryGetPolyline(out var curvePolyline);
                 Point3d[] points = curvePolyline.ToArray();
@@ -74,11 +77,12 @@ namespace BrownBat.Arrange
                 if(minBox.X.Length > minLength || minBox.Y.Length > minLength)
                 {
                     validCurves.Add(curve);
+                    Plane minPlane = minBox.Plane;
+                    validPlane.Add(plane);
                 }
             }
-            var sortedCurves = validCurves.OrderByDescending(crv => AreaMassProperties.Compute(crv).Area);
             double tolerance = RhinoDoc.ActiveDoc.ModelAbsoluteTolerance;
-            foreach (Curve curve in sortedCurves)
+            foreach (Curve curve in validCurves)
             {
                 CurveOrientation orientation = curve.ClosedCurveOrientation();
                 if (orientation == CurveOrientation.CounterClockwise)
@@ -87,12 +91,11 @@ namespace BrownBat.Arrange
                 }
 
             }
-
             var trees = new List<CurveTree>();
 
-            foreach (Curve crv in sortedCurves)
+            for (int c = 0; c < validCurves.Count; c++)
             {
-                trees.Add(new CurveTree(crv, new List<CurveTree>(), new List<CurveTree>()));
+                trees.Add(new CurveTree(validCurves[c], validPlane[c], new List<CurveTree>(), new List<CurveTree>()));
             }
 
             for (int outer = 0; outer < trees.Count - 1; outer++)
@@ -170,34 +173,34 @@ namespace BrownBat.Arrange
             //}
             #endregion
             #region opt2
-            foreach (var group in layers)
-            {
+            //foreach (var group in layers)
+            //{
 
-                for (int i = 0; i < group.Count - 1; i++)
-                {
-                    group[i].Shape.TryGetPolyline(out var root1Polyline);
-                    Point3d[] points1 = root1Polyline.ToArray();
-                    for (int j = i + 1; j < group.Count; j++)
-                    {
-                        group[j].Shape.TryGetPolyline(out var root2Polyline);
-                        Point3d[] points2 = root2Polyline.ToArray();
+            //    for (int i = 0; i < group.Count - 1; i++)
+            //    {
+            //        group[i].Shape.TryGetPolyline(out var root1Polyline);
+            //        Point3d[] points1 = root1Polyline.ToArray();
+            //        for (int j = i + 1; j < group.Count; j++)
+            //        {
+            //            group[j].Shape.TryGetPolyline(out var root2Polyline);
+            //            Point3d[] points2 = root2Polyline.ToArray();
 
-                        List<Point3d> point1Shift = points1.ToList();
-                        List<Point3d> point2Shift = points2.ToList();
+            //            List<Point3d> point1Shift = points1.ToList();
+            //            List<Point3d> point2Shift = points2.ToList();
 
-                        //CompareCurve(points1, roots[j], minDistance, ref point1Shift, ref point2Shift);
-                        CompareCurve(points2, group[i], minDistance, ref point2Shift, ref point1Shift);
-                        int[] pointsSeq = SortPtsAlongCurve(point2Shift, group[j].Shape);
-                        Point3d[] sortPoints = new Point3d[point2Shift.Count];
-                        for (int seq = 0; seq < point2Shift.Count; seq++)
-                        {
-                            sortPoints[seq] = point2Shift[seq];
-                        }
-                        group[j].ShiftPoints = sortPoints.ToArray();
+            //            //CompareCurve(points1, roots[j], minDistance, ref point1Shift, ref point2Shift);
+            //            CompareCurve(points2, group[i], minDistance, ref point2Shift, ref point1Shift);
+            //            int[] pointsSeq = SortPtsAlongCurve(point2Shift, group[j].Shape);
+            //            Point3d[] sortPoints = new Point3d[point2Shift.Count];
+            //            for (int seq = 0; seq < point2Shift.Count; seq++)
+            //            {
+            //                sortPoints[seq] = point2Shift[seq];
+            //            }
+            //            group[j].ShiftPoints = sortPoints.ToArray();
                         
-                    }
-                }
-            }
+            //        }
+            //    }
+            //}
 
             #endregion
             foreach (var tree in trees)
@@ -213,6 +216,9 @@ namespace BrownBat.Arrange
                 }
 
             }
+            #region segment box
+            
+            #endregion
             DA.SetDataList(0, patternCurves);
             DA.SetDataTree(1, rhinoTree);
 
@@ -245,10 +251,12 @@ namespace BrownBat.Arrange
             public Point3d[] ShiftPoints { get; set; }
             public List<CurveTree> Children { get; set; }
             public List<CurveTree> Parent { get; set; }
+            public Plane MinBoundingPlane { get; set; }
 
-            public CurveTree(Curve shape, List<CurveTree> children, List<CurveTree> parent)
+            public CurveTree(Curve shape, Plane minPlane, List<CurveTree> children, List<CurveTree> parent)
             {
                 Shape = shape;
+                MinBoundingPlane = minPlane;
                 Children = children;
                 Parent = parent;
             }

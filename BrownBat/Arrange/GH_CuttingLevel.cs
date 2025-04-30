@@ -126,6 +126,9 @@ namespace BrownBat.Arrange
             var layers = trees.GroupBy(branch => branch.Parent.Count)
                                 .Select(grp => grp.ToList())
                                 .ToList();
+            //var layers = trees.Where(children => children.Parent.Count > 0).GroupBy(branch => branch.Parent.Last())
+            //        .Select(grp => grp.ToList())
+            //        .ToList();
             layers.Reverse();
 
             DataTree<Curve> rhinoTree = new DataTree<Curve>();
@@ -321,16 +324,20 @@ namespace BrownBat.Arrange
                 childRect.Transform(inverseTransform);
                 pattern.PlaneAlignedRect = childRect;
             }
-            var branches = trees.GroupBy(branch => branch.Parent.Count)
+            //same dad/mom
+            var parentGroup = trees.Where(children => children.Parent.Count > 0).GroupBy(branch => branch.Parent.Last())
                     .Select(grp => grp.ToList())
                     .ToList();
+            List<CurveTree> ancestor = trees.Where(children => children.Parent.Count == 0).ToList();
+            parentGroup.Add(ancestor);
+            #region Merge Same Layer Box
             var viewclosepts = new List<Point3d>();
             var mergebound = new List<Brep>();
-            foreach (var branch in branches)
+            foreach (var family in parentGroup)
             {
-                for (int kid = 0; kid < branch.Count - 1; kid++)
+                for (int kid = 0; kid < family.Count - 1; kid++)
                 {
-                    List<Point3d> kidPoints = branch[kid].PlaneAlignedRect.ToPolyline().ToList();
+                    List<Point3d> kidPoints = family[kid].PlaneAlignedRect.ToPolyline().ToList();
                     kidPoints.RemoveAt(0);
 
                     var kidOrder = kidPoints.OrderBy(x => Math.Atan2(x.X - kidPoints.Average(np => np.X), x.Y - kidPoints.Average(np => np.Y))).ToList();
@@ -341,10 +348,10 @@ namespace BrownBat.Arrange
                                             kidOrder[2],
                                             kidOrder[3],
                                             tolerance);
-                    Brep kidShift = new Brep();
-                    for (int neighbor = kid + 1; neighbor < branch.Count; neighbor++)
+
+                    for (int neighbor = kid + 1; neighbor < family.Count; neighbor++)
                     {
-                        List<Point3d> neighborPoints = branch[neighbor].PlaneAlignedRect.ToPolyline().ToList();
+                        List<Point3d> neighborPoints = family[neighbor].PlaneAlignedRect.ToPolyline().ToList();
                         neighborPoints.RemoveAt(0);
                         //int[] neighborOrder = SortPtsAlongCurve(neighborPoints, branch[0].Shape);
 
@@ -367,15 +374,17 @@ namespace BrownBat.Arrange
                                 if (parallel == 1 || parallel == -1)
                                 {
                                     kidEdge.ClosestPoints(neighborEdge, out Point3d p1, out Point3d p2);
-                                    if (p1.DistanceTo(p2) < 5)
+                                    if (p1.DistanceTo(p2) < minDistance)
                                     {
                                         viewclosepts.Add(p1);
                                         viewclosepts.Add(p2);
                                         Transform move = Transform.Translation(p1-p2);
-                                        int pointendIndex = neighborOrder.IndexOf(neighborEdge.PointAtEnd);
-                                        int pointstartIndex = neighborOrder.IndexOf(neighborEdge.PointAtStart);
-                                        neighborOrder[pointendIndex] = move* neighborOrder[pointendIndex];
-                                        neighborOrder[pointstartIndex] = move * neighborOrder[pointstartIndex];
+                                        int pointEndIndex = Point3dList.ClosestIndexInList(neighborOrder, neighborEdge.PointAtEnd);
+                                        int pointStartIndex = Point3dList.ClosestIndexInList(neighborOrder, neighborEdge.PointAtStart);
+                                    
+                                        neighborOrder[pointEndIndex] = move* neighborOrder[pointEndIndex];
+                                        neighborOrder[pointStartIndex] = move * neighborOrder[pointStartIndex];
+                                        
                                     }
                                 }
                             }
@@ -385,16 +394,26 @@ namespace BrownBat.Arrange
                                             neighborOrder[2],
                                             neighborOrder[3],
                                             tolerance);
-                        branch[neighbor].ShiftBound = neighborShift;
+                        family[neighbor].ShiftBound = neighborShift;
                     }
-                    //branch[kid].ShiftBound = kidShift;
+                    if (family[kid].ShiftBound == null)
+                    {
+                        family[kid].ShiftBound = kidBrep;
+                    }
                 }
                 //visualize
-                foreach (var sticks in branch)
+                foreach (var sticks in family)
                 {
                     mergebound.Add(sticks.ShiftBound);
                 }
             }
+            #endregion
+            #region Merge Child Layer Box
+            for (int familyID = 0; familyID < parentGroup.Count-1; familyID ++)
+            {
+                Brep parentBox = parentGroup[familyID][0].Parent.Last().ShiftBound;
+            }
+            #endregion
             int lay = 0;
             foreach (var layer in layers)
             {

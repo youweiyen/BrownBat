@@ -36,9 +36,10 @@ namespace BrownBat.Arrange
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
             pManager.AddCurveParameter("Pattern", "P", "All defined pattern as curves", GH_ParamAccess.list);
-            pManager.AddNumberParameter("Minimum", "Min", "Smallest dimension of pattern", GH_ParamAccess.item);
-            pManager.AddNumberParameter("BlobDistance", "Dist", "Merge Curve smallest distance" +
-                "Default set to 15", GH_ParamAccess.item);
+            pManager.AddNumberParameter("MinDimension", "Min", "Smallest dimension of pattern", GH_ParamAccess.item);
+            pManager.AddNumberParameter("MillDistance", "MDist", "Merge cutting edges within distance" +
+                "Default set to 6", GH_ParamAccess.item);
+            pManager[2].Optional = true;
         }
 
         /// <summary>
@@ -62,7 +63,7 @@ namespace BrownBat.Arrange
         {
             List<Curve> inCurve = new List<Curve>();
             double minLength = default;
-            double minDistance = 15;
+            double minDistance = 6;
             DA.GetDataList(0, inCurve);
             DA.GetData(1, ref minLength);
             DA.GetData(2, ref minDistance);
@@ -330,6 +331,7 @@ namespace BrownBat.Arrange
                     .ToList();
             List<CurveTree> ancestor = trees.Where(children => children.Parent.Count == 0).ToList();
             parentGroup.Add(ancestor);
+
             #region Merge Same Layer Box
             var viewclosepts = new List<Point3d>();
             var mergebound = new List<Brep>();
@@ -400,11 +402,6 @@ namespace BrownBat.Arrange
                     {
                         family[kid].ShiftBound = kidBrep;
                     }
-                }
-                //visualize
-                foreach (var sticks in family)
-                {
-                    mergebound.Add(sticks.ShiftBound);
                 }
             }
             #endregion
@@ -482,41 +479,42 @@ namespace BrownBat.Arrange
                     mergebound.Add(sticks.ShiftBound);
                 }
             }
-            #endregion
-            int lay = 0;
-            foreach (var layer in layers)
+            //add shiftbound geometry for ones without parent
+            foreach (var jiji in ancestor)
             {
-                List<Rectangle3d> allChildRect = new List<Rectangle3d>();
-                for (int i = 0; i < layer.Count; i++)
-                {
-                    BoundingBox childBox = layer[i].Shape.GetBoundingBox(useMinPlane);
-                    Rectangle3d childRect = new Rectangle3d(Plane.WorldXY, childBox.Max, childBox.Min);
-                    childRect.Transform(inverseTransform);
-                    allChildRect.Add(childRect);
-                }
-                //merge close distances for same layer pieces
+                List<Point3d> ancestorPoints = jiji.PlaneAlignedRect.ToPolyline().ToList();
+                ancestorPoints.RemoveAt(0);
 
-                Rectangle3d parentRect = new Rectangle3d();
-                if (layer[0].Parent.Count != 0)
-                {
-                    layer[0].Parent.Reverse();
-                    BoundingBox parentBox = layer[0].Parent[0].Shape.GetBoundingBox(useMinPlane);
-                    parentRect = new Rectangle3d(Plane.WorldXY, parentBox.Max, parentBox.Min);
-                    parentRect.Transform(inverseTransform);
-                }
+                var ancestorOrder = ancestorPoints.OrderBy(x => Math.Atan2(x.X - ancestorPoints.Average(np => np.X), x.Y - ancestorPoints.Average(np => np.Y))).ToList();
 
+                var ancestorBrep = Brep.CreateFromCornerPoints(ancestorOrder[0],
+                                                                ancestorOrder[1],
+                                                                ancestorOrder[2],
+                                                                ancestorOrder[3],
+                                                                tolerance);
+                jiji.ShiftBound = ancestorBrep;
+                //visualize
+                mergebound.Add(jiji.ShiftBound);
+            }
+
+            #endregion
+
+            int lay = 0;
+            foreach (var family in parentGroup)
+            {
                 var cuttingLines = new List<Curve>();
-                for (int r = 0; r < allChildRect.Count; r++)
+                for (int r = 0; r < family.Count; r++)
                 {
-                    var parentGeometry = allChildRect.Where((v, i) => i != r).Select(rec => rec.ToNurbsCurve()).ToList();
-                    if (layer[0].Parent.Count != 0)
+                    var neighborBox = family.Select(f => f.ShiftBound).Where((v, i) => i != r).ToList();
+                    if (family[r].Parent.Count != 0)
                     {
-                        parentGeometry.Add(parentRect.ToNurbsCurve());
+                        Brep papaGeometry = family[r].Parent.Last().ShiftBound;
+                        neighborBox.Add(papaGeometry);
                     }
-                    Line[] boundLines = allChildRect[r].ToPolyline().GetSegments();
-                    foreach (Line line in boundLines)
+                    Curve[] boundLines = family[r].ShiftBound.DuplicateEdgeCurves();
+                    foreach (Curve line in boundLines)
                     {
-                        cuttingLines.Add(line.ToNurbsCurve().ExtendByLine(CurveEnd.Both, parentGeometry));
+                        cuttingLines.Add(line.ToNurbsCurve().ExtendByLine(CurveEnd.Both, neighborBox));
                     }
                 }
                 splits.AddRange(cuttingLines, new GH_Path(lay));
@@ -563,6 +561,8 @@ namespace BrownBat.Arrange
             public List<CurveTree> Parent { get; set; }
             public Plane MinBoundingPlane { get; set; }
             public Rectangle3d PlaneAlignedRect { get; set; }
+            public Brep BoundTrim { get; set; }
+            public List<double> PoplarData { get; set; }
 
             public CurveTree(Curve shape, Plane minPlane, List<CurveTree> children, List<CurveTree> parent)
             {

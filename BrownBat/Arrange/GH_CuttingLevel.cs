@@ -364,11 +364,11 @@ namespace BrownBat.Arrange
                                             tolerance);
                         for (int kedge = 0; kedge < kidBrep.Edges.Count; kedge++)
                         {
+                            Curve kidEdge = kidBrep.Edges[kedge];
+                            Vector3d kidDirection = new Vector3d(kidEdge.PointAtStart - kidEdge.PointAtEnd);
                             for (int edge = 0; edge < neighborBrep.Edges.Count; edge++)
                             {
-                                Curve kidEdge = kidBrep.Edges[kedge];
                                 Curve neighborEdge = neighborBrep.Edges[edge];
-                                Vector3d kidDirection = new Vector3d(kidEdge.PointAtStart - kidEdge.PointAtEnd);
                                 Vector3d neighborDirection = new Vector3d(neighborEdge.PointAtStart - neighborEdge.PointAtEnd);
                                 int parallel = kidDirection.IsParallelTo(neighborDirection, tolerance);
                                 if (parallel == 1 || parallel == -1)
@@ -409,9 +409,78 @@ namespace BrownBat.Arrange
             }
             #endregion
             #region Merge Child Layer Box
+            
             for (int familyID = 0; familyID < parentGroup.Count-1; familyID ++)
             {
-                Brep parentBox = parentGroup[familyID][0].Parent.Last().ShiftBound;
+                Brep parentBrep = parentGroup[familyID][0].Parent.Last().ShiftBound;
+                //compare parent to each child
+                foreach (var child in parentGroup[familyID])
+                {
+                    var childOrder = new List<Point3d>();
+                    Brep childBrep = new Brep();
+
+                    if (child.ShiftBound != null)
+                    {
+                        childBrep = child.ShiftBound;
+                        var childPoints = childBrep.Vertices.Select(v => v.Location);
+                        //sorted points clockwise
+                        childOrder = childPoints.OrderBy(x => Math.Atan2(x.X - childPoints.Average(np => np.X), x.Y - childPoints.Average(np => np.Y))).ToList();
+                    }
+                    else 
+                    {
+                        List<Point3d> neighborPoints = child.PlaneAlignedRect.ToPolyline().ToList();
+                        neighborPoints.RemoveAt(0);
+
+                        childOrder = neighborPoints.OrderBy(x => Math.Atan2(x.X - neighborPoints.Average(np => np.X), x.Y - neighborPoints.Average(np => np.Y))).ToList();
+
+                        childBrep = Brep.CreateFromCornerPoints(childOrder[0],
+                                                                childOrder[1],
+                                                                childOrder[2],
+                                                                childOrder[3],
+                                                                tolerance);
+                    }
+                    
+                    for (int pedge = 0;  pedge < parentBrep.Edges.Count; pedge++)
+                    {
+                        Curve parentEdge = parentBrep.Edges[pedge];
+                        //move child edges
+                        for (int cedge = 0; cedge < childBrep.Edges.Count; cedge++)
+                        {
+                            Curve childEdge = childBrep.Edges[cedge];
+                            Vector3d parentDirection = new Vector3d(parentEdge.PointAtStart - parentEdge.PointAtEnd);
+                            Vector3d childDirection = new Vector3d(childEdge.PointAtStart - childEdge.PointAtEnd);
+
+                            int parallel = parentDirection.IsParallelTo(childDirection, tolerance);
+                            if (parallel == 1 || parallel == -1)
+                            {
+                                parentEdge.ClosestPoints(childEdge, out Point3d p1, out Point3d p2);
+                                if (p1.DistanceTo(p2) < minDistance)
+                                {
+                                    viewclosepts.Add(p1);
+                                    viewclosepts.Add(p2);
+                                    Transform move = Transform.Translation(p1 - p2);
+                                    int pointEndIndex = Point3dList.ClosestIndexInList(childOrder, childEdge.PointAtEnd);
+                                    int pointStartIndex = Point3dList.ClosestIndexInList(childOrder, childEdge.PointAtStart);
+
+                                    childOrder[pointEndIndex] = move * childOrder[pointEndIndex];
+                                    childOrder[pointStartIndex] = move * childOrder[pointStartIndex];
+
+                                }
+                            }
+                        }
+                    }
+                    Brep childShift = Brep.CreateFromCornerPoints(childOrder[0],
+                                                                  childOrder[1],
+                                                                  childOrder[2],
+                                                                  childOrder[3],
+                                                                  tolerance);
+                    child.ShiftBound = childShift;
+                }
+                //visualize
+                foreach (var sticks in parentGroup[familyID])
+                {
+                    mergebound.Add(sticks.ShiftBound);
+                }
             }
             #endregion
             int lay = 0;

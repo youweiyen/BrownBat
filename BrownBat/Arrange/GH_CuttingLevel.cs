@@ -38,10 +38,13 @@ namespace BrownBat.Arrange
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
             pManager.AddCurveParameter("Pattern", "P", "All defined pattern as curves", GH_ParamAccess.list);
-            pManager.AddNumberParameter("MinDimension", "Min", "Smallest dimension of pattern", GH_ParamAccess.item);
+            pManager.AddCurveParameter("Boundary", "B", "Stock Boundary", GH_ParamAccess.item);
+            pManager.AddNumberParameter("MinDimension", "Min", "Smallest dimension of pattern" + 
+                "Default set to 12", GH_ParamAccess.item);
             pManager.AddNumberParameter("MillDistance", "MDist", "Merge cutting edges within distance" +
                 "Default set to 6", GH_ParamAccess.item);
             pManager[2].Optional = true;
+            pManager[3].Optional = true;
         }
 
         /// <summary>
@@ -53,7 +56,6 @@ namespace BrownBat.Arrange
             pManager.AddCurveParameter("trees", "t", "t", GH_ParamAccess.tree);
             pManager.AddCurveParameter("splitCurves", "sc", "sc", GH_ParamAccess.tree);
             pManager.AddBrepParameter("pieces", "p", "p", GH_ParamAccess.list);
-            pManager.AddPointParameter("pt", "pt", "pt", GH_ParamAccess.list);
 
         }
 
@@ -64,11 +66,13 @@ namespace BrownBat.Arrange
         protected override void SolveInstance(IGH_DataAccess DA)
         {
             List<Curve> inCurve = new List<Curve>();
-            double minLength = default;
+            Curve stockBound = default; 
+            double minLength = 12;
             double minDistance = 6;
             DA.GetDataList(0, inCurve);
-            DA.GetData(1, ref minLength);
-            DA.GetData(2, ref minDistance);
+            DA.GetData(1, ref stockBound);
+            DA.GetData(2, ref minLength);
+            DA.GetData(3, ref minDistance);
 
             var sortedCurves = inCurve.OrderByDescending(crv => AreaMassProperties.Compute(crv).Area);
 
@@ -83,7 +87,7 @@ namespace BrownBat.Arrange
                 Point3d centerPoint = new Point3d(points.Average(po => po.X),points.Average(po => po.Y), 0);
                 Plane plane = new Plane(centerPoint, Vector3d.ZAxis);
                 Rectangle3d minBox = AreaHelper.MinBoundingBox(points, plane);
-                if(minBox.X.Length > minLength || minBox.Y.Length > minLength)
+                if(minBox.X.Length > minLength && minBox.Y.Length > minLength)
                 {
                     validCurves.Add(curve);
                     Plane minPlane = minBox.Plane;
@@ -315,7 +319,9 @@ namespace BrownBat.Arrange
 
             #region mergeboxsegmentation
             //get one min bounding box
-            Plane useMinPlane = layers[0][0].MinBoundingPlane;
+            //Plane useMinPlane = layers[0][0].MinBoundingPlane;
+            Plane useMinPlane = Plane.WorldXY;
+
             Transform inverseTransform = Transform.PlaneToPlane(Plane.WorldXY, useMinPlane);
             //create bounding box
             DataTree<Curve> splits = new DataTree<Curve>();
@@ -337,6 +343,7 @@ namespace BrownBat.Arrange
             #region Merge Same Layer Box
             var viewclosepts = new List<Point3d>();
             var mergebound = new List<Brep>();
+
             foreach (var family in parentGroup)
             {
                 for (int kid = 0; kid < family.Count - 1; kid++)
@@ -344,28 +351,50 @@ namespace BrownBat.Arrange
                     List<Point3d> kidPoints = family[kid].PlaneAlignedRect.ToPolyline().ToList();
                     kidPoints.RemoveAt(0);
 
-                    var kidOrder = kidPoints.OrderBy(x => Math.Atan2(x.X - kidPoints.Average(np => np.X), x.Y - kidPoints.Average(np => np.Y))).ToList();
+                    //var kidOrder = kidPoints.OrderBy(x => Math.Atan2(x.X, x.Y)).ToList();
 
-                    //int[] pointOrder = SortPtsAlongCurve(kidPoints, branch[0].Shape);
+                    int[] pointSort = SortPtsAlongCurve(kidPoints, stockBound);
+                    List<Point3d> kidOrder = new List<Point3d>
+                        {
+                            kidPoints[pointSort[0]],
+                            kidPoints[pointSort[1]],
+                            kidPoints[pointSort[2]],
+                            kidPoints[pointSort[3]]
+                        };
+
                     Brep kidBrep = Brep.CreateFromCornerPoints(kidOrder[0],
-                                            kidOrder[1],
-                                            kidOrder[2],
-                                            kidOrder[3],
-                                            tolerance);
+                                                               kidOrder[1],
+                                                               kidOrder[2],
+                                                               kidOrder[3],
+                                                               tolerance);
 
                     for (int neighbor = kid + 1; neighbor < family.Count; neighbor++)
                     {
+                        //use shifted geometry if it was shifted before
+                        if (family[neighbor].ShiftBound != null)
+                        {
+                            //neighborBrep = 
+                        }
                         List<Point3d> neighborPoints = family[neighbor].PlaneAlignedRect.ToPolyline().ToList();
                         neighborPoints.RemoveAt(0);
-                        //int[] neighborOrder = SortPtsAlongCurve(neighborPoints, branch[0].Shape);
+                        int[] neighborSort = SortPtsAlongCurve(neighborPoints, stockBound);
+                        List<Point3d> neighborOrder = new List<Point3d> 
+                        {
+                            neighborPoints[neighborSort[0]],
+                            neighborPoints[neighborSort[1]],
+                            neighborPoints[neighborSort[2]],
+                            neighborPoints[neighborSort[3]]
+                        };
+                        //var neighborOrder = neighborPoints.OrderBy(x => Math.Atan2(x.X - neighborPoints.Average(np => np.X), x.Y - neighborPoints.Average(np => np.Y))).ToList();
+                        //var neighborOrder = neighborPoints.OrderBy(x => Math.Atan2(x.X, x.Y)).ToList();
 
-                        var neighborOrder = neighborPoints.OrderBy(x => Math.Atan2(x.X - neighborPoints.Average(np => np.X), x.Y - neighborPoints.Average(np => np.Y))).ToList();
 
                         Brep neighborBrep = Brep.CreateFromCornerPoints(neighborOrder[0],
-                                            neighborOrder[1],
-                                            neighborOrder[2],
-                                            neighborOrder[3],
-                                            tolerance);
+                                                                        neighborOrder[1],
+                                                                        neighborOrder[2],
+                                                                        neighborOrder[3],
+                                                                        tolerance);
+
                         for (int kedge = 0; kedge < kidBrep.Edges.Count; kedge++)
                         {
                             Curve kidEdge = kidBrep.Edges[kedge];
@@ -380,38 +409,47 @@ namespace BrownBat.Arrange
                                     kidEdge.ClosestPoints(neighborEdge, out Point3d p1, out Point3d p2);
                                     if (p1.DistanceTo(p2) < minDistance)
                                     {
-                                        viewclosepts.Add(p1);
-                                        viewclosepts.Add(p2);
-                                        Transform move = Transform.Translation(p1-p2);
+
+                                        Vector3d move = p1 - p2;
                                         int pointEndIndex = Point3dList.ClosestIndexInList(neighborOrder, neighborEdge.PointAtEnd);
                                         int pointStartIndex = Point3dList.ClosestIndexInList(neighborOrder, neighborEdge.PointAtStart);
-                                    
-                                        neighborOrder[pointEndIndex] = move* neighborOrder[pointEndIndex];
-                                        neighborOrder[pointStartIndex] = move * neighborOrder[pointStartIndex];
-                                        
+
+                                        neighborOrder[pointEndIndex] = move + neighborOrder[pointEndIndex];
+                                        neighborOrder[pointStartIndex] = move + neighborOrder[pointStartIndex];
                                     }
                                 }
                             }
                         }
                         Brep neighborShift = Brep.CreateFromCornerPoints(neighborOrder[0],
-                                            neighborOrder[1],
-                                            neighborOrder[2],
-                                            neighborOrder[3],
-                                            tolerance);
+                                                                        neighborOrder[1],
+                                                                        neighborOrder[2],
+                                                                        neighborOrder[3],
+                                                                        tolerance);
                         family[neighbor].ShiftBound = neighborShift;
+
                     }
                     if (family[kid].ShiftBound == null)
                     {
                         family[kid].ShiftBound = kidBrep;
+
                     }
                 }
             }
+            foreach (var thing in trees)
+            {
+                 mergebound.Add(thing.ShiftBound);
+
+            }
             #endregion
             #region Merge Child Layer Box
-            
+
             for (int familyID = 0; familyID < parentGroup.Count-1; familyID ++)
             {
                 Brep parentBrep = parentGroup[familyID][0].Parent.Last().ShiftBound;
+                if (parentBrep == null)
+                {
+                    parentBrep = Brep.CreatePlanarBreps(parentGroup[familyID][0].Parent.Last().PlaneAlignedRect.ToNurbsCurve(), tolerance).First();
+                }
                 //compare parent to each child
                 foreach (var child in parentGroup[familyID])
                 {
@@ -455,8 +493,6 @@ namespace BrownBat.Arrange
                                 parentEdge.ClosestPoints(childEdge, out Point3d p1, out Point3d p2);
                                 if (p1.DistanceTo(p2) < minDistance)
                                 {
-                                    viewclosepts.Add(p1);
-                                    viewclosepts.Add(p2);
                                     Transform move = Transform.Translation(p1 - p2);
                                     int pointEndIndex = Point3dList.ClosestIndexInList(childOrder, childEdge.PointAtEnd);
                                     int pointStartIndex = Point3dList.ClosestIndexInList(childOrder, childEdge.PointAtStart);
@@ -475,11 +511,7 @@ namespace BrownBat.Arrange
                                                                   tolerance);
                     child.ShiftBound = childShift;
                 }
-                //visualize
-                foreach (var sticks in parentGroup[familyID])
-                {
-                    mergebound.Add(sticks.ShiftBound);
-                }
+
             }
             //add shiftbound geometry for ones without parent
             foreach (var grand in ancestor)
@@ -494,9 +526,6 @@ namespace BrownBat.Arrange
                                                                 ancestorOrder[2],
                                                                 ancestorOrder[3],
                                                                 tolerance);
-                grand.ShiftBound = ancestorBrep;
-                //visualize
-                mergebound.Add(grand.ShiftBound);
             }
 
             #endregion
@@ -506,10 +535,17 @@ namespace BrownBat.Arrange
             {
                 RecursiveTrim(grand, tolerance);
             }
+
             foreach (var family in parentGroup)
             {
                 foreach (var member in family)
                 {
+                    if (member.TrimBound.Length == 0)
+                    {
+                        Brep[] originalBound = new Brep[1]{ member.ShiftBound };
+                        member.TrimBound = originalBound;
+                    }
+                    //Visualize
                     trimPieces.Add(member.TrimBound);
                 }
             }
@@ -520,16 +556,17 @@ namespace BrownBat.Arrange
                 var cuttingLines = new List<Curve>();
                 for (int r = 0; r < family.Count; r++)
                 {
-                    var neighborBox = family.Select(f => f.ShiftBound).Where((v, i) => i != r).ToList();
+                    var neighborBox = trees.Select(f => f.TrimBound).Where((v, i) => i != r).ToList();
                     if (family[r].Parent.Count != 0)
                     {
-                        Brep papaGeometry = family[r].Parent.Last().ShiftBound;
+                        Brep[] papaGeometry = family[r].Parent.Last().TrimBound;
                         neighborBox.Add(papaGeometry);
                     }
+                    var flatNeighbor = neighborBox.SelectMany(i => i).Where(b => b != null);
                     Curve[] boundLines = family[r].ShiftBound.DuplicateEdgeCurves();
                     foreach (Curve line in boundLines)
                     {
-                        cuttingLines.Add(line.ToNurbsCurve().ExtendByLine(CurveEnd.Both, neighborBox));
+                        cuttingLines.Add(line.ToNurbsCurve().ExtendByLine(CurveEnd.Both, flatNeighbor));
                     }
                 }
                 splits.AddRange(cuttingLines, new GH_Path(lay));
@@ -540,8 +577,7 @@ namespace BrownBat.Arrange
             DA.SetDataList(0, patternCurves);
             DA.SetDataTree(1, rhinoTree);
             DA.SetDataTree(2, splits);
-            DA.SetDataList(3, visualizePieces);
-            DA.SetDataList(4, viewclosepts);
+            DA.SetDataList(3, mergebound);
 
 
 

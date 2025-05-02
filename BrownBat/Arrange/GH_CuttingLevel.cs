@@ -504,8 +504,14 @@ namespace BrownBat.Arrange
             List<Brep[]>trimPieces = new List<Brep[]>();
             foreach (var grand in ancestor)
             {
-                //trimPieces.Add(TrimBounds(grand, tolerance));
-                RecursiveTrim(grand, tolerance, ref trimPieces);
+                RecursiveTrim(grand, tolerance);
+            }
+            foreach (var family in parentGroup)
+            {
+                foreach (var member in family)
+                {
+                    trimPieces.Add(member.TrimBound);
+                }
             }
             var visualizePieces = trimPieces.Where(b => b!= null).SelectMany(x => x).ToList();
             int lay = 0;
@@ -712,14 +718,17 @@ namespace BrownBat.Arrange
             parent.TrimBound = trimmedParent;
             return trimmedParent;
         }
-        public void RecursiveTrim(CurveTree parent, double tolerance, ref List<Brep[]> result)
+        public void RecursiveTrim(CurveTree parent, double tolerance)
         {
-            result.Add(TrimBounds(parent, tolerance));
+            parent.TrimBound = TrimBounds(parent, tolerance);
             if (parent.Children.Count != 0)
             {
                 foreach (var child in parent.Children)
                 {
-                    RecursiveTrim(child, tolerance, ref result);
+                    if (child.TrimBound == null)
+                    {
+                        RecursiveTrim(child, tolerance);
+                    }
                 }
             }
         }

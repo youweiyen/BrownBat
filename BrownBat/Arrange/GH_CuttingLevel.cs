@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Text.RegularExpressions;
+using System.Windows.Forms;
 using BrownBat.CalculateHelper;
 using Eto.Forms;
 using Grasshopper;
@@ -14,6 +15,7 @@ using Rhino;
 using Rhino.Collections;
 using Rhino.Commands;
 using Rhino.Geometry;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.Rebar;
 using static BrownBat.Arrange.GH_CuttingLevel;
 
 namespace BrownBat.Arrange
@@ -480,9 +482,9 @@ namespace BrownBat.Arrange
                 }
             }
             //add shiftbound geometry for ones without parent
-            foreach (var jiji in ancestor)
+            foreach (var grand in ancestor)
             {
-                List<Point3d> ancestorPoints = jiji.PlaneAlignedRect.ToPolyline().ToList();
+                List<Point3d> ancestorPoints = grand.PlaneAlignedRect.ToPolyline().ToList();
                 ancestorPoints.RemoveAt(0);
 
                 var ancestorOrder = ancestorPoints.OrderBy(x => Math.Atan2(x.X - ancestorPoints.Average(np => np.X), x.Y - ancestorPoints.Average(np => np.Y))).ToList();
@@ -492,13 +494,20 @@ namespace BrownBat.Arrange
                                                                 ancestorOrder[2],
                                                                 ancestorOrder[3],
                                                                 tolerance);
-                jiji.ShiftBound = ancestorBrep;
+                grand.ShiftBound = ancestorBrep;
                 //visualize
-                mergebound.Add(jiji.ShiftBound);
+                mergebound.Add(grand.ShiftBound);
             }
 
             #endregion
-
+            //trim the parent with child
+            List<Brep[]>trimPieces = new List<Brep[]>();
+            foreach (var grand in ancestor)
+            {
+                //trimPieces.Add(TrimBounds(grand, tolerance));
+                RecursiveTrim(grand, tolerance, ref trimPieces);
+            }
+            var visualizePieces = trimPieces.Where(b => b!= null).SelectMany(x => x).ToList();
             int lay = 0;
             foreach (var family in parentGroup)
             {
@@ -525,7 +534,7 @@ namespace BrownBat.Arrange
             DA.SetDataList(0, patternCurves);
             DA.SetDataTree(1, rhinoTree);
             DA.SetDataTree(2, splits);
-            DA.SetDataList(3, mergebound);
+            DA.SetDataList(3, visualizePieces);
             DA.SetDataList(4, viewclosepts);
 
 
@@ -561,7 +570,7 @@ namespace BrownBat.Arrange
             public List<CurveTree> Parent { get; set; }
             public Plane MinBoundingPlane { get; set; }
             public Rectangle3d PlaneAlignedRect { get; set; }
-            public Brep BoundTrim { get; set; }
+            public Brep[] TrimBound { get; set; }
             public List<double> PoplarData { get; set; }
 
             public CurveTree(Curve shape, Plane minPlane, List<CurveTree> children, List<CurveTree> parent)
@@ -688,6 +697,30 @@ namespace BrownBat.Arrange
             public static double Dist(Point3d A, Point3d B)
             {
                 return (double)Math.Sqrt((A.X - B.X) * (A.X - B.X) + (A.Y - B.Y) * (A.Y - B.Y));
+            }
+        }
+        public Brep[] TrimBounds(CurveTree parent, double tolerance)
+        {
+            //get direct children
+            var cuttingBound = parent.Children.Where(c => c.Parent.Last() == parent).Select(t => t.ShiftBound);
+            var unionCut = Brep.CreateBooleanUnion(cuttingBound, tolerance);
+            List<Brep> trimStock = new List<Brep>
+                {
+                    parent.ShiftBound
+                };
+            Brep[] trimmedParent = Brep.CreateBooleanDifference(trimStock, unionCut, tolerance);
+            parent.TrimBound = trimmedParent;
+            return trimmedParent;
+        }
+        public void RecursiveTrim(CurveTree parent, double tolerance, ref List<Brep[]> result)
+        {
+            result.Add(TrimBounds(parent, tolerance));
+            if (parent.Children.Count != 0)
+            {
+                foreach (var child in parent.Children)
+                {
+                    RecursiveTrim(child, tolerance, ref result);
+                }
             }
         }
     }

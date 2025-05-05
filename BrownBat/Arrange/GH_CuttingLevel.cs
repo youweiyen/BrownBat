@@ -17,6 +17,7 @@ using Rhino.Commands;
 using Rhino.Geometry;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement.Rebar;
 using static BrownBat.Arrange.GH_CuttingLevel;
+using BrownBat.Components;
 
 namespace BrownBat.Arrange
 {
@@ -37,14 +38,13 @@ namespace BrownBat.Arrange
         /// </summary>
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
-            pManager.AddCurveParameter("Pattern", "P", "All defined pattern as curves", GH_ParamAccess.list);
-            pManager.AddCurveParameter("Boundary", "B", "Stock Boundary", GH_ParamAccess.item);
+            pManager.AddCurveParameter("PatternCurve", "PC", "All defined pattern as curves", GH_ParamAccess.list);
             pManager.AddNumberParameter("MinDimension", "Min", "Smallest dimension of pattern" + 
                 "Default set to 12", GH_ParamAccess.item);
-            pManager.AddNumberParameter("MillDistance", "MDist", "Merge cutting edges within distance" +
+            pManager.AddNumberParameter("MillDistance", "MDist", "Merge cutting edges within distance. Cannot be larger than min dimension" +
                 "Default set to 6", GH_ParamAccess.item);
+            pManager[1].Optional = true;
             pManager[2].Optional = true;
-            pManager[3].Optional = true;
         }
 
         /// <summary>
@@ -52,10 +52,9 @@ namespace BrownBat.Arrange
         /// </summary>
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
-            pManager.AddCurveParameter("Pattern", "P", "Pattern level", GH_ParamAccess.list);
-            pManager.AddCurveParameter("PatternFamily", "t", "t", GH_ParamAccess.tree);
-            pManager.AddCurveParameter("SplitCurves", "sc", "sc", GH_ParamAccess.tree);
-            pManager.AddBrepParameter("pieces", "p", "p", GH_ParamAccess.list);
+            pManager.AddGenericParameter("PatternObject", "PO", "Pattern Object", GH_ParamAccess.list);
+            pManager.AddCurveParameter("PatternFamily", "PF", "Pattern seperated into family", GH_ParamAccess.tree);
+            pManager.AddBrepParameter("RectBounds", "RB", "Pattern Bounds", GH_ParamAccess.list);
 
         }
 
@@ -66,13 +65,11 @@ namespace BrownBat.Arrange
         protected override void SolveInstance(IGH_DataAccess DA)
         {
             List<Curve> inCurve = new List<Curve>();
-            Curve stockBound = default; 
             double minLength = 12;
             double minDistance = 6;
             DA.GetDataList(0, inCurve);
-            DA.GetData(1, ref stockBound);
-            DA.GetData(2, ref minLength);
-            DA.GetData(3, ref minDistance);
+            DA.GetData(1, ref minLength);
+            DA.GetData(2, ref minDistance);
 
             var sortedCurves = inCurve.OrderByDescending(crv => AreaMassProperties.Compute(crv).Area);
 
@@ -104,11 +101,11 @@ namespace BrownBat.Arrange
                 }
 
             }
-            var trees = new List<CurveTree>();
+            var trees = new List<ColorPattern>();
 
             for (int c = 0; c < validCurves.Count; c++)
             {
-                trees.Add(new CurveTree(validCurves[c], validPlane[c], new List<CurveTree>(), new List<CurveTree>()));
+                trees.Add(new ColorPattern(validCurves[c], validPlane[c], new List<ColorPattern>(), new List<ColorPattern>()));
             }
 
             for (int outer = 0; outer < trees.Count - 1; outer++)
@@ -129,25 +126,7 @@ namespace BrownBat.Arrange
                 }
 
             }
-            //layer them out
-            var layers = trees.GroupBy(branch => branch.Parent.Count)
-                                .Select(grp => grp.ToList())
-                                .ToList();
-            //var layers = trees.Where(children => children.Parent.Count > 0).GroupBy(branch => branch.Parent.Last())
-            //        .Select(grp => grp.ToList())
-            //        .ToList();
-            layers.Reverse();
 
-            DataTree<Curve> rhinoTree = new DataTree<Curve>();
-            int p = 0;
-            foreach (var l in layers)
-            {
-                var curvesList = l.Select(crv => crv.Shape).ToList();
-                rhinoTree.AddRange(curvesList, new GH_Path(p));
-                p++;
-            }
-
-            List<Curve> patternCurves = new List<Curve>();
             #region opt1
             //for (int i = 0; i < roots.Count - 1; i++)
             //{
@@ -324,7 +303,6 @@ namespace BrownBat.Arrange
 
             Transform inverseTransform = Transform.PlaneToPlane(Plane.WorldXY, useMinPlane);
             //create bounding box
-            DataTree<Curve> splits = new DataTree<Curve>();
              
             foreach (var pattern in trees)
             {
@@ -337,8 +315,18 @@ namespace BrownBat.Arrange
             var parentGroup = trees.Where(children => children.Parent.Count > 0).GroupBy(branch => branch.Parent.Last())
                     .Select(grp => grp.ToList())
                     .ToList();
-            List<CurveTree> ancestor = trees.Where(children => children.Parent.Count == 0).ToList();
+            List<ColorPattern> ancestor = trees.Where(children => children.Parent.Count == 0).ToList();
             parentGroup.Add(ancestor);
+
+            //visualize family
+            DataTree<Curve> familyTree = new DataTree<Curve>();
+            int p = 0;
+            foreach (var l in parentGroup)
+            {
+                var curvesList = l.Select(crv => crv.Shape).ToList();
+                familyTree.AddRange(curvesList, new GH_Path(p));
+                p++;
+            }
 
             #region Merge Same Layer Box
             var viewclosepts = new List<Point3d>();
@@ -539,6 +527,7 @@ namespace BrownBat.Arrange
                 }
 
             }
+            //visualizeBounds
             foreach (var thing in trees)
             {
                  mergebound.Add(thing.ShiftBound);
@@ -578,47 +567,16 @@ namespace BrownBat.Arrange
                     }
                 }
             }
-            int lay = 0;
-            //foreach (var family in parentGroup)
-            //{
-            //    var cuttingLines = new List<Curve>();
-            //    for (int r = 0; r < family.Count; r++)
-            //    {
-            //        var neighborBox = trees.Select(f => f.TrimBound).Where((v, i) => i != r).ToList();
-            //        //if (family[r].Parent.Count != 0)
-            //        //{
-            //        //    Brep[] papaGeometry = family[r].Parent.Last().TrimBound;
-            //        //    neighborBox.Add(papaGeometry);
-            //        //}
-            //        var flatNeighbor = neighborBox.SelectMany(i => i).Where(b => b != null);
-            //        Curve[] boundLines = family[r].ShiftBound.DuplicateEdgeCurves();
-            //        foreach (Curve line in boundLines)
-            //        {
-            //            cuttingLines.Add(line.ToNurbsCurve().ExtendByLine(CurveEnd.Both, flatNeighbor));
-            //        }
-            //    }
-            //    splits.AddRange(cuttingLines, new GH_Path(lay));
-            //    lay++;
-            //}
-            for (int b = 0; b <trees.Count ; b++)
+            List<ColorPattern> colorPattern = new List<ColorPattern>();
+            foreach (var pattern in trees)
             {
-                var cuttingLines = new List<Curve>();
-                var neighborBox = trees.Select(f => f.TrimBound).Where((v, i) => i != b).ToList();
+                colorPattern.Add(pattern);
 
-                var flatNeighbor = neighborBox.SelectMany(i => i).Where(box => box != null);
-                Curve[] boundLines = trees[b].ShiftBound.DuplicateEdgeCurves();
-                foreach (Curve line in boundLines)
-                {
-                    cuttingLines.Add(line.ToNurbsCurve().ExtendByLine(CurveEnd.Both, flatNeighbor));
-                }
-                splits.AddRange(cuttingLines, new GH_Path(lay));
-                lay++;
             }
             #endregion
 
-            DA.SetDataList(0, patternCurves);
-            DA.SetDataTree(1, rhinoTree);
-            DA.SetDataTree(2, splits);
+            DA.SetDataList(0, colorPattern);
+            DA.SetDataTree(1, familyTree);
             DA.SetDataList(3, mergebound);
 
 
@@ -645,26 +603,7 @@ namespace BrownBat.Arrange
             get { return new Guid("B7B08CFB-D059-41A2-B42A-CA8718FD45D1"); }
         }
 
-        public class CurveTree 
-        {
-            public Curve Shape { get; set; }
-            public Brep ShiftBound { get; set; }
-            public List<CurveTree> Children { get; set; }
-            public List<CurveTree> Parent { get; set; }
-            public Plane MinBoundingPlane { get; set; }
-            public Rectangle3d PlaneAlignedRect { get; set; }
-            public Brep[] TrimBound { get; set; }
-            public List<double> PoplarData { get; set; }
-
-            public CurveTree(Curve shape, Plane minPlane, List<CurveTree> children, List<CurveTree> parent)
-            {
-                Shape = shape;
-                MinBoundingPlane = minPlane;
-                Children = children;
-                Parent = parent;
-            }
-        }
-        public void CompareCurve(Point3d[] points, CurveTree compareRoot, double minDistance, ref List<Point3d> point1Shift, ref List<Point3d> point2Shift)
+        public void CompareCurve(Point3d[] points, ColorPattern compareRoot, double minDistance, ref List<Point3d> point1Shift, ref List<Point3d> point2Shift)
         {
             foreach (Point3d p in points)
             {
@@ -682,107 +621,8 @@ namespace BrownBat.Arrange
                 }
             }
         }
-        public void IntersectingSurface(Point3d[] points, CurveTree compareRoot, double minDistance)
-        {
-            foreach (Point3d p in points)
-            {
-                Curve compareCurve = compareRoot.Shape;
-                compareCurve.ClosestPoint(p, out double param);
-                Point3d closestPoint = compareCurve.PointAt(param);
-                if (p.DistanceTo(closestPoint) < minDistance)
-                {
-
-
-
-                }
-            }
-        }
-        public int[] SortPtsAlongCurve(List<Point3d> pts, Curve crv)
-        {
-            int L = pts.Count;
-            int[] iA = new int[L]; double[] tA = new double[L];
-            for (int i = 0; i < L; i++)
-            {
-                double t;
-                crv.ClosestPoint(pts[i], out t);
-                iA[i] = i; tA[i] = t;
-            }
-            Array.Sort(tA, iA);
-            return iA;
-        }
-        public class Edge
-        {
-            public Point3d A { get; set; }
-            public Point3d B { get; set; }
-        }
-        public class AlphaShape
-        {
-            public List<Edge> BorderEdges { get; private set; }
-
-            public AlphaShape(List<Point3d> points, double alpha)
-            {
-                // 0. error checking, init
-                if (points == null || points.Count < 2) { throw new ArgumentException("AlphaShape needs at least 2 points"); }
-                BorderEdges = new List<Edge>();
-                var alpha_2 = alpha * alpha;
-
-                // 1. run through all pairs of points
-                for (int i = 0; i < points.Count - 1; i++)
-                {
-                    for (int j = i + 1; j < points.Count; j++)
-                    {
-                        if (points[i] == points[j]) { throw new ArgumentException("AlphaShape needs pairwise distinct points"); } // alternatively, continue
-                        var dist = Dist(points[i], points[j]);
-                        if (dist > 2 * alpha) { continue; } // circle fits between points ==> p_i, p_j can't be alpha-exposed                    
-
-                        double x1 = points[i].X, x2 = points[j].X, y1 = points[i].Y, y2 = points[j].Y; // for clarity & brevity
-
-                        var mid = new Point3d((x1 + x2) / 2, (y1 + y2) / 2, 0);
-
-                        // find two circles that contain p_i and p_j; note that center1 == center2 if dist == 2*alpha
-                        var center1 = new Point3d(
-                            mid.X + (double)Math.Sqrt(alpha_2 - (dist / 2) * (dist / 2)) * (y1 - y2) / dist,
-                            mid.Y + (double)Math.Sqrt(alpha_2 - (dist / 2) * (dist / 2)) * (x2 - x1) / dist,
-                            0);
-
-                        var center2 = new Point3d(
-                            mid.X - (double)Math.Sqrt(alpha_2 - (dist / 2) * (dist / 2)) * (y1 - y2) / dist,
-                            mid.Y - (double)Math.Sqrt(alpha_2 - (dist / 2) * (dist / 2)) * (x2 - x1) / dist,
-                            0);
-
-                        // check if one of the circles is alpha-exposed, i.e. no other point lies in it
-                        bool c1_empty = true, c2_empty = true;
-                        for (int k = 0; k < points.Count && (c1_empty || c2_empty); k++)
-                        {
-                            if (points[k] == points[i] || points[k] == points[j]) { continue; }
-
-                            if ((center1.X - points[k].X) * (center1.X - points[k].X) + (center1.Y - points[k].Y) * (center1.Y - points[k].Y) < alpha_2)
-                            {
-                                c1_empty = false;
-                            }
-
-                            if ((center2.X - points[k].X) * (center2.X - points[k].X) + (center2.Y - points[k].Y) * (center2.Y - points[k].Y) < alpha_2)
-                            {
-                                c2_empty = false;
-                            }
-                        }
-
-                        if (c1_empty || c2_empty)
-                        {
-                            // yup!
-                            BorderEdges.Add(new Edge() { A = points[i], B = points[j] });
-                        }
-                    }
-                }
-            }
-
-            // Euclidian distance between A and B
-            public static double Dist(Point3d A, Point3d B)
-            {
-                return (double)Math.Sqrt((A.X - B.X) * (A.X - B.X) + (A.Y - B.Y) * (A.Y - B.Y));
-            }
-        }
-        public Brep[] TrimBounds(CurveTree parent, double tolerance)
+       
+        public Brep[] TrimBounds(ColorPattern parent, double tolerance)
         {
             //get direct children
             var cuttingBound = parent.Children.Where(c => c.Parent.Last() == parent).Select(t => t.ShiftBound);
@@ -795,7 +635,7 @@ namespace BrownBat.Arrange
             parent.TrimBound = trimmedParent;
             return trimmedParent;
         }
-        public void RecursiveTrim(CurveTree parent, double tolerance)
+        public void RecursiveTrim(ColorPattern parent, double tolerance)
         {
             parent.TrimBound = TrimBounds(parent, tolerance);
             if (parent.Children.Count != 0)

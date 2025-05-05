@@ -9,9 +9,9 @@ namespace BrownBat.CalculateHelper
 {
     public class SortingPoints
     {
-        public IEnumerable<Point3d> SortClockwise(IEnumerable<Point3d> insertPoints)
+        public static IEnumerable<Point3d> SortClockwise(IEnumerable<Point3d> insertPoints)
         {
-            var singleOrder = insertPoints.OrderBy(x => Math.Atan2(x.X - insertPoints.Average(np => np.X), x.Y - insertPoints.Average(np => np.Y))).ToList();
+            var singleOrder = insertPoints.OrderBy(x => Math.Atan2(x.X - insertPoints.Average(np => np.X), x.Y - insertPoints.Average(np => np.Y)));
             return singleOrder;
         }
         public int[] SortPtsAlongCurve(List<Point3d> pts, Curve crv)

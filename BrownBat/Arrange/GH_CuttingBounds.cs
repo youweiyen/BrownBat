@@ -8,6 +8,7 @@ using BrownBat.Components;
 using Grasshopper;
 using System.Linq;
 using Rhino;
+using Grasshopper.Kernel.Types.Transforms;
 
 namespace BrownBat.Arrange
 {
@@ -32,6 +33,7 @@ namespace BrownBat.Arrange
             pManager.AddCurveParameter("Boundary", "B", "Stock Boundary", GH_ParamAccess.item);
             pManager.AddPlaneParameter("CutPlane", "CP", "Cutting Rotaion Plane" +
                 "Default set to WorldXY", GH_ParamAccess.item);
+            //pManager.AddNumberParameter("");
             pManager[2].Optional = true;
         }
 
@@ -41,6 +43,7 @@ namespace BrownBat.Arrange
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
             pManager.AddCurveParameter("CuttingCurves", "CC", "Recatangular Cutting Lines", GH_ParamAccess.list);
+            pManager.AddBrepParameter("Groups", "G", "Merge Groups", GH_ParamAccess.tree);
             pManager.AddBrepParameter("Stock", "S", "Result Stock as surface", GH_ParamAccess.list);
             pManager.AddNumberParameter("Homogenity", "H", "Stock Homogenity", GH_ParamAccess.list);
         }
@@ -58,10 +61,12 @@ namespace BrownBat.Arrange
             DA.GetData(1, ref inBound);
             DA.GetData(2, ref inPlane);
 
-            double tolerance = RhinoDoc.ActiveDoc.ModelAbsoluteTolerance;
-            Brep boundBrep = Brep.CreatePlanarBreps(inBound, tolerance).First();
-            List<Curve> splits = new List<Curve>();
 
+            double tolerance = RhinoDoc.ActiveDoc.ModelAbsoluteTolerance;
+            
+            Brep boundBrep = Brep.CreatePlanarBreps(inBound, tolerance).First();
+
+            List<Curve> splits = new List<Curve>();
             for (int b = 0; b < inPattern.Count; b++)
             {
                 var cuttingLines = new List<Curve>();
@@ -77,23 +82,109 @@ namespace BrownBat.Arrange
                 splits.AddRange(cuttingLines);
                 
             }
+            //add stock boundary
+            Curve[] boundSegments = inBound.DuplicateSegments();
+            splits.AddRange(boundSegments);
+
+            //move to XY plane to compare
+            Transform compareTransform = Transform.PlaneToPlane(inPlane, Plane.WorldXY);
+            bool inverse = compareTransform.TryGetInverse(out Transform inverseCompare);
+            if (inverse == false)
+            {
+                throw new Exception("failed to get inverse matrix");
+            }
+            splits.ForEach(crv => crv.Transform(compareTransform));
+            boundBrep.Transform(compareTransform);
+
             //remove short curves that are close to longer parallel ones
+            //divide to u and v groups
+            List<Curve> uDirection = new List<Curve>();
+            List<Curve> vDirection = new List<Curve>();
             foreach (var crv in splits)
             {
-                Vector3d neighborDirection = new Vector3d(crv.PointAtStart - crv.PointAtEnd);
-                //u
-                int parallel = inPlane.XAxis.IsParallelTo(neighborDirection, tolerance);
-                //v
-                
-            }
-            //group parallel geometries
+                Vector3d crvDirection = new Vector3d(crv.PointAtStart - crv.PointAtEnd);
+                int uParallel = Vector3d.YAxis.IsParallelTo(crvDirection, tolerance);
 
-            foreach (var pat in inPattern)
+                if (uParallel == 1 || uParallel == -1)
+                {
+                    uDirection.Add(crv);
+                }
+                else
+                {
+                    int vParallel = Vector3d.XAxis.IsParallelTo(crvDirection, tolerance);
+                    if (vParallel == 1 || vParallel == -1)
+                    {
+                        vDirection.Add(crv);
+                    }
+                }
+            }
+            var uAxisGroup = uDirection.GroupBy(uPoints => uPoints.PointAtEnd.X,
+                                                uPoints => uPoints,
+                                                (key, g) => new { xId = key, crv = g.ToList() })
+                                       .OrderBy(sets => sets.xId)
+                                       .ToList();
+
+            List<double> moveId = new List<double>();
+            for (int i = 0; i < uAxisGroup.Count - 1; i++ )
             {
-                //pat.TrimBound;
+                if (!moveId.Contains(uAxisGroup[i].xId))
+                { 
+                    for (int j = i + 1; j < uAxisGroup.Count; j++)
+                    {
+                        if (!moveId.Contains(uAxisGroup[j].xId))
+                        { 
+                            double distance = Math.Abs(uAxisGroup[i].xId - uAxisGroup[j].xId);
+                            if (distance < 12)
+                            {
+                                Transform move = Transform.Translation(-distance, 0, 0);
+                                foreach (var crv in uAxisGroup[j].crv)
+                                {
+                                    crv.Transform(move);
+                                    moveId.Add(uAxisGroup[j].xId);
+                                }
+                            }
+                        }
+                    
+                    }
+                }
+            }
+            var mergeGroup = uDirection.GroupBy(uPoints => uPoints.PointAtEnd.X).Select(grp => grp.ToList());
+            var uJoin = new List<Curve>(); 
+            foreach (var overlaps in mergeGroup)
+            {
+
+                List<Point3d> axisPoints = new List<Point3d>();
+                axisPoints.AddRange(overlaps.Select(o => o.PointAtEnd));
+                axisPoints.AddRange(overlaps.Select(o => o.PointAtStart));
+                IEnumerable<Point3d> orderedAxisPoint = axisPoints.OrderBy(points => points.Y);
+
+                Curve plCurve = new PolylineCurve(orderedAxisPoint).ToNurbsCurve();
+                uJoin.Add(plCurve);
+
             }
 
-            DA.SetDataList(0, splits);
+            //remove short lines
+            //sort horizontal curve down top, sort vertical curve left to right
+            List<Curve> orderedUGroup = uJoin.OrderBy(uCrv => uCrv.PointAtMid.X).ToList();
+            //List<Curve> orderedVGroup = vJoin.OrderBy(vCrv => vCrv.PointAtMid.Y).ToList();
+
+            Brep[] pieces = boundBrep.Split(splits, tolerance);
+            //group by center point projected to same axis and overlapping
+            var uBounds = pieces.GroupBy(p => AreaMassProperties.Compute(p).Centroid.Y).Select(grp => grp.ToList());
+            var vBounds = pieces.GroupBy(p => AreaMassProperties.Compute(p).Centroid.X).Select(grp => grp.ToList());
+
+            DataTree<Brep> groupBounds = new DataTree<Brep>();
+            int path = 0;
+            foreach (var l in uBounds)
+            {
+                groupBounds.AddRange(l, new GH_Path(path));
+                path++;
+            }
+
+            //inverse transform
+
+            DA.SetDataList(0, uJoin);
+            DA.SetDataTree(1, groupBounds);
         }
 
         /// <summary>

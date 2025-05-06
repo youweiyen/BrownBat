@@ -9,6 +9,7 @@ using Grasshopper;
 using System.Linq;
 using Rhino;
 using Grasshopper.Kernel.Types.Transforms;
+using System.Configuration;
 
 namespace BrownBat.Arrange
 {
@@ -118,55 +119,13 @@ namespace BrownBat.Arrange
                     }
                 }
             }
-            var uAxisGroup = uDirection.GroupBy(uPoints => uPoints.PointAtEnd.X,
-                                                uPoints => uPoints,
-                                                (key, g) => new { xId = key, crv = g.ToList() })
-                                       .OrderBy(sets => sets.xId)
-                                       .ToList();
-
-            List<double> moveId = new List<double>();
-            for (int i = 0; i < uAxisGroup.Count - 1; i++ )
-            {
-                if (!moveId.Contains(uAxisGroup[i].xId))
-                { 
-                    for (int j = i + 1; j < uAxisGroup.Count; j++)
-                    {
-                        if (!moveId.Contains(uAxisGroup[j].xId))
-                        { 
-                            double distance = Math.Abs(uAxisGroup[i].xId - uAxisGroup[j].xId);
-                            if (distance < 12)
-                            {
-                                Transform move = Transform.Translation(-distance, 0, 0);
-                                foreach (var crv in uAxisGroup[j].crv)
-                                {
-                                    crv.Transform(move);
-                                    moveId.Add(uAxisGroup[j].xId);
-                                }
-                            }
-                        }
-                    
-                    }
-                }
-            }
-            var mergeGroup = uDirection.GroupBy(uPoints => uPoints.PointAtEnd.X).Select(grp => grp.ToList());
-            var uJoin = new List<Curve>(); 
-            foreach (var overlaps in mergeGroup)
-            {
-
-                List<Point3d> axisPoints = new List<Point3d>();
-                axisPoints.AddRange(overlaps.Select(o => o.PointAtEnd));
-                axisPoints.AddRange(overlaps.Select(o => o.PointAtStart));
-                IEnumerable<Point3d> orderedAxisPoint = axisPoints.OrderBy(points => points.Y);
-
-                Curve plCurve = new PolylineCurve(orderedAxisPoint).ToNurbsCurve();
-                uJoin.Add(plCurve);
-
-            }
+            List<Curve> uJoin = CleanSplitCurve(uDirection);
+            //TODO change set direction
+            List<Curve> vJoin = CleanSplitCurve(vDirection);
+            
 
             //remove short lines
             //sort horizontal curve down top, sort vertical curve left to right
-            List<Curve> orderedUGroup = uJoin.OrderBy(uCrv => uCrv.PointAtMid.X).ToList();
-            //List<Curve> orderedVGroup = vJoin.OrderBy(vCrv => vCrv.PointAtMid.Y).ToList();
 
             Brep[] pieces = boundBrep.Split(splits, tolerance);
             //group by center point projected to same axis and overlapping
@@ -206,6 +165,62 @@ namespace BrownBat.Arrange
         public override Guid ComponentGuid
         {
             get { return new Guid("16B21534-A8C6-445F-852A-4423D470E61E"); }
+        }
+        public List<Curve> CleanSplitCurve(List<Curve> curvesToClean)
+        {
+
+                var uAxisGroup = curvesToClean.GroupBy(uPoints => uPoints.PointAtEnd.X,
+                                                    uPoints => uPoints,
+                                                    (key, g) => new { xId = key, crv = g.ToList() })
+                                           .OrderBy(sets => sets.xId)
+                                           .ToList();
+
+
+
+            List<double> moveId = new List<double>();
+            for (int i = 0; i < curvesToClean.Count - 1; i++)
+            {
+                if (!moveId.Contains(uAxisGroup[i].xId))
+                {
+                    for (int j = i + 1; j < uAxisGroup.Count; j++)
+                    {
+                        if (!moveId.Contains(uAxisGroup[j].xId))
+                        {
+                            double distance = Math.Abs(uAxisGroup[i].xId - uAxisGroup[j].xId);
+                            if (distance < 12)
+                            {
+                                Transform move = Transform.Translation(-distance, 0, 0);
+                                foreach (var crv in uAxisGroup[j].crv)
+                                {
+                                    crv.Transform(move);
+                                    moveId.Add(uAxisGroup[j].xId);
+                                }
+                            }
+                        }
+
+                    }
+                }
+            }
+            var mergeGroup = curvesToClean.GroupBy(uPoints => uPoints.PointAtEnd.X).Select(grp => grp.ToList());
+            var uJoin = new List<Curve>();
+            foreach (var overlaps in mergeGroup)
+            {
+
+                List<Point3d> axisPoints = new List<Point3d>();
+                axisPoints.AddRange(overlaps.Select(o => o.PointAtEnd));
+                axisPoints.AddRange(overlaps.Select(o => o.PointAtStart));
+                IEnumerable<Point3d> orderedAxisPoint = axisPoints.OrderBy(points => points.Y);
+
+                Curve plCurve = new PolylineCurve(orderedAxisPoint).ToNurbsCurve();
+                uJoin.Add(plCurve);
+
+            }
+            return uJoin;
+        }
+        enum SetDirection
+        {
+            Horizontal,
+            Vertical,
         }
     }
 }

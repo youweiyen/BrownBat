@@ -161,14 +161,16 @@ namespace BrownBat.Arrange
             orderVJoin[0] = vSegment.First();
             orderVJoin[orderVJoin.Count - 1] = vSegment.Last();
             
-            var allJoin = orderUJoin.Concat(orderVJoin);
             //move curve end to closest perpendicular line
             IEnumerable<double> xPartitions = orderUJoin.Select(crv => crv.PointAtEnd.X);
             IEnumerable<double> yPartitions = orderVJoin.Select(crv => crv.PointAtEnd.Y);
 
-            IntersectPerpendicular(orderUJoin, yPartitions);
+            IntersectPerpendicular(orderUJoin, yPartitions, SetDirection.Horizontal);
+            IntersectPerpendicular(orderVJoin, xPartitions, SetDirection.Vertical);
 
-            Brep[] pieces = boundBrep.Split(splits, tolerance);
+            var allJoin = orderUJoin.Concat(orderVJoin);
+
+            Brep[] pieces = boundBrep.Split(allJoin, tolerance);
             //group by center point projected to same axis and overlapping
             var uBounds = pieces.GroupBy(p => AreaMassProperties.Compute(p).Centroid.Y).Select(grp => grp.ToList()).ToList();
             //var vBounds = pieces.GroupBy(p => AreaMassProperties.Compute(p).Centroid.X).Select(grp => grp.ToList());
@@ -318,19 +320,39 @@ namespace BrownBat.Arrange
             }
             return null;
         }
-        public void IntersectPerpendicular(List<Curve> curvetoIntersect, IEnumerable<double> partitionDistances)
+        public void IntersectPerpendicular(List<Curve> curvetoIntersect, IEnumerable<double> partitionDistances, SetDirection direction)
         {
             for (int uCrv = 0; uCrv < curvetoIntersect.Count; uCrv++)
             {
-                double startY = curvetoIntersect[uCrv].PointAtStart.Y;
-                double endY = curvetoIntersect[uCrv].PointAtEnd.Y;
+                double start = default;
+                double end = default;
+
+                if (direction == SetDirection.Horizontal)
+                {
+                    start = curvetoIntersect[uCrv].PointAtStart.Y;
+                    end = curvetoIntersect[uCrv].PointAtEnd.Y;
+
+                }
+                else 
+                {
+                    start = curvetoIntersect[uCrv].PointAtStart.X;
+                    end = curvetoIntersect[uCrv].PointAtEnd.X;
+                }
                 List<Point3d> endPoints = new List<Point3d>();
                 Point3d shiftStart;
                 Point3d shiftEnd;
-                if (!partitionDistances.Contains(startY))
+                if (!partitionDistances.Contains(start))
                 {
-                    double dimension = partitionDistances.OrderBy(dim => Math.Abs(dim - startY)).First();
-                    Vector3d move = new Vector3d(0, dimension - startY, 0);
+                    double dimension = partitionDistances.OrderBy(dim => Math.Abs(dim - start)).First();
+                    Vector3d move = default;
+                    if (direction == SetDirection.Horizontal)
+                    {
+                        move = new Vector3d(0, dimension - start, 0);
+                    }
+                    else
+                    {
+                        move = new Vector3d(dimension - start, 0, 0);
+                    }
                     shiftStart = move + curvetoIntersect[uCrv].PointAtStart;
                     endPoints.Add(shiftStart);
                 }
@@ -339,10 +361,18 @@ namespace BrownBat.Arrange
                     shiftStart = curvetoIntersect[uCrv].PointAtStart;
                     endPoints.Add(shiftStart);
                 }
-                if (!partitionDistances.Contains(endY))
+                if (!partitionDistances.Contains(end))
                 {
-                    double dimension = partitionDistances.OrderBy(dim => Math.Abs(dim - endY)).First();
-                    Vector3d move = new Vector3d(0, dimension - endY, 0);
+                    double dimension = partitionDistances.OrderBy(dim => Math.Abs(dim - end)).First();
+                    Vector3d move = default;
+                    if (direction == SetDirection.Horizontal)
+                    {
+                        move = new Vector3d(0, dimension - end, 0);
+                    }
+                    else
+                    {
+                        move = new Vector3d(dimension - end, 0, 0);
+                    }
                     shiftEnd = move + curvetoIntersect[uCrv].PointAtEnd;
                     endPoints.Add(shiftEnd);
                 }
@@ -351,7 +381,7 @@ namespace BrownBat.Arrange
                     shiftEnd = curvetoIntersect[uCrv].PointAtEnd;
                     endPoints.Add(shiftEnd);
                 }
-                if (!partitionDistances.Contains(startY) || !partitionDistances.Contains(endY))
+                if (!partitionDistances.Contains(start) || !partitionDistances.Contains(end))
                 {
                     Curve plCurve = new PolylineCurve(endPoints).ToNurbsCurve();
                     curvetoIntersect[uCrv] = plCurve;

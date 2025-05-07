@@ -172,18 +172,20 @@ namespace BrownBat.Arrange
 
             Brep[] pieces = boundBrep.Split(allJoin, tolerance);
             //group by center point projected to same axis and overlapping
-            var uBounds = pieces.GroupBy(p => AreaMassProperties.Compute(p).Centroid.Y).Select(grp => grp.ToList()).ToList();
-            //var vBounds = pieces.GroupBy(p => AreaMassProperties.Compute(p).Centroid.X).Select(grp => grp.ToList());
+            var uBounds = pieces.GroupBy(p => Math.Round(AreaMassProperties.Compute(p).Centroid.Y, 3)).Select(grp => grp.ToList()).ToList();
+            var vBounds = pieces.GroupBy(p => Math.Round(AreaMassProperties.Compute(p).Centroid.X, 3)).Select(grp => grp.ToList()).ToList();
 
+            var allBounds = uBounds.Concat(vBounds);
             DataTree<Brep> groupBounds = new DataTree<Brep>();
             int path = 0;
-            foreach (var list in uBounds)
+            foreach (var list in allBounds)
             {
                 groupBounds.AddRange(list, new GH_Path(path));
                 path++;
             }
 
             //inverse transform
+            
 
             DA.SetDataList(0, allJoin);
             DA.SetDataTree(1, groupBounds);

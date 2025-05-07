@@ -121,7 +121,7 @@ namespace BrownBat.Arrange
             }
             List<Curve> uJoin = CleanSplitCurve(uDirection);
             //TODO change set direction
-            List<Curve> vJoin = CleanSplitCurve(vDirection);
+            //List<Curve> vJoin = CleanSplitCurve(vDirection);
             
 
             //remove short lines
@@ -130,7 +130,7 @@ namespace BrownBat.Arrange
             Brep[] pieces = boundBrep.Split(splits, tolerance);
             //group by center point projected to same axis and overlapping
             var uBounds = pieces.GroupBy(p => AreaMassProperties.Compute(p).Centroid.Y).Select(grp => grp.ToList());
-            var vBounds = pieces.GroupBy(p => AreaMassProperties.Compute(p).Centroid.X).Select(grp => grp.ToList());
+            //var vBounds = pieces.GroupBy(p => AreaMassProperties.Compute(p).Centroid.X).Select(grp => grp.ToList());
 
             DataTree<Brep> groupBounds = new DataTree<Brep>();
             int path = 0;
@@ -169,16 +169,16 @@ namespace BrownBat.Arrange
         public List<Curve> CleanSplitCurve(List<Curve> curvesToClean)
         {
 
-                var uAxisGroup = curvesToClean.GroupBy(uPoints => uPoints.PointAtEnd.X,
-                                                    uPoints => uPoints,
-                                                    (key, g) => new { xId = key, crv = g.ToList() })
-                                           .OrderBy(sets => sets.xId)
-                                           .ToList();
+            var uAxisGroup = curvesToClean.GroupBy(uPoints => uPoints.PointAtEnd.X,
+                                                uPoints => uPoints,
+                                                (key, g) => new { xId = key, crv = g.ToList() })
+                                        .OrderBy(sets => sets.xId)
+                                        .ToList();
 
 
 
             List<double> moveId = new List<double>();
-            for (int i = 0; i < curvesToClean.Count - 1; i++)
+            for (int i = 0; i < uAxisGroup.Count - 1; i++)
             {
                 if (!moveId.Contains(uAxisGroup[i].xId))
                 {

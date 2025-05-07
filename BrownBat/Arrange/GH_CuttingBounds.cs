@@ -97,7 +97,6 @@ namespace BrownBat.Arrange
             splits.ForEach(crv => crv.Transform(compareTransform));
             boundBrep.Transform(compareTransform);
 
-            //remove short curves that are close to longer parallel ones
             //divide to u and v groups
             List<Curve> uDirection = new List<Curve>();
             List<Curve> vDirection = new List<Curve>();
@@ -124,18 +123,57 @@ namespace BrownBat.Arrange
             //sort horizontal curve down top, sort vertical curve left to right
             List<Curve> uJoin = CleanSplitCurve(uDirection, SetDirection.Horizontal);
             List<Curve> vJoin = CleanSplitCurve(vDirection, SetDirection.Vertical);
-            var allJoin = uJoin.Concat(vJoin);
+
+            //move bound to original material size
+            List<Curve> orderUJoin = uJoin.OrderBy(crv => crv.PointAtEnd.X).ToList();
+            List<Curve> orderVJoin = vJoin.OrderBy(crv => crv.PointAtEnd.Y).ToList();
+
+            Curve[] boundSegments = inBound.DuplicateSegments();
+            Curve[] uSegment = new Curve[2];
+            Curve[] vSegment = new Curve[2];
+            int uCount = 0;
+            int vCount = 0;
+            foreach (var crv in boundSegments)
+            {
+                Vector3d crvDirection = new Vector3d(crv.PointAtStart - crv.PointAtEnd);
+                int uParallel = Vector3d.YAxis.IsParallelTo(crvDirection, tolerance);
+                if (uParallel == 1 || uParallel == -1)
+                {
+                    uSegment[uCount] = crv;
+                    uCount++;
+                }
+                else
+                {
+                    int vParallel = Vector3d.XAxis.IsParallelTo(crvDirection, tolerance);
+                    if (vParallel == 1 || vParallel == -1)
+                    {
+                        vSegment[vCount] = crv;
+                        vCount++;
+                    }
+                }
+            }
+            uSegment.OrderBy(crv => crv.PointAtEnd.X);
+            orderUJoin[0] = uSegment.First();
+            orderUJoin[orderUJoin.Count - 1] = uSegment.Last();
+
+            vSegment.OrderBy(crv => crv.PointAtEnd.Y);
+            orderVJoin[0] = vSegment.First();
+            orderVJoin[orderVJoin.Count - 1] = vSegment.Last();
+            
+            var allJoin = orderUJoin.Concat(orderVJoin);
+            //move curve end to closest perpendicular line
+
 
             Brep[] pieces = boundBrep.Split(splits, tolerance);
             //group by center point projected to same axis and overlapping
-            var uBounds = pieces.GroupBy(p => AreaMassProperties.Compute(p).Centroid.Y).Select(grp => grp.ToList());
+            var uBounds = pieces.GroupBy(p => AreaMassProperties.Compute(p).Centroid.Y).Select(grp => grp.ToList()).ToList();
             //var vBounds = pieces.GroupBy(p => AreaMassProperties.Compute(p).Centroid.X).Select(grp => grp.ToList());
 
             DataTree<Brep> groupBounds = new DataTree<Brep>();
             int path = 0;
-            foreach (var l in uBounds)
+            foreach (var list in uBounds)
             {
-                groupBounds.AddRange(l, new GH_Path(path));
+                groupBounds.AddRange(list, new GH_Path(path));
                 path++;
             }
 
@@ -211,8 +249,12 @@ namespace BrownBat.Arrange
                         axisPoints.AddRange(overlaps.Select(o => o.PointAtEnd));
                         axisPoints.AddRange(overlaps.Select(o => o.PointAtStart));
                         IEnumerable<Point3d> orderedAxisPoint = axisPoints.OrderBy(points => points.Y);
-
-                        Curve plCurve = new PolylineCurve(orderedAxisPoint).ToNurbsCurve();
+                        List<Point3d> endPoints = new List<Point3d>
+                        {
+                            orderedAxisPoint.First(),
+                            orderedAxisPoint.Last()
+                        };
+                        Curve plCurve = new PolylineCurve(endPoints).ToNurbsCurve();
                         uJoin.Add(plCurve);
 
                     }

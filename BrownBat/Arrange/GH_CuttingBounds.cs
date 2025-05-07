@@ -10,6 +10,7 @@ using System.Linq;
 using Rhino;
 using Grasshopper.Kernel.Types.Transforms;
 using System.Configuration;
+using System.Net;
 
 namespace BrownBat.Arrange
 {
@@ -162,7 +163,10 @@ namespace BrownBat.Arrange
             
             var allJoin = orderUJoin.Concat(orderVJoin);
             //move curve end to closest perpendicular line
+            IEnumerable<double> xPartitions = orderUJoin.Select(crv => crv.PointAtEnd.X);
+            IEnumerable<double> yPartitions = orderVJoin.Select(crv => crv.PointAtEnd.Y);
 
+            IntersectPerpendicular(orderUJoin, yPartitions);
 
             Brep[] pieces = boundBrep.Split(splits, tolerance);
             //group by center point projected to same axis and overlapping
@@ -313,6 +317,47 @@ namespace BrownBat.Arrange
                     return vJoin;
             }
             return null;
+        }
+        public void IntersectPerpendicular(List<Curve> curvetoIntersect, IEnumerable<double> partitionDistances)
+        {
+            for (int uCrv = 0; uCrv < curvetoIntersect.Count; uCrv++)
+            {
+                double startY = curvetoIntersect[uCrv].PointAtStart.Y;
+                double endY = curvetoIntersect[uCrv].PointAtEnd.Y;
+                List<Point3d> endPoints = new List<Point3d>();
+                Point3d shiftStart;
+                Point3d shiftEnd;
+                if (!partitionDistances.Contains(startY))
+                {
+                    double dimension = partitionDistances.OrderBy(dim => Math.Abs(dim - startY)).First();
+                    Vector3d move = new Vector3d(0, dimension - startY, 0);
+                    shiftStart = move + curvetoIntersect[uCrv].PointAtStart;
+                    endPoints.Add(shiftStart);
+                }
+                else
+                {
+                    shiftStart = curvetoIntersect[uCrv].PointAtStart;
+                    endPoints.Add(shiftStart);
+                }
+                if (!partitionDistances.Contains(endY))
+                {
+                    double dimension = partitionDistances.OrderBy(dim => Math.Abs(dim - endY)).First();
+                    Vector3d move = new Vector3d(0, dimension - endY, 0);
+                    shiftEnd = move + curvetoIntersect[uCrv].PointAtEnd;
+                    endPoints.Add(shiftEnd);
+                }
+                else
+                {
+                    shiftEnd = curvetoIntersect[uCrv].PointAtEnd;
+                    endPoints.Add(shiftEnd);
+                }
+                if (!partitionDistances.Contains(startY) || !partitionDistances.Contains(endY))
+                {
+                    Curve plCurve = new PolylineCurve(endPoints).ToNurbsCurve();
+                    curvetoIntersect[uCrv] = plCurve;
+                }
+
+            }
         }
         public enum SetDirection
         {

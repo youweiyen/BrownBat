@@ -46,8 +46,6 @@ namespace BrownBat.Arrange
         {
             pManager.AddCurveParameter("CuttingCurves", "CC", "Recatangular Cutting Lines", GH_ParamAccess.list);
             pManager.AddBrepParameter("Groups", "G", "Merge Groups", GH_ParamAccess.tree);
-            pManager.AddBrepParameter("Stock", "S", "Result Stock as surface", GH_ParamAccess.list);
-            pManager.AddNumberParameter("Homogenity", "H", "Stock Homogenity", GH_ParamAccess.list);
         }
 
         /// <summary>
@@ -84,9 +82,6 @@ namespace BrownBat.Arrange
                 splits.AddRange(cuttingLines);
                 
             }
-            //add stock boundary
-            //Curve[] boundSegments = inBound.DuplicateSegments();
-            //splits.AddRange(boundSegments);
 
             //move to XY plane to compare
             Transform compareTransform = Transform.PlaneToPlane(inPlane, Plane.WorldXY);
@@ -185,7 +180,17 @@ namespace BrownBat.Arrange
             }
 
             //inverse transform
-            
+            foreach (var crv in allJoin)
+            {
+                crv.Transform(inverseCompare);
+            }
+            foreach (var group in allBounds)
+            {
+                foreach (var bound in group)
+                {
+                    bound.Transform(inverseCompare);
+                }
+            }
 
             DA.SetDataList(0, allJoin);
             DA.SetDataTree(1, groupBounds);

@@ -46,6 +46,7 @@ namespace BrownBat.Arrange
         {
             pManager.AddCurveParameter("CuttingCurves", "CC", "Recatangular Cutting Lines", GH_ParamAccess.list);
             pManager.AddBrepParameter("Groups", "G", "Merge Groups", GH_ParamAccess.tree);
+            pManager.AddGenericParameter("ShatterBound", "SB", "Grouped Objects with group ID", GH_ParamAccess.list);
         }
 
         /// <summary>
@@ -170,6 +171,9 @@ namespace BrownBat.Arrange
             var uBounds = pieces.GroupBy(p => Math.Round(AreaMassProperties.Compute(p).Centroid.Y, 3)).Select(grp => grp.ToList()).ToList();
             var vBounds = pieces.GroupBy(p => Math.Round(AreaMassProperties.Compute(p).Centroid.X, 3)).Select(grp => grp.ToList()).ToList();
 
+            uBounds.ForEach(grp => grp.OrderBy(b => Math.Round(AreaMassProperties.Compute(b).Centroid.X, 3)));
+            vBounds.ForEach(grp => grp.OrderByDescending(b => Math.Round(AreaMassProperties.Compute(b).Centroid.Y, 3)));
+
             var allBounds = uBounds.Concat(vBounds);
             DataTree<Brep> groupBounds = new DataTree<Brep>();
             int path = 0;
@@ -192,8 +196,25 @@ namespace BrownBat.Arrange
                 }
             }
 
+            //Convert to Bat Object
+            int groupId = 0;
+            List<ShatterBound> shatterBounds = new List<ShatterBound>();
+            foreach (var group in uBounds)
+            {
+                ShatterBound uGroupObject = new ShatterBound(group, groupId, null);
+                shatterBounds.Add(uGroupObject);
+                groupId++;
+            }
+            foreach (var group in vBounds)
+            {
+                ShatterBound vGroupObject = new ShatterBound(group, null, groupId);
+                shatterBounds.Add(vGroupObject);
+                groupId++;
+            }
+
             DA.SetDataList(0, allJoin);
             DA.SetDataTree(1, groupBounds);
+            DA.SetDataList(1, shatterBounds);
         }
 
         /// <summary>

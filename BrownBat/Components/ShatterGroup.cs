@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace BrownBat.Components
 {
-    public class ShatterBound
+    public class ShatterGroup
     {
         public List<Brep> Bounds { get; set; }
         //public double X1, Y1, X2, Y2;
@@ -15,7 +15,7 @@ namespace BrownBat.Components
         public int? VGroupId { get; set; }
         public Plane CutPlane { get; private set; }
 
-        public ShatterBound(List<Brep> bounds, int? uGroupId, int? vGroupId)
+        public ShatterGroup(List<Brep> bounds, int? uGroupId, int? vGroupId)
         {
             Bounds = bounds;
             UGroupId = uGroupId;

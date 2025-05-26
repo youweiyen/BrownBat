@@ -32,7 +32,7 @@ namespace BrownBat.Arrange
         /// </summary>
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
-            pManager.AddGenericParameter("Bounds", "B", "Bound Object with group data", GH_ParamAccess.list);
+            pManager.AddGenericParameter("ShatterGroups", "G", "Shatter Objects with group data", GH_ParamAccess.list);
             pManager.AddCurveParameter("Stock", "S", "Stock Boundary Curve", GH_ParamAccess.item);
             pManager.AddNumberParameter("Conductivity", "C", "Conductivity in pixel array position", GH_ParamAccess.tree);
             pManager.AddIntegerParameter("JoinStart", "JO", "Start of Shatter Group. 2 parameters, true false for starting position.", GH_ParamAccess.list);
@@ -56,7 +56,7 @@ namespace BrownBat.Arrange
         /// <param name="DA">The DA object is used to retrieve from inputs and store in outputs.</param>
         protected override void SolveInstance(IGH_DataAccess DA)
         {
-            List<ShatterBound> inBound = new List<ShatterBound>();
+            List<ShatterGroup> inBound = new List<ShatterGroup>();
             Curve inStock = default; 
             GH_Structure<IGH_Goo> inConductivity = new GH_Structure<IGH_Goo>();
             List<int> inStart = new List<int>();
@@ -87,31 +87,84 @@ namespace BrownBat.Arrange
                 stockConductivity.Add(valueToDouble);
             }
 
+
             //join shatter
             List<CuttingBound> cuttingBounds = new List<CuttingBound>();
             //method
-            var grouped = new ConcurrentBag<List<ShatterBound>>();
-            var visited = new ConcurrentDictionary<ShatterBound, bool>();
+            var grouped = new ConcurrentBag<List<Brep>>();
+            var visited = new ConcurrentDictionary<Brep, bool>();
 
-            inBound.
+            var allBounds = inBound.Select(bound => bound.Bounds).SelectMany(br => br).Distinct().ToList();
+            
+            if(allBounds.Count() != inStart.Count)
+            { throw new Exception("Start parameter does not match object count!"); }
+            
+            var startBounds = allBounds.Zip(inStart, (br, st) => (br, st)).Where(grp => grp.st == 1).Select(grp => grp.br).ToList();
+            var startDirection = inDirection.Zip(inStart, (dir, st) => (dir, st)).Where(grp => grp.st == 1).Select(grp => grp.dir).ToList();
 
-            //Parallel.ForEach(inBound, rect =>
-            //{
-            //    if (visited.ContainsKey(rect)) return;
+            var boundWithDirection = startBounds.Zip(startDirection, (brep, dir) => (brep, dir)).ToList();
 
-            //    var group = FloodFill(rect, inBound, visited);
-            //    if (group.Count > 1)
-            //        grouped.Add(group);
-            //});
+            Parallel.ForEach(boundWithDirection, rect =>
+            {
+                if (visited.ContainsKey(rect.brep)) return;
+                
+                var neighbors = new List<Brep>();
+                int rectIndex = 0;
+                switch (rect.dir)
+                {
+                    case (int)JoinDirection.Left:
 
-            List<ShatterBound> shatterGroup = new List<ShatterBound>();
-            CuttingBound shatterToCut = new CuttingBound(shatterGroup);
-            cuttingBounds.Add(shatterToCut);
+                        neighbors = inBound.Where(grp => grp.Bounds.Contains(rect.brep))
+                                           .Where(nbr => nbr.UGroupId != null)
+                                           .FirstOrDefault()
+                                           .Bounds;
+                        neighbors.Reverse();
+                        rectIndex = neighbors.IndexOf(rect.brep);
+                        neighbors.RemoveRange(0, rectIndex);
+                        break;
+                    case (int)JoinDirection.Right:
+
+                        neighbors = inBound.Where(grp => grp.Bounds.Contains(rect.brep))
+                                           .Where(nbr => nbr.UGroupId != null)
+                                           .FirstOrDefault()
+                                           .Bounds;
+                        rectIndex = neighbors.IndexOf(rect.brep);
+                        neighbors.RemoveRange(0, rectIndex);
+                        break;
+                    case (int)JoinDirection.Top:
+                        neighbors = inBound.Where(grp => grp.Bounds.Contains(rect.brep))
+                                           .Where(nbr => nbr.VGroupId != null)
+                                           .FirstOrDefault()
+                                           .Bounds;
+                        neighbors.Reverse();
+                        rectIndex = neighbors.IndexOf(rect.brep);
+                        neighbors.RemoveRange(0, rectIndex);
+                        break;
+                    case (int)JoinDirection.Bottom:
+                        neighbors = inBound.Where(grp => grp.Bounds.Contains(rect.brep))
+                                           .Where(nbr => nbr.VGroupId != null)
+                                           .FirstOrDefault()
+                                           .Bounds;
+                        rectIndex = neighbors.IndexOf(rect.brep);
+                        neighbors.RemoveRange(0, rectIndex);
+                        break;
+                }
+
+                var group = FloodFill(rect.brep, neighbors, visited);
+                grouped.Add(group);
+            });
+
+            var shatterGroup = grouped.ToList();
+            foreach (var group in shatterGroup)
+            {
+                CuttingBound shatterToCut = new CuttingBound(group);
+                cuttingBounds.Add(shatterToCut);
+            }
 
             //calculate homogenity
             foreach (var bound in cuttingBounds)
             {
-                Brep joinBrep = Brep.JoinBreps(bound.Bounds.Select(b => b.Bound), tolerance).First();
+                Brep joinBrep = Brep.JoinBreps(bound.Bounds, tolerance).First();
                 
                 //get topleft bottom right startend domain
                 Curve referenceStock = inStock.DuplicateCurve();
@@ -186,37 +239,43 @@ namespace BrownBat.Arrange
             get { return new Guid("BE7A3EFA-5087-4FAA-B8D9-EDF812F5BC37"); }
         }
 
-        //public List<ShatterBound> FloodFill(ShatterBound start, List<ShatterBound> allRects, ConcurrentDictionary<ShatterBound, bool> visited)
-        //{
-        //    var group = new List<ShatterBound>();
-        //    var queue = new Queue<ShatterBound>();
-        //    queue.Enqueue(start);
-        //    visited.TryAdd(start, true);
+        public List<Brep> FloodFill(Brep start, List<Brep> groupRects, ConcurrentDictionary<Brep, bool> visited)
+        {
+            var group = new List<Brep>();
+            var queue = new Queue<Brep>();
+            queue.Enqueue(start);
+            visited.TryAdd(start, true);
 
-        //    while (queue.Count > 0)
-        //    {
-        //        var current = queue.Dequeue();
-        //        group.Add(current);
+            while (queue.Count > 0)
+            {
+                var current = queue.Dequeue();
+                group.Add(current);
 
-        //        foreach (var other in allRects)
-        //        {
-        //            if (!visited.ContainsKey(other) && current.IsAdjacent(other))
-        //            {
-        //                var testGroup = new List<ShatterBound>(group) { other };
+                foreach (var other in groupRects)
+                {
+                    if (!visited.ContainsKey(other))
+                    {
+                        var testGroup = new List<Brep>(group) { other };
 
-        //                visited.TryAdd(other, true);
-        //                queue.Enqueue(other);
-                        
-        //            }
-        //        }
-        //    }
+                        visited.TryAdd(other, true);
+                        queue.Enqueue(other);
 
-        //    return group;
-        //}
-        enum JoinDirection 
+                    }
+                    else { break; }
+                }
+            }
+
+            return group;
+        }
+        enum JoinDirection
         {
             Left = 0, Right = 1, Top = 2, Bottom = 3
         }
+        enum JoinStart
+        {
+            NotStart = 0, Start = 1
+        }
+
 
     }
 }

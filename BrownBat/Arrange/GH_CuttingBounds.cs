@@ -198,16 +198,16 @@ namespace BrownBat.Arrange
 
             //Convert to Bat Object
             int groupId = 0;
-            List<ShatterBound> shatterBounds = new List<ShatterBound>();
+            List<ShatterGroup> shatterBounds = new List<ShatterGroup>();
             foreach (var group in uBounds)
             {
-                ShatterBound uGroupObject = new ShatterBound(group, groupId, null);
+                ShatterGroup uGroupObject = new ShatterGroup(group, groupId, null);
                 shatterBounds.Add(uGroupObject);
                 groupId++;
             }
             foreach (var group in vBounds)
             {
-                ShatterBound vGroupObject = new ShatterBound(group, null, groupId);
+                ShatterGroup vGroupObject = new ShatterGroup(group, null, groupId);
                 shatterBounds.Add(vGroupObject);
                 groupId++;
             }

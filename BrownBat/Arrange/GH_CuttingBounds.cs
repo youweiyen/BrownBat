@@ -45,8 +45,9 @@ namespace BrownBat.Arrange
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
             pManager.AddCurveParameter("CuttingCurves", "CC", "Recatangular Cutting Lines", GH_ParamAccess.list);
+            pManager.AddBrepParameter("Shatters", "S", "Shattered Pieces", GH_ParamAccess.list);
             pManager.AddBrepParameter("Groups", "G", "Merge Groups", GH_ParamAccess.tree);
-            pManager.AddGenericParameter("ShatterBound", "SB", "Grouped Objects with group ID", GH_ParamAccess.list);
+            pManager.AddGenericParameter("ShatterGroups", "SG", "Grouped Objects with group ID", GH_ParamAccess.list);
         }
 
         /// <summary>
@@ -213,8 +214,9 @@ namespace BrownBat.Arrange
             }
 
             DA.SetDataList(0, allJoin);
-            DA.SetDataTree(1, groupBounds);
-            DA.SetDataList(1, shatterBounds);
+            DA.SetDataList(1, pieces);
+            DA.SetDataTree(2, groupBounds);
+            DA.SetDataList(3, shatterBounds);
         }
 
         /// <summary>

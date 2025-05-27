@@ -96,8 +96,7 @@ namespace BrownBat.Arrange
             var grouped = new ConcurrentBag<List<Brep>>();
             var visited = new ConcurrentDictionary<Brep, bool>();
 
-            var groupBounds = inBound.Select(bound => bound.Bounds).ToList();
-            var allBounds = groupBounds.SelectMany(br => br).Distinct(new BrepComparer()).ToList();
+            var allBounds = inBound.Select(bound => bound.Bounds).SelectMany(br => br).Distinct(new BrepComparer()).ToList();
 
             if (allBounds.Count() != inStart.Count)
             { throw new Exception("Start parameter does not match object count!"); }
@@ -117,44 +116,45 @@ namespace BrownBat.Arrange
                 if (visited.ContainsKey(rect.brep)) return;
 
                 var neighbors = new List<Brep>();
+                var allNeighbor = new List<Brep>();
                 int rectIndex = 0;
                 switch (rect.dir)
                 {
                     case (int)JoinDirection.Left:
 
-                        neighbors = inBound.Where(grp => CustomExtensions.Contains(grp.Bounds, rect.brep))
+                        allNeighbor = inBound.Where(grp => CustomExtensions.Contains(grp.Bounds, rect.brep))
                                            .Where(nbr => nbr.UGroupId != null)
                                            .First()
                                            .Bounds;
-                        neighbors.Reverse();
-                        rectIndex = neighbors.IndexOf(rect.brep);
-                        neighbors.RemoveRange(0, rectIndex);
+                        allNeighbor.Reverse();
+                        rectIndex = allNeighbor.IndexOf(rect.brep);
+                        neighbors = allNeighbor.GetRange(rectIndex, allNeighbor.Count - 1);
                         break;
                     case (int)JoinDirection.Right:
 
-                        neighbors = inBound.Where(grp => CustomExtensions.Contains(grp.Bounds, rect.brep))
+                        allNeighbor = inBound.Where(grp => CustomExtensions.Contains(grp.Bounds, rect.brep))
                                            .Where(nbr => nbr.UGroupId != null)
                                            .First()
                                            .Bounds;
-                        rectIndex = neighbors.IndexOf(rect.brep);
-                        neighbors.RemoveRange(0, rectIndex);
+                        rectIndex = allNeighbor.IndexOf(rect.brep);
+                        neighbors = allNeighbor.GetRange(rectIndex, allNeighbor.Count - 1);
                         break;
                     case (int)JoinDirection.Top:
-                        var a = inBound.Where(grp => CustomExtensions.Contains(grp.Bounds, rect.brep));
-                        var b = a.Where(nbr => nbr.VGroupId != null)
-                                      .First()
-                                      .Bounds;
-                        b.Reverse();
-                        rectIndex = b.IndexOf(rect.brep);
-                        b.RemoveRange(0, rectIndex);
+                        allNeighbor = inBound.Where(grp => CustomExtensions.Contains(grp.Bounds, rect.brep))
+                                             .Where(nbr => nbr.VGroupId != null)
+                                             .First()
+                                             .Bounds;
+                        allNeighbor.Reverse();
+                        rectIndex = allNeighbor.IndexOf(rect.brep);
+                        neighbors = allNeighbor.GetRange(rectIndex, allNeighbor.Count - 1);
                         break;
                     case (int)JoinDirection.Bottom:
                         neighbors = inBound.Where(grp => CustomExtensions.Contains(grp.Bounds, rect.brep))
                                            .Where(nbr => nbr.VGroupId != null)
                                            .First()
                                            .Bounds;
-                        rectIndex = neighbors.IndexOf(rect.brep);
-                        neighbors.RemoveRange(0, rectIndex);
+                        rectIndex = allNeighbor.IndexOf(rect.brep);
+                        neighbors = allNeighbor.GetRange(rectIndex, allNeighbor.Count - 1);
                         break;
                 }
 

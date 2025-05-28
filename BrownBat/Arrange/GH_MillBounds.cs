@@ -89,7 +89,8 @@ namespace BrownBat.Arrange
                 }
                 stockConductivity.Add(valueToDouble);
             }
-
+            int stockYCount = stockConductivity.Count;
+            int stockXCount = stockConductivity[0].Count;
 
             //join shatter
             List<CuttingBound> cuttingBounds = new List<CuttingBound>();
@@ -106,9 +107,7 @@ namespace BrownBat.Arrange
             if (allBounds.Count() != inStart.Count)
             { throw new Exception("Start parameter does not match object count!"); }
 
-            var mergeBrepNum = orderBounds.Zip(inStart, (br, st) => (br, st));
-            var startBounds = mergeBrepNum.Where(grp => grp.st == 1).Select(grp => grp.br);
-            var nonStartBounds = mergeBrepNum.Where(grp => grp.st == 0).Select(grp => grp.br);
+            var startBounds = orderBounds.Zip(inStart, (br, st) => (br, st)).Where(grp => grp.st == 1).Select(grp => grp.br);
             var startDirection = inDirection.Zip(inStart, (dir, st) => (dir, st)).Where(grp => grp.st == 1).Select(grp => grp.dir);
 
             var boundWithDirection = startBounds.Zip(startDirection, (brep, dir) => (brep, dir)).ToList();
@@ -191,6 +190,15 @@ namespace BrownBat.Arrange
                var group = FloodFill(rect.brep, neighbors, visitedBrep);
                groupedBrep.Add(group);
             }
+            var nonVisited = new List<Brep>();
+            foreach (var bound in orderBounds)
+            {
+                if (!visitedBrep.Contains(bound))
+                {
+                    nonVisited.Add(bound);
+                }
+            }
+
             var shatter = groupedBrep.Select(grp => Brep.JoinBreps(grp, tolerance)).ToList();
             List<Brep> pieces = new List<Brep>();
             foreach (var join in shatter)
@@ -201,7 +209,7 @@ namespace BrownBat.Arrange
                     pieces.Add(j);
                 }
             }
-            pieces.AddRange(nonStartBounds);
+            pieces.AddRange(nonVisited);
 
             foreach (var piece in pieces)
             {
@@ -210,59 +218,80 @@ namespace BrownBat.Arrange
             }
 
             //calculate homogenity
+            //get topleft bottom right startend domain
+            Curve referenceStock = inStock.DuplicateCurve();
+            referenceStock.Transform(moveToWorld);
+            referenceStock.TryGetPolyline(out var stockPoly);
+            List<Point3d> stockPoints = stockPoly.ToList();
+            stockPoints.RemoveAt(0);
+
+            double stockMinXPosition = stockPoints.OrderBy(pts => pts.X).First().X;
+            double stockMaxXPosition = stockPoints.OrderBy(pts => pts.X).Last().X;
+            double stockMinYPosition = stockPoints.OrderByDescending(pts => pts.Y).First().Y;
+            double stockMaxYPosition = stockPoints.OrderByDescending(pts => pts.Y).Last().Y;
+            
+            double stockXDistance = stockMaxXPosition - stockMinXPosition;
+            double stockYDistance = stockMinYPosition - stockMaxYPosition;
+
+            var pieceTopFifth = new List<double>();
+            var pieceBottomFifth = new List<double>();
+            var pieceMean = new List<double>();
+
             foreach (var bound in cuttingBounds)
             {
-                //get topleft bottom right startend domain
-                Curve referenceStock = inStock.DuplicateCurve();
-                referenceStock.Transform(moveToWorld);
-                referenceStock.TryGetPolyline(out var stockPoly);
-                List<Point3d> stockPoints = stockPoly.ToList();
-                stockPoints.RemoveAt(0);
-                //0 = topleft; 1 = bottomleft; 2 = topright; 3 = bottomright
-                var stockCorners = stockPoints.OrderBy(pts => pts.X).ThenBy(pts => pts.Y).ToList();
-
                 //get bound domian in start end
                 Brep moveBrep = bound.Bound.DuplicateBrep();
-                //moveBrep.Transform(moveToWorld);
+                moveBrep.Transform(moveToWorld);
                 Point3d[] boundVertices = moveBrep.DuplicateVertices();
-                var boundCorners = boundVertices.OrderBy(pts => pts.X).ThenBy(pts => pts.Y).ToList();
 
-                double stockXDistance = stockCorners[0].DistanceTo(stockCorners[2]);
-                double stockYDistance = stockCorners[0].DistanceTo(stockCorners[1]);
+                double boundMinXPosition = boundVertices.OrderBy(pts => pts.X).First().X;
+                double boundMaxXPosition = boundVertices.OrderBy(pts => pts.X).Last().X;
+                double boundMinYPosition = boundVertices.OrderByDescending(pts => pts.Y).First().Y;
+                double boundMaxYPosition = boundVertices.OrderByDescending(pts => pts.Y).Last().Y;
 
-                double xMin = boundCorners[0].X - stockCorners[0].X;
-                double xMax = boundCorners[2].X - stockCorners[0].X;
+                double xMin = boundMinXPosition - stockMinXPosition;
+                double xMax = boundMaxXPosition - stockMinXPosition;
                 double xMinInStock = xMin < 0 ? 0 : xMin;
                 double xMaxInStock = xMax > stockXDistance ? stockXDistance : xMax;
-                int xMinInterval = (int)Math.Round(xMinInStock / stockXDistance);
-                int xMaxInterval = (int)Math.Round(xMaxInStock / stockXDistance);
+                int xMinInterval = (int)Math.Round((xMinInStock / stockXDistance) * stockXCount);
+                int xMaxInterval = (int)Math.Round((xMaxInStock / stockXDistance) * stockXCount);
 
-                double yMin = boundCorners[0].Y - stockCorners[0].Y;
-                double yMax = boundCorners[1].Y - stockCorners[0].Y;
+                double yMin = Math.Abs(boundMinYPosition - stockMinYPosition);
+                double yMax = Math.Abs(boundMaxYPosition - stockMinYPosition);
                 double yMinInStock = yMin < 0 ? 0 : yMin;
                 double yMaxInStock = yMax > stockYDistance ? stockYDistance : yMax;
-                int yMinInterval = (int)Math.Round(yMinInStock / stockYDistance);
-                int yMaxInterval = (int)Math.Round(yMaxInStock / stockYDistance);
+                int yMinInterval = (int)Math.Round((yMinInStock / stockYDistance) * stockYCount);
+                int yMaxInterval = (int)Math.Round((yMaxInStock / stockYDistance) * stockYCount);
 
-                var dataInBound = stockConductivity.Select(list => list.GetRange(xMinInterval, xMaxInterval))
+                var dataInBound = stockConductivity.Select(list =>  list.GetRange(xMinInterval, xMaxInterval - xMinInterval))
                                                    .ToList()
-                                                   .GetRange(yMinInterval, yMaxInterval);
+                                                   .GetRange(yMinInterval, yMaxInterval - yMinInterval);
 
-
-                CuttingBound.SetBoundData(bound, dataInBound);
+                //CuttingBound.SetBoundData(bound, dataInBound);
 
                 double[] flattenData = dataInBound.SelectMany(i => i).ToArray();
-                double topFifth = CuttingBound.Percentile(flattenData, 5);
-                double lowFifth = CuttingBound.Percentile(flattenData, 95);
-                double mean = flattenData.Average();
+                if (flattenData.Length > 0)
+                {
+                    double topFifth = CuttingBound.Percentile(flattenData, 0.05);
+                    double lowFifth = CuttingBound.Percentile(flattenData, 0.95);
+                    double mean = flattenData.Average();
 
-                CuttingBound.SetMean(bound, mean);
-                CuttingBound.SetTopFifth(bound, topFifth);
-                CuttingBound.SetLowFifth(bound, lowFifth);
+                    pieceTopFifth.Add(topFifth);
+                    pieceBottomFifth.Add(lowFifth);
+                    pieceMean.Add(mean);
 
+                }
+
+                //CuttingBound.SetMean(bound, mean);
+                //CuttingBound.SetTopFifth(bound, topFifth);
+                //CuttingBound.SetLowFifth(bound, lowFifth);
             }
 
             DA.SetDataList(0, pieces);
+            DA.SetDataList(1, pieceMean);
+            DA.SetDataList(2, pieceTopFifth);
+            DA.SetDataList(3, pieceBottomFifth);
+
         }
 
         /// <summary>

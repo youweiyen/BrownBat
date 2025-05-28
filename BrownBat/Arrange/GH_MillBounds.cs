@@ -104,14 +104,15 @@ namespace BrownBat.Arrange
             var startBounds = allBounds.Zip(inStart, (br, st) => (br, st)).Where(grp => grp.st == 1).Select(grp => grp.br).ToList();
             var startDirection = inDirection.Zip(inStart, (dir, st) => (dir, st)).Where(grp => grp.st == 1).Select(grp => grp.dir).ToList();
 
-            List<Brep> startBoundsDup = new List<Brep>();
-            foreach (Brep b in startBounds)
-            {
-                startBoundsDup.Add(b.DuplicateBrep());
-            }
-            var boundWithDirection = startBoundsDup.Zip(startDirection, (brep, dir) => (brep, dir)).ToList();
+            //List<Brep> startBoundsDup = new List<Brep>();
+            //foreach (Brep b in startBounds)
+            //{
+            //    startBoundsDup.Add(b.DuplicateBrep());
+            //}
+            var boundWithDirection = startBounds.Zip(startDirection, (brep, dir) => (brep, dir)).ToList();
 
-            Parallel.ForEach(boundWithDirection, rect =>
+            var n = 0;
+            foreach(var rect in boundWithDirection)
             {
                 if (visited.ContainsKey(rect.brep)) return;
 
@@ -128,7 +129,7 @@ namespace BrownBat.Arrange
                                            .Bounds;
                         allNeighbor.Reverse();
                         rectIndex = allNeighbor.IndexOf(rect.brep);
-                        neighbors = allNeighbor.GetRange(rectIndex, allNeighbor.Count - 1);
+                        neighbors = allNeighbor.GetRange(rectIndex, allNeighbor.Count - rectIndex);
                         break;
                     case (int)JoinDirection.Right:
 
@@ -137,7 +138,7 @@ namespace BrownBat.Arrange
                                            .First()
                                            .Bounds;
                         rectIndex = allNeighbor.IndexOf(rect.brep);
-                        neighbors = allNeighbor.GetRange(rectIndex, allNeighbor.Count - 1);
+                        neighbors = allNeighbor.GetRange(rectIndex, allNeighbor.Count - rectIndex);
                         break;
                     case (int)JoinDirection.Top:
                         allNeighbor = inBound.Where(grp => CustomExtensions.Contains(grp.Bounds, rect.brep))
@@ -146,21 +147,22 @@ namespace BrownBat.Arrange
                                              .Bounds;
                         allNeighbor.Reverse();
                         rectIndex = allNeighbor.IndexOf(rect.brep);
-                        neighbors = allNeighbor.GetRange(rectIndex, allNeighbor.Count - 1);
+                        neighbors = allNeighbor.GetRange(rectIndex, allNeighbor.Count - rectIndex);
                         break;
                     case (int)JoinDirection.Bottom:
-                        neighbors = inBound.Where(grp => CustomExtensions.Contains(grp.Bounds, rect.brep))
+                        allNeighbor = inBound.Where(grp => CustomExtensions.Contains(grp.Bounds, rect.brep))
                                            .Where(nbr => nbr.VGroupId != null)
                                            .First()
                                            .Bounds;
                         rectIndex = allNeighbor.IndexOf(rect.brep);
-                        neighbors = allNeighbor.GetRange(rectIndex, allNeighbor.Count - 1);
+                        neighbors = allNeighbor.GetRange(rectIndex, allNeighbor.Count - rectIndex);
                         break;
                 }
+                n++;
 
                 var group = FloodFillParallel(rect.brep, neighbors, visited);
                 grouped.Add(group);
-            });
+            }
 
             //var shatterGroup = grouped.ToList();
             //foreach (var group in shatterGroup)

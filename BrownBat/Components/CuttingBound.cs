@@ -9,15 +9,15 @@ namespace BrownBat.Components
 {
     public class CuttingBound
     {
-        public List<Brep> Bounds { get; set; }
+        public Brep Bound { get; set; }
         public Plane CutPlane { get; private set; }
         public List<List<double>> ThermalData { get; private set; }
         public double Mean { get; set; }
         public double TopFifthPercentile {  get; set; }
         public double LowFifthPercentile { get; set; }
-        public CuttingBound(List<Brep> bounds)
+        public CuttingBound(Brep bound)
         {
-            Bounds = bounds;
+            Bound = bound;
         }
         public static void SetPlane(CuttingBound cuttingBound, Plane plane) => cuttingBound.CutPlane = plane;
         public static void SetBoundData(CuttingBound cuttingBound, List<List<double>> thermalData) => cuttingBound.ThermalData = thermalData;

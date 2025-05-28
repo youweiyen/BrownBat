@@ -70,11 +70,12 @@ namespace BrownBat.Arrange
             DA.GetDataList(3, inStart);
             DA.GetDataList(4, inDirection);
 
-            Transform moveToWorld = Transform.PlaneToPlane(inBound[0].CutPlane, Plane.WorldXY);
+            Transform moveToWorld = Transform.PlaneToPlane(ShatterGroup.CutPlane, Plane.WorldXY);
             try { moveToWorld.TryGetInverse(out Transform moveBack); }
             catch { throw new Exception("could not get inverse matrix"); }
 
             double tolerance = RhinoDoc.ActiveDoc.ModelAbsoluteTolerance;
+            double angleTolerance = RhinoDoc.ActiveDoc.ModelAngleToleranceRadians;
 
             List<List<double>> stockConductivity = new List<List<double>>();
             for (int branch = 0; branch < inConductivity.Branches.Count; branch++)
@@ -93,28 +94,29 @@ namespace BrownBat.Arrange
             //join shatter
             List<CuttingBound> cuttingBounds = new List<CuttingBound>();
             //method
-            var grouped = new ConcurrentBag<List<Brep>>();
-            var visited = new ConcurrentDictionary<Brep, bool>();
+
+            //var grouped = new ConcurrentBag<List<Brep>>();
+            //var visited = new ConcurrentDictionary<Brep, bool>();
+            var visitedBrep = new List<Brep>();
+            var groupedBrep = new List<List<Brep>>();
 
             var allBounds = inBound.Select(bound => bound.Bounds).SelectMany(br => br).Distinct(new BrepComparer()).ToList();
+            var orderBounds = allBounds.OrderBy(b => AreaMassProperties.Compute(b).Area).ToList();
 
             if (allBounds.Count() != inStart.Count)
             { throw new Exception("Start parameter does not match object count!"); }
 
-            var startBounds = allBounds.Zip(inStart, (br, st) => (br, st)).Where(grp => grp.st == 1).Select(grp => grp.br).ToList();
-            var startDirection = inDirection.Zip(inStart, (dir, st) => (dir, st)).Where(grp => grp.st == 1).Select(grp => grp.dir).ToList();
+            var mergeBrepNum = orderBounds.Zip(inStart, (br, st) => (br, st));
+            var startBounds = mergeBrepNum.Where(grp => grp.st == 1).Select(grp => grp.br);
+            var nonStartBounds = mergeBrepNum.Where(grp => grp.st == 0).Select(grp => grp.br);
+            var startDirection = inDirection.Zip(inStart, (dir, st) => (dir, st)).Where(grp => grp.st == 1).Select(grp => grp.dir);
 
-            //List<Brep> startBoundsDup = new List<Brep>();
-            //foreach (Brep b in startBounds)
-            //{
-            //    startBoundsDup.Add(b.DuplicateBrep());
-            //}
             var boundWithDirection = startBounds.Zip(startDirection, (brep, dir) => (brep, dir)).ToList();
 
-            var n = 0;
             foreach(var rect in boundWithDirection)
             {
-                if (visited.ContainsKey(rect.brep)) return;
+                //if (visited.ContainsKey(rect.brep)) return;
+                if(visitedBrep.Contains(rect.brep)) continue;
 
                 var neighbors = new List<Brep>();
                 var allNeighbor = new List<Brep>();
@@ -127,9 +129,16 @@ namespace BrownBat.Arrange
                                            .Where(nbr => nbr.UGroupId != null)
                                            .First()
                                            .Bounds;
-                        allNeighbor.Reverse();
+
                         rectIndex = allNeighbor.IndexOf(rect.brep);
-                        neighbors = allNeighbor.GetRange(rectIndex, allNeighbor.Count - rectIndex);
+                        if (rectIndex == allNeighbor.Count - 1)
+                        {
+                            neighbors = allNeighbor;
+                        }
+                        else
+                        { 
+                            neighbors = allNeighbor.GetRange(0, rectIndex);
+                        }
                         break;
                     case (int)JoinDirection.Right:
 
@@ -138,16 +147,29 @@ namespace BrownBat.Arrange
                                            .First()
                                            .Bounds;
                         rectIndex = allNeighbor.IndexOf(rect.brep);
-                        neighbors = allNeighbor.GetRange(rectIndex, allNeighbor.Count - rectIndex);
+                        if (rectIndex == allNeighbor.Count - 1)
+                        {
+                            neighbors = allNeighbor;
+                        }
+                        else
+                        {
+                            neighbors = allNeighbor.GetRange(rectIndex + 1, allNeighbor.Count - rectIndex - 1);
+                        }
                         break;
                     case (int)JoinDirection.Top:
                         allNeighbor = inBound.Where(grp => CustomExtensions.Contains(grp.Bounds, rect.brep))
                                              .Where(nbr => nbr.VGroupId != null)
                                              .First()
                                              .Bounds;
-                        allNeighbor.Reverse();
                         rectIndex = allNeighbor.IndexOf(rect.brep);
-                        neighbors = allNeighbor.GetRange(rectIndex, allNeighbor.Count - rectIndex);
+                        if (rectIndex == allNeighbor.Count - 1)
+                        {
+                            neighbors = allNeighbor;
+                        }
+                        else
+                        {
+                            neighbors = allNeighbor.GetRange(0, rectIndex);
+                        }
                         break;
                     case (int)JoinDirection.Bottom:
                         allNeighbor = inBound.Where(grp => CustomExtensions.Contains(grp.Bounds, rect.brep))
@@ -155,79 +177,92 @@ namespace BrownBat.Arrange
                                            .First()
                                            .Bounds;
                         rectIndex = allNeighbor.IndexOf(rect.brep);
-                        neighbors = allNeighbor.GetRange(rectIndex, allNeighbor.Count - rectIndex);
+                        if (rectIndex == allNeighbor.Count - 1)
+                        {
+                            neighbors = allNeighbor;
+                        }
+                        else
+                        {
+                            neighbors = allNeighbor.GetRange(rectIndex + 1, allNeighbor.Count - rectIndex - 1);
+                        }
                         break;
                 }
-                n++;
 
-                var group = FloodFillParallel(rect.brep, neighbors, visited);
-                grouped.Add(group);
+               var group = FloodFill(rect.brep, neighbors, visitedBrep);
+               groupedBrep.Add(group);
+            }
+            var shatter = groupedBrep.Select(grp => Brep.JoinBreps(grp, tolerance)).ToList();
+            List<Brep> pieces = new List<Brep>();
+            foreach (var join in shatter)
+            {
+                foreach(var j in join)
+                {
+                    j.MergeCoplanarFaces(tolerance, angleTolerance);
+                    pieces.Add(j);
+                }
+            }
+            pieces.AddRange(nonStartBounds);
+
+            foreach (var piece in pieces)
+            {
+                CuttingBound shatterToCut = new CuttingBound(piece);
+                cuttingBounds.Add(shatterToCut);
             }
 
-            //var shatterGroup = grouped.ToList();
-            //foreach (var group in shatterGroup)
-            //{
-            //    CuttingBound shatterToCut = new CuttingBound(group);
-            //    cuttingBounds.Add(shatterToCut);
-            //}
-            //var shatter = shatterGroup.Select(grp => Brep.JoinBreps(grp, tolerance)).ToList();
-
             //calculate homogenity
-            //foreach (var bound in cuttingBounds)
-            //{
-            //    Brep joinBrep = Brep.JoinBreps(bound.Bounds, tolerance).First();
+            foreach (var bound in cuttingBounds)
+            {
+                //get topleft bottom right startend domain
+                Curve referenceStock = inStock.DuplicateCurve();
+                referenceStock.Transform(moveToWorld);
+                referenceStock.TryGetPolyline(out var stockPoly);
+                List<Point3d> stockPoints = stockPoly.ToList();
+                stockPoints.RemoveAt(0);
+                //0 = topleft; 1 = bottomleft; 2 = topright; 3 = bottomright
+                var stockCorners = stockPoints.OrderBy(pts => pts.X).ThenBy(pts => pts.Y).ToList();
 
-            //    //get topleft bottom right startend domain
-            //    Curve referenceStock = inStock.DuplicateCurve();
-            //    referenceStock.Transform(moveToWorld);
-            //    referenceStock.TryGetPolyline(out var stockPoly);
-            //    List<Point3d> stockPoints = stockPoly.ToList();
-            //    stockPoints.RemoveAt(0);
-            //    //0 = topleft; 1 = bottomleft; 2 = topright; 3 = bottomright
-            //    var stockCorners = stockPoints.OrderBy(pts => pts.X).ThenBy(pts => pts.Y).ToList();
+                //get bound domian in start end
+                Brep moveBrep = bound.Bound.DuplicateBrep();
+                //moveBrep.Transform(moveToWorld);
+                Point3d[] boundVertices = moveBrep.DuplicateVertices();
+                var boundCorners = boundVertices.OrderBy(pts => pts.X).ThenBy(pts => pts.Y).ToList();
 
-            //    //get bound domian in start end
-            //    Brep moveBrep = joinBrep.DuplicateBrep();
-            //    moveBrep.Transform(moveToWorld);
-            //    Point3d[] boundVertices = moveBrep.DuplicateVertices();
-            //    var boundCorners = boundVertices.OrderBy(pts => pts.X).ThenBy(pts => pts.Y).ToList();
+                double stockXDistance = stockCorners[0].DistanceTo(stockCorners[2]);
+                double stockYDistance = stockCorners[0].DistanceTo(stockCorners[1]);
 
-            //    double stockXDistance = stockCorners[0].DistanceTo(stockCorners[2]);
-            //    double stockYDistance = stockCorners[0].DistanceTo(stockCorners[1]);
+                double xMin = boundCorners[0].X - stockCorners[0].X;
+                double xMax = boundCorners[2].X - stockCorners[0].X;
+                double xMinInStock = xMin < 0 ? 0 : xMin;
+                double xMaxInStock = xMax > stockXDistance ? stockXDistance : xMax;
+                int xMinInterval = (int)Math.Round(xMinInStock / stockXDistance);
+                int xMaxInterval = (int)Math.Round(xMaxInStock / stockXDistance);
 
-            //    double xMin = boundCorners[0].X - stockCorners[0].X;
-            //    double xMax = boundCorners[2].X - stockCorners[0].X;
-            //    double xMinInStock = xMin < 0 ? 0: xMin;
-            //    double xMaxInStock = xMax > stockXDistance ? stockXDistance : xMax ;
-            //    int xMinInterval = (int) Math.Round(xMinInStock/stockXDistance);
-            //    int xMaxInterval = (int) Math.Round(xMaxInStock/stockXDistance);
+                double yMin = boundCorners[0].Y - stockCorners[0].Y;
+                double yMax = boundCorners[1].Y - stockCorners[0].Y;
+                double yMinInStock = yMin < 0 ? 0 : yMin;
+                double yMaxInStock = yMax > stockYDistance ? stockYDistance : yMax;
+                int yMinInterval = (int)Math.Round(yMinInStock / stockYDistance);
+                int yMaxInterval = (int)Math.Round(yMaxInStock / stockYDistance);
 
-            //    double yMin = boundCorners[0].Y - stockCorners[0].Y;
-            //    double yMax = boundCorners[1].Y - stockCorners[0].Y;
-            //    double yMinInStock = yMin < 0 ? 0: yMin;
-            //    double yMaxInStock = yMax > stockYDistance ? stockYDistance : yMax ;
-            //    int yMinInterval = (int) Math.Round(yMinInStock/stockYDistance);
-            //    int yMaxInterval = (int) Math.Round(yMaxInStock/stockYDistance);
-
-            //    var dataInBound = stockConductivity.Select(list => list.GetRange(xMinInterval, xMaxInterval))
-            //                                       .ToList()
-            //                                       .GetRange(yMinInterval, yMaxInterval);
+                var dataInBound = stockConductivity.Select(list => list.GetRange(xMinInterval, xMaxInterval))
+                                                   .ToList()
+                                                   .GetRange(yMinInterval, yMaxInterval);
 
 
-            //    CuttingBound.SetBoundData(bound, dataInBound);
+                CuttingBound.SetBoundData(bound, dataInBound);
 
-            //    double[] flattenData = dataInBound.SelectMany(i => i).ToArray();
-            //    double topFifth = CuttingBound.Percentile(flattenData, 5);
-            //    double lowFifth = CuttingBound.Percentile(flattenData, 95);
-            //    double mean = flattenData.Average();
+                double[] flattenData = dataInBound.SelectMany(i => i).ToArray();
+                double topFifth = CuttingBound.Percentile(flattenData, 5);
+                double lowFifth = CuttingBound.Percentile(flattenData, 95);
+                double mean = flattenData.Average();
 
-            //    CuttingBound.SetMean(bound, mean);
-            //    CuttingBound.SetTopFifth(bound, topFifth);
-            //    CuttingBound.SetLowFifth(bound, lowFifth);
+                CuttingBound.SetMean(bound, mean);
+                CuttingBound.SetTopFifth(bound, topFifth);
+                CuttingBound.SetLowFifth(bound, lowFifth);
 
-            //}
+            }
 
-            DA.SetDataList(0, allBounds);
+            DA.SetDataList(0, pieces);
         }
 
         /// <summary>
@@ -279,30 +314,23 @@ namespace BrownBat.Arrange
 
             return group;
         }
-        public List<Brep> FloodFill(Brep start, List<Brep> groupRects, ConcurrentDictionary<Brep, bool> visited)
+        public List<Brep> FloodFill(Brep start, List<Brep> groupRects, List<Brep> visited)
         {
             var group = new List<Brep>();
-            var queue = new Queue<Brep>();
-            queue.Enqueue(start);
-            visited.TryAdd(start, true);
+            visited.Add(start);
 
-            while (queue.Count > 0)
+            group.Add(start);
+
+            foreach (var other in groupRects)
             {
-                var current = queue.Dequeue();
-                group.Add(current);
-
-                foreach (var other in groupRects)
+                if (!visited.Contains(other))
                 {
-                    if (!visited.ContainsKey(other))
-                    {
-                        var testGroup = new List<Brep>(group) { other };
+                    group.Add(other);
 
-                        visited.TryAdd(other, true);
-                        queue.Enqueue(other);
+                    visited.Add(other);
 
-                    }
-                    else { break; }
                 }
+                else { break; }
             }
 
             return group;

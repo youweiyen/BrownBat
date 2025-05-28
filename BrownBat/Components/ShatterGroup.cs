@@ -13,7 +13,7 @@ namespace BrownBat.Components
         //public double X1, Y1, X2, Y2;
         public int? UGroupId { get; set; }
         public int? VGroupId { get; set; }
-        public Plane CutPlane { get; private set; }
+        public static Plane CutPlane;
 
         public ShatterGroup(List<Brep> bounds, int? uGroupId, int? vGroupId)
         {

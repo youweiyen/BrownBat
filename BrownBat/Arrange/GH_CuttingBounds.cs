@@ -200,6 +200,8 @@ namespace BrownBat.Arrange
             //Convert to Bat Object
             int groupId = 0;
             List<ShatterGroup> shatterBounds = new List<ShatterGroup>();
+            ShatterGroup.CutPlane = inPlane;
+
             foreach (var group in uBounds)
             {
                 ShatterGroup uGroupObject = new ShatterGroup(group, groupId, null);

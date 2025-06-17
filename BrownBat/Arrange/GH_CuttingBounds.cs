@@ -421,6 +421,10 @@ namespace BrownBat.Arrange
 
             }
         }
+        public void MergeUncuttable()
+        {
+            
+        }
         public enum SetDirection
         {
             Horizontal,

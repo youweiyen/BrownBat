@@ -39,14 +39,11 @@ namespace BrownBat.Arrange
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
             pManager.AddCurveParameter("PatternCurve", "PC", "All defined pattern as curves", GH_ParamAccess.list);
-            pManager.AddNumberParameter("MinDimension", "Min", "Smallest dimension of pattern" + 
-                "Default set to 12", GH_ParamAccess.item);
             pManager.AddNumberParameter("MillDistance", "MDist", "Merge cutting edges within distance. Cannot be larger than min dimension" +
                 "Default set to 6", GH_ParamAccess.item);
             pManager.AddPlaneParameter("CutPlane", "CP", "Cutting Rotation Plane", GH_ParamAccess.item);
             pManager[1].Optional = true;
             pManager[2].Optional = true;
-            pManager[3].Optional = true;
         }
 
         /// <summary>
@@ -67,13 +64,11 @@ namespace BrownBat.Arrange
         protected override void SolveInstance(IGH_DataAccess DA)
         {
             List<Curve> inCurve = new List<Curve>();
-            double minLength = 12;
             double minDistance = 6;
             Plane inPlane = Plane.WorldXY;
             DA.GetDataList(0, inCurve);
-            DA.GetData(1, ref minLength);
-            DA.GetData(2, ref minDistance);
-            DA.GetData(3, ref inPlane);
+            DA.GetData(1, ref minDistance);
+            DA.GetData(2, ref inPlane);
 
             var sortedCurves = inCurve.OrderByDescending(crv => AreaMassProperties.Compute(crv).Area);
 
@@ -88,7 +83,7 @@ namespace BrownBat.Arrange
                 Point3d centerPoint = new Point3d(points.Average(po => po.X),points.Average(po => po.Y), 0);
                 Plane plane = new Plane(centerPoint, inPlane.ZAxis);
                 Rectangle3d minBox = AreaHelper.MinBoundingBox(points, inPlane);
-                if(minBox.X.Length > minLength && minBox.Y.Length > minLength)
+                if(minBox.X.Length > minDistance*2 && minBox.Y.Length > minDistance*2)
                 {
                     validCurves.Add(curve);
                     Plane minPlane = minBox.Plane;

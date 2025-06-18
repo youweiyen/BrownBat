@@ -33,10 +33,12 @@ namespace BrownBat.Arrange
         {
             pManager.AddGenericParameter("Patttern", "P", "Pattern Object", GH_ParamAccess.list);
             pManager.AddCurveParameter("Boundary", "B", "Stock Boundary", GH_ParamAccess.item);
+            pManager.AddNumberParameter("MinDimension", "MD", "Minimum Dimension of Shatters, default set to 12", GH_ParamAccess.item);
             pManager.AddPlaneParameter("CutPlane", "CP", "Cutting Rotaion Plane" +
                 "Default set to WorldXY", GH_ParamAccess.item);
-            //pManager.AddNumberParameter("");
             pManager[2].Optional = true;
+            pManager[3].Optional = true;
+
         }
 
         /// <summary>
@@ -58,10 +60,12 @@ namespace BrownBat.Arrange
         {
             List<ColorPattern> inPattern = new List<ColorPattern>();
             Curve inBound = default;
+            double inDimension = 12;
             Plane inPlane = Plane.WorldXY;
             DA.GetDataList(0, inPattern);
             DA.GetData(1, ref inBound);
-            DA.GetData(2, ref inPlane);
+            DA.GetData(2, ref inDimension);
+            DA.GetData(3, ref inPlane);
 
 
             double tolerance = RhinoDoc.ActiveDoc.ModelAbsoluteTolerance;
@@ -119,8 +123,8 @@ namespace BrownBat.Arrange
 
             //remove short lines
             //sort horizontal curve down top, sort vertical curve left to right
-            List<Curve> uJoin = CleanSplitCurve(uDirection, SetDirection.Horizontal);
-            List<Curve> vJoin = CleanSplitCurve(vDirection, SetDirection.Vertical);
+            List<Curve> uJoin = CleanSplitCurve(uDirection, SetDirection.Horizontal, inDimension);
+            List<Curve> vJoin = CleanSplitCurve(vDirection, SetDirection.Vertical, inDimension);
 
             //move bound to original material size
             List<Curve> orderUJoin = uJoin.OrderBy(crv => crv.PointAtEnd.X).ToList();
@@ -174,6 +178,9 @@ namespace BrownBat.Arrange
 
             uBounds.ForEach(grp => grp.OrderBy(b => Math.Round(AreaMassProperties.Compute(b).Centroid.X, 3)));
             vBounds.ForEach(grp => grp.OrderByDescending(b => Math.Round(AreaMassProperties.Compute(b).Centroid.Y, 3)));
+
+            //merge pieces with small dimensions to neighbor
+
 
             var allBounds = uBounds.Concat(vBounds);
             DataTree<Brep> groupBounds = new DataTree<Brep>();
@@ -241,16 +248,18 @@ namespace BrownBat.Arrange
         {
             get { return new Guid("16B21534-A8C6-445F-852A-4423D470E61E"); }
         }
-        public List<Curve> CleanSplitCurve(List<Curve> curvesToClean, SetDirection direction)
+        public List<Curve> CleanSplitCurve(List<Curve> curvesToClean, SetDirection direction, double minDimension)
         {
             switch (direction)
             {
                 case SetDirection.Horizontal:
+                    //merge overlaps and small curve segments
                     var uAxisGroup = curvesToClean.GroupBy(uPoints => uPoints.PointAtEnd.X,
                                                         uPoints => uPoints,
                                                         (key, g) => new { xId = key, crv = g.ToList() })
                                                 .OrderBy(sets => sets.xId)
                                                 .ToList();
+
 
                     List<double> moveId = new List<double>();
                     for (int i = 0; i < uAxisGroup.Count - 1; i++)
@@ -262,7 +271,7 @@ namespace BrownBat.Arrange
                                 if (!moveId.Contains(uAxisGroup[j].xId))
                                 {
                                     double distance = Math.Abs(uAxisGroup[i].xId - uAxisGroup[j].xId);
-                                    if (distance < 12)
+                                    if (distance < 8)
                                     {
                                         Transform move = Transform.Translation(-distance, 0, 0);
 
@@ -296,7 +305,36 @@ namespace BrownBat.Arrange
                         uJoin.Add(plCurve);
 
                     }
-                    return uJoin;
+                    //merge minimum dimensions
+                    var uJoinOrder = uJoin.OrderByDescending(uCurve => uCurve.GetLength()).ToList();
+                    List<Curve> removeUCurves = new List<Curve>();
+                    List<Curve> keepUCurves = new List<Curve>();
+                    for (int i = 0; i < uJoinOrder.Count - 1; i++)
+                    {
+                        if (!removeUCurves.Contains(uJoinOrder[i]))
+                        {
+                            for (int j = i + 1; j < uJoinOrder.Count; j++)
+                            {
+                                if (!removeUCurves.Contains(uJoinOrder[j]))
+                                {
+                                    double distance = Math.Abs(uJoinOrder[i].PointAtEnd.X - uJoinOrder[j].PointAtEnd.X);
+                                    if (distance < minDimension)
+                                    {
+                                        removeUCurves.Add(uJoinOrder[j]);
+                                    }
+                                }
+
+                            }
+                        }
+                    }
+                    foreach (var uCurve in uJoinOrder)
+                    {
+                        if (!removeUCurves.Contains(uCurve))
+                        {
+                            keepUCurves.Add(uCurve);
+                        }
+                    }
+                    return keepUCurves;
                     
                 case SetDirection.Vertical:
                     var vAxisGroup = curvesToClean.GroupBy(uPoints => uPoints.PointAtEnd.Y,
@@ -315,7 +353,7 @@ namespace BrownBat.Arrange
                                 if (!moveYId.Contains(vAxisGroup[j].yId))
                                 {
                                     double distance = Math.Abs(vAxisGroup[i].yId - vAxisGroup[j].yId);
-                                    if (distance < 12)
+                                    if (distance < 8)
                                     {
                                         Transform move = Transform.Translation(0, -distance, 0);
                                         foreach (var crv in vAxisGroup[j].crv)
@@ -348,7 +386,36 @@ namespace BrownBat.Arrange
                         vJoin.Add(plCurve);
 
                     }
-                    return vJoin;
+                    //merge minimum dimensions
+                    var vJoinOrder = vJoin.OrderByDescending(vCurve => vCurve.GetLength()).ToList();
+                    List<Curve> removeVCurves = new List<Curve>();
+                    List<Curve> keepVCurves = new List<Curve>();
+                    for (int i = 0; i < vJoinOrder.Count - 1; i++)
+                    {
+                        if (!removeVCurves.Contains(vJoinOrder[i]))
+                        {
+                            for (int j = i + 1; j < vJoinOrder.Count; j++)
+                            {
+                                if (!removeVCurves.Contains(vJoinOrder[j]))
+                                {
+                                    double distance = Math.Abs(vJoinOrder[i].PointAtEnd.Y - vJoinOrder[j].PointAtEnd.Y);
+                                    if (distance < minDimension)
+                                    {
+                                        removeVCurves.Add(vJoinOrder[j]);
+                                    }
+                                }
+
+                            }
+                        }
+                    }
+                    foreach (var vCurve in vJoinOrder)
+                    {
+                        if (!removeVCurves.Contains(vCurve))
+                        {
+                            keepVCurves.Add(vCurve);
+                        }
+                    }
+                    return keepVCurves;
             }
             return null;
         }

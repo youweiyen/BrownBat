@@ -116,11 +116,11 @@ namespace BrownBat.Arrange
 
             double stockMinXPosition = stockPoints.OrderBy(pts => pts.X).First().X;
             double stockMaxXPosition = stockPoints.OrderBy(pts => pts.X).Last().X;
-            double stockMinYPosition = stockPoints.OrderByDescending(pts => pts.Y).First().Y;
-            double stockMaxYPosition = stockPoints.OrderByDescending(pts => pts.Y).Last().Y;
+            double stockMinYPosition = stockPoints.OrderBy(pts => pts.Y).First().Y;
+            double stockMaxYPosition = stockPoints.OrderBy(pts => pts.Y).Last().Y;
             
             double stockXDistance = stockMaxXPosition - stockMinXPosition;
-            double stockYDistance = stockMinYPosition - stockMaxYPosition;
+            double stockYDistance = stockMaxYPosition - stockMinYPosition;
 
             var pieceTopFifth = new List<double>();
             var pieceBottomFifth = new List<double>();
@@ -136,8 +136,8 @@ namespace BrownBat.Arrange
 
                 double boundMinXPosition = boundVertices.OrderBy(pts => pts.X).First().X;
                 double boundMaxXPosition = boundVertices.OrderBy(pts => pts.X).Last().X;
-                double boundMinYPosition = boundVertices.OrderByDescending(pts => pts.Y).First().Y;
-                double boundMaxYPosition = boundVertices.OrderByDescending(pts => pts.Y).Last().Y;
+                double boundMinYPosition = boundVertices.OrderBy(pts => pts.Y).First().Y;
+                double boundMaxYPosition = boundVertices.OrderBy(pts => pts.Y).Last().Y;
 
                 double xMin = boundMinXPosition - stockMinXPosition;
                 double xMax = boundMaxXPosition - stockMinXPosition;
